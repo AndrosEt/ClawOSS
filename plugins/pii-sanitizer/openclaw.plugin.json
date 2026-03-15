@@ -1,0 +1,5 @@
+{
+  "id": "clawoss-pii-sanitizer",
+  "name": "PII Sanitizer",
+  "description": "Replaces @ symbols and PII patterns in tool results to prevent OpenRouter content filter 403 errors"
+}

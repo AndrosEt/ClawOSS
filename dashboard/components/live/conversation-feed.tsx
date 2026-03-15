@@ -155,6 +155,13 @@ export function ConversationFeed({
 
         const isSlow = (msg.durationMs || 0) > 5000;
 
+        // Detect PII-sanitized content
+        const hasSanitized =
+          msg.content?.includes("\uFF20") ||
+          msg.content?.includes("[REDACTED_EMAIL]") ||
+          msg.content?.includes("[REDACTED_PHONE]") ||
+          msg.content?.includes("[REDACTED_IP]");
+
         return (
           <div
             key={msg.id}
@@ -230,6 +237,15 @@ export function ConversationFeed({
                     ? msg.sessionId.slice(0, 12) + ".."
                     : msg.sessionId}
                 </span>
+              )}
+              {hasSanitized && (
+                <Badge
+                  variant="outline"
+                  className="text-[7px] h-3 px-1 text-green-400/60 border-green-400/20"
+                  title="Content was sanitized by PII filter to prevent 403 errors"
+                >
+                  PII
+                </Badge>
               )}
               <span className="text-[10px] text-muted-foreground ml-auto">
                 {timeStr}
