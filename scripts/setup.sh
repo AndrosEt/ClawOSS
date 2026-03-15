@@ -31,8 +31,8 @@ echo "OpenRouter API key configured"
 
 # Configure git identity for BillionClaw
 git config --global user.name "BillionClaw"
-git config --global user.email "drsparrowhawk@proton.me"
-echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
+git config --global user.email "billionclaw+clawoss@users.noreply.github.com"
+echo "Git identity set to BillionClaw <billionclaw+clawoss@users.noreply.github.com>"
 
 # Check gh auth — prompt interactive login if not authenticated
 if gh auth status 2>/dev/null; then
