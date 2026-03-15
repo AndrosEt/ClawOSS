@@ -15,23 +15,20 @@
     "defaults": {
       "workspace": "./workspace",
       "model": {
-        "primary": "claude-sonnet-4-6",
-        "fallbacks": ["claude-haiku-4-5"]
+        "primary": "openrouter/minimax/minimax-m2.5",
+        "fallbacks": ["openrouter/minimax/minimax-m2.5"]
       },
       "models": {
         "allowlist": [
-          "claude-opus-4-6",
-          "claude-sonnet-4-6",
-          "claude-haiku-4-5"
+          "openrouter/minimax/minimax-m2.5"
         ],
         "aliases": {
-          "deep-think": "claude-opus-4-6",
-          "fast": "claude-haiku-4-5"
+          "default": "openrouter/minimax/minimax-m2.5"
         }
       },
       "heartbeat": {
         "every": "60m",
-        "model": "claude-haiku-4-5",
+        "model": "openrouter/minimax/minimax-m2.5",
         "prompt": "Run the heartbeat checklist in HEARTBEAT.md",
         "isolatedSession": false
       },
@@ -45,9 +42,14 @@
       "compaction": {
         "mode": "auto",
         "targetTokens": 500000,
-        "model": "claude-haiku-4-5",
+        "model": "openrouter/minimax/minimax-m2.5",
         "keepRecentTokens": 50000,
         "memoryFlush": true
+      },
+      "subagents": {
+        "model": "openrouter/minimax/minimax-m2.5",
+        "maxConcurrent": 1,
+        "runTimeoutSeconds": 300
       },
       "imageMaxDimensionPx": 1024
     },
@@ -55,7 +57,7 @@
       {
         "id": "clawoss",
         "model": {
-          "primary": "claude-sonnet-4-6"
+          "primary": "openrouter/minimax/minimax-m2.5"
         },
         "tools": {
           "profile": "coding"
@@ -65,7 +67,7 @@
   },
 
   "skills": {
-    "allowBundled": ["github", "gemini", "agent-tools"],
+    "allowBundled": ["github", "agent-tools"],
     "load": {
       "extraDirs": [],
       "watch": true,

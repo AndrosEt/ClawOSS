@@ -11,26 +11,36 @@ command -v node >/dev/null 2>&1 || { echo "Error: node not found"; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Load .env for API keys
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+    echo "Loaded .env"
+else
+    echo "Warning: .env not found. Copy .env.example to .env and fill in values."
+    exit 1
+fi
+
+# Verify OpenRouter API key
+if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+    echo "Error: OPENROUTER_API_KEY not set in .env"
+    exit 1
+fi
+echo "OpenRouter API key configured"
+
 # Configure git identity for BillionClaw
 git config --global user.name "BillionClaw"
 git config --global user.email "drsparrowhawk@proton.me"
 echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
 
-# Load .env for GITHUB_TOKEN if available
-if [ -f "$PROJECT_DIR/.env" ]; then
-    export GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' "$PROJECT_DIR/.env" | cut -d= -f2)
-fi
-
-# Authenticate gh CLI
+# Check gh auth — prompt interactive login if not authenticated
 if gh auth status 2>/dev/null; then
     echo "GitHub CLI already authenticated"
-elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "$GITHUB_TOKEN" | gh auth login --with-token
-    echo "GitHub CLI authenticated with PAT from .env"
 else
-    echo "GitHub CLI not authenticated. Run: gh auth login"
-    echo "Or add GITHUB_TOKEN to .env"
-    exit 1
+    echo "GitHub CLI not authenticated. Starting interactive login..."
+    echo "Log in as BillionClaw (https://github.com/BillionClaw)"
+    gh auth login
 fi
 
 # Verify gh auth
@@ -61,6 +71,18 @@ if [ ! -f "$HOME/.openclaw/openclaw.json" ]; then
     echo "Copied openclaw.json to $HOME/.openclaw/"
 else
     echo "openclaw.json already exists — skipping (check config/openclaw.json for updates)"
+fi
+
+# Register the clawoss agent
+if openclaw agents list 2>/dev/null | grep -q "^- clawoss "; then
+    echo "Agent 'clawoss' already registered"
+else
+    echo "Registering agent 'clawoss'..."
+    openclaw agents add clawoss \
+        --workspace "$PROJECT_DIR/workspace" \
+        --model "openrouter/minimax/minimax-m2.5" \
+        --non-interactive
+    echo "Agent 'clawoss' registered"
 fi
 
 # Create working directories
