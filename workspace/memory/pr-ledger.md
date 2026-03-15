@@ -1,5 +1,4 @@
-# PR Ledger — AUTO-SYNCED by pr-ledger-sync.sh every 60s. Do NOT edit manually.
-# DO NOT submit PRs for issues already in this list.
+# PR Ledger — DO NOT submit PRs for issues already in this list
 
 | repo | issue | pr_url | status | date |
 |------|-------|--------|--------|------|
