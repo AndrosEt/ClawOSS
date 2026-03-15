@@ -1,6 +1,6 @@
 # 027: maxConcurrent Mismatch Across Config and Docs
 
-**Status:** Fix in progress (HEARTBEAT.md being updated to maxConcurrent: 5)
+**Status:** Fixed (all docs aligned to maxConcurrent: 5, no timeout — user's explicit preference)
 **Severity:** Medium
 **Component:** config/openclaw.json, workspace/HEARTBEAT.md, workspace/AGENTS.md
 
