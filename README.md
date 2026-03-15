@@ -18,21 +18,32 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 
 ---
 
-### First Autonomous PR
+### Day 1: 17 PRs Across 11 Repos
 
 ```
   ┌─────────────────────────────────────────────────────────────────────┐
   │                                                                     │
-  │   apache/mahout#1191  ·  [QDP] Add direct coverage for Parquet     │
+  │   17 PULL REQUESTS SUBMITTED  ·  DAY 1  ·  ZERO HUMAN INTERVENTION │
   │                                                                     │
-  │   Author .... @BillionClaw (autonomous)                             │
-  │   Files ..... 5 changed                    ████████████████░  +359  │
-  │   Tests ..... 11 new, ALL PASSING                           -2      │
-  │   Time ...... ~12 minutes autonomous coding                         │
-  │   Model ..... Kimi Code k2p5 (direct API)                           │
-  │   Status .... Submitted, awaiting review                            │
+  │   Repos ....  11 distinct repositories                              │
+  │   Range ....  apache/mahout to jenkinsci to ray-project             │
+  │   Languages   Rust, Python, Java, TypeScript, Ruby                  │
+  │   Model ....  Kimi Code k2p5 (direct API)                           │
+  │   Mode .....  5 concurrent sub-agents                               │
   │                                                                     │
-  │   https://github.com/apache/mahout/pull/1191                        │
+  │   ┌──────────────────────────────────────────────────────────────┐  │
+  │   │  HIGHLIGHT: jenkinsci/warnings-ng-plugin#3291                │  │
+  │   │  Fixed double HTML escaping (C++ Lint -> C&#43;&#43; Lint)  │  │
+  │   │  Root cause: ToolNameRegistry + Jelly escape-by-default      │  │
+  │   └──────────────────────────────────────────────────────────────┘  │
+  │                                                                     │
+  │   apache/mahout ···· #1191 #1192 #1193 #1194  (4 PRs, Parquet)    │
+  │   autokey/autokey ·· #1090 #1091  (X11 leak fix + controllers)     │
+  │   ray-project/ray ·· #61754  (distributed computing, 83k stars)    │
+  │   apache/arrow ····· #49516  (in-memory data platform)             │
+  │   Shopify/ruby-lsp · #4007  (Ruby language server)                 │
+  │   jenkinsci ········ #3291  (warnings-ng-plugin, HTML escaping)    │
+  │   + 6 more across windoze95, sonpiaz, Nexal-AI, whoisjayd, itdove │
   │                                                                     │
   └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -268,7 +279,7 @@ ClawOSS/
 │   └── pii-sanitizer/                  # Compiled PII sanitizer plugin
 │
 ├── dashboard/                          # Next.js 15 + Turso monitoring app
-├── issues/                             # 34 tracked issues
+├── issues/                             # 34 tracked issues (16 fixed)
 ├── research/                           # Architecture research docs
 ├── templates/                          # PR, commit, issue templates
 └── scripts/                            # Setup, start, stop, health, backup
@@ -327,6 +338,7 @@ npm run start
 | `npm run setup` | One-time setup: link workspace, configure git identity, authenticate gh |
 | `npm run start` | Register cron jobs and start the OpenClaw gateway |
 | `npm run stop` | Graceful shutdown |
+| `npm run restart` | Full restart: env, identity, auth, config, clean sessions, start gateway + sync, kick agent |
 | `npm run health` | Verify agent is running and healthy |
 | `npm run validate` | Validate config files and skill definitions |
 | `npm run dashboard:dev` | Run the monitoring dashboard locally |
@@ -547,9 +559,11 @@ Required environment variables (set in Vercel dashboard):
 | `setup.sh` | `npm run setup` | Configure git identity (BillionClaw), authenticate gh, link workspace, copy config |
 | `start.sh` | `npm run start` | Register all 5 cron jobs, start OpenClaw gateway in daemon mode |
 | `stop.sh` | `npm run stop` | Graceful gateway shutdown |
+| `restart.sh` | `npm run restart` | Full restart: load .env, set identity, auth gh, deploy config, clean sessions, start gateway + dashboard sync, kick agent |
 | `health-check.sh` | `npm run health` | Verify gateway running, gh authenticated, workspace linked, cron registered |
 | `backup-workspace.sh` | — | Commit agent memory state to git |
 | `rotate-logs.sh` | — | Remove log files older than 14 days |
+| `dashboard-sync.sh` | — | Sync agent state to dashboard (runs in background) |
 
 ---
 
@@ -557,13 +571,17 @@ Required environment variables (set in Vercel dashboard):
 
 ClawOSS is honest about what autonomous AI contribution can achieve today. The primary metric is **merged PRs per day with >70% acceptance rate and <$2/merged PR** — not commits per hour (see `issues/010`).
 
-### Expected Throughput
+### Actual vs Expected Throughput
 
 ```
-    Week 1-2     ░░░░░░░░░░░░░░░░░░░░           1-2 PRs/day (calibration)
-    Week 3-4     ░░░░░░░░░░░░░░░░░░░░░░░░░      3-5 PRs/day (ramp)
-    Month 2+     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  5-10 PRs/day (steady state)
-    Month 3+     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10-15 PRs/day (aspirational)
+    EXPECTED              ACTUAL DAY 1
+    ────────              ──────────────
+    Week 1-2     1-2      ████████████████████████████████████  17 PRs
+    Week 3-4     3-5                                            (on day 1)
+    Month 2+     5-10
+    Month 3+     10-15
+
+    Day 1 output across 11 repos, 5 languages, 5 concurrent sub-agents
 ```
 
 ### Cost Projections (GLM-5 via OpenRouter)

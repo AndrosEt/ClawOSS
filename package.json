@@ -8,6 +8,7 @@
     "setup": "bash scripts/setup.sh",
     "start": "bash scripts/start.sh",
     "stop": "bash scripts/stop.sh",
+    "restart": "bash scripts/restart.sh",
     "health": "bash scripts/health-check.sh",
     "dashboard:dev": "cd dashboard && npm run dev",
     "dashboard:build": "cd dashboard && npm run build",

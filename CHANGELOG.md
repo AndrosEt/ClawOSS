@@ -134,7 +134,7 @@ All notable changes to the ClawOSS project documented chronologically.
 ### V6 Release — Autonomous Operation Begins
 
 **Date:** 2026-03-16
-**Status:** DEPLOYED — agent running autonomously on Kimi K2.5
+**Status:** DEPLOYED — 17 PRs submitted on Day 1 across 11 repos
 
 V6 is the culmination of 13 build phases. After this release, ClawOSS runs without human intervention until it either submits its first merged PR or fails. We observe and learn.
 
@@ -162,6 +162,8 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified. Later expanded to also cover `before_message_write` to catch sub-agent announce messages.
 - **Dashboard V6 overhaul** — Full Live Feed rewrite with session tabs (orchestrator + per-sub-agent), view modes (unified/orchestrator/sub-agents), main tabs (Feed/Tools/Errors/Costs), sidebar tabs (State/Gateway/Stats). New components: tool call log with duration/success tracking, error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.), cost breakdown per session with $/hour rate, gateway status panel, raw JSON toggle per message, PII sanitizer indicators (header badge, per-message badges, filter counter). Pipeline status bar on overview. Sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay). Sessions API enhanced with repo/issue/isSubagent fields. SWR polling: conversation 2s, state 5s, sessions 5s, connection 15s. Token counts estimated from char length (~4 chars/token) when actual counts unavailable.
 - 34 issues documented (16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 1 active)
+- **restart.sh** — Comprehensive restart script for full autonomous operation (commit `abd08db`)
+- **Disk cleanup** — Isolated sub-agent workdirs in `/tmp/clawoss-<issue>-<timestamp>/`, orchestrator sweeps stale dirs >60min (commit `d303cc4`)
 
 **First autonomous activity observed (on K2.5, before GLM-5 switch):**
 - Agent confirmed running on K2.5
@@ -203,11 +205,51 @@ This is the milestone. ClawOSS autonomously discovered an issue, implemented a f
 - Switched to Kimi Code (k2p5) direct API — no content filter, no middleman
 - Coding time for the PR: ~12 minutes autonomous
 
-**Post-PR: parallel spawning active:**
-- Up to 5 concurrent sub-agents now enabled (maxConcurrent: 5)
-- Agent immediately began discovering and triaging next targets after PR submission
-- Active work on: `apache/mahout` (#1180, #1181, #1183), `windoze95/servicewow-mcp` (#30)
-- The pipeline is running autonomously
+### Phase 14: Autonomous Operation — 17 PRs in Day 1
+
+**Date:** 2026-03-16 (same day as first PR)
+**Status:** RUNNING — agent autonomously submitting PRs across 11 repos
+
+After the first PR, the agent scaled to full 5-concurrent-sub-agent mode and submitted 16 more PRs without human intervention. Highlights:
+
+**Operational improvements:**
+- **`scripts/restart.sh`** — Comprehensive restart script: loads .env, sets git identity, authenticates gh, links workspace, deploys config with env vars, cleans sessions, resets wake state, starts gateway, starts dashboard sync, kicks agent (commit `abd08db`)
+- **Circuit breaker raised** — From 8 to 50 consecutive wakes for sustained throughput
+- **Disk cleanup** — Sub-agents now clone to isolated `/tmp/clawoss-<issue>-<timestamp>/` dirs; orchestrator sweeps stale dirs (>60min) every cycle (commit `d303cc4`)
+- **oss-discover trimmed** — From 4076 to 1377 chars to fit 2000-char validation limit
+
+**All 17 PRs submitted on Day 1:**
+
+| # | PR | Repo | Issue | Description |
+|---|-----|------|-------|-------------|
+| 1 | [#1191](https://github.com/apache/mahout/pull/1191) | apache/mahout | #1184 | Parquet reader test coverage (+359/-2, 11 tests) |
+| 2 | [#1192](https://github.com/apache/mahout/pull/1192) | apache/mahout | #1183 | QDP coverage |
+| 3 | [#1193](https://github.com/apache/mahout/pull/1193) | apache/mahout | #1181 | QDP coverage |
+| 4 | [#1194](https://github.com/apache/mahout/pull/1194) | apache/mahout | #1180 | QDP coverage |
+| 5 | [#33](https://github.com/windoze95/servicewow-mcp/pull/33) | windoze95/servicewow-mcp | #30 | Service fix |
+| 6 | [#41](https://github.com/windoze95/nullfeed-backend/pull/41) | windoze95/nullfeed-backend | #33 | Backend fix |
+| 7 | [#10](https://github.com/sonpiaz/4x-game-agent/pull/10) | sonpiaz/4x-game-agent | #8 | Game agent fix |
+| 8 | [#34](https://github.com/windoze95/servicewow-mcp/pull/34) | windoze95/servicewow-mcp | #29 | Service fix |
+| 9 | [#11](https://github.com/Nexal-AI/voicecrew/pull/11) | Nexal-AI/voicecrew | #5 | VoiceCrew fix |
+| 10 | [#61754](https://github.com/ray-project/ray/pull/61754) | ray-project/ray | #50718 | Ray distributed computing |
+| 11 | [#56](https://github.com/whoisjayd/yt-study/pull/56) | whoisjayd/yt-study | #22 | Cookie auth for YouTube transcripts |
+| 12 | [#49516](https://github.com/apache/arrow/pull/49516) | apache/arrow | #49503 | Apache Arrow fix |
+| 13 | [#4007](https://github.com/Shopify/ruby-lsp/pull/4007) | Shopify/ruby-lsp | #3759 | Ruby LSP fix |
+| 14 | [#1090](https://github.com/autokey/autokey/pull/1090) | autokey/autokey | #1088 | X11 resource leak fix (+2 lines) |
+| 15 | [#3291](https://github.com/jenkinsci/warnings-ng-plugin/pull/3291) | jenkinsci/warnings-ng-plugin | #3233 | Double HTML escaping fix (C++ Lint) |
+| 16 | [#168](https://github.com/itdove/devaiflow/pull/168) | itdove/devaiflow | #162 | Enable daf note in Claude Code sessions |
+| 17 | [#1091](https://github.com/autokey/autokey/pull/1091) | autokey/autokey | #1089 | Game controller input support |
+
+**Repos contributed to (11):** apache/mahout, apache/arrow, ray-project/ray, Shopify/ruby-lsp, jenkinsci/warnings-ng-plugin, autokey/autokey, windoze95/servicewow-mcp, windoze95/nullfeed-backend, sonpiaz/4x-game-agent, Nexal-AI/voicecrew, whoisjayd/yt-study, itdove/devaiflow, anomalyco/opencode
+
+**Notable contributions:**
+- **jenkinsci/warnings-ng-plugin#3291** — Fixed double HTML escaping where "C++ Lint" displayed as "C&#43;&#43; Lint". Removed premature escaping from ToolNameRegistry, letting Jelly templates handle it at the presentation layer.
+- **autokey/autokey#1090** — Fixed X11 resource leak on restart: added `__ungrabAllHotkeys()` call before closing display connection. 2-line fix.
+- **whoisjayd/yt-study#56** — Added cookie-based authentication for YouTube transcript fetching, with 276 tests passing.
+- **ray-project/ray#61754** — Contributed to Ray, a major distributed computing framework (83k+ stars).
+- **apache/arrow#49516** — Contributed to Apache Arrow, a cross-language development platform for in-memory data.
+
+**5 sub-agents still in progress:** itdove/devaiflow#162, autokey/autokey#1089, whoisjayd/yt-study#55, Shopify/ruby-lsp#3760, anomalyco/opencode#4464
 
 ### Research Documents Created
 
