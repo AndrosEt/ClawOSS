@@ -67,6 +67,13 @@ If you cannot reproduce the issue within 10 minutes, abandon with a note.
 If tests fail after 2 fix attempts, abandon.
 Use the oss-implement skill for the full process.
 
+## Stall Recovery
+- Sub-agents that stall (no new messages for >5 minutes) are automatically detected and replaced
+- Stalled tasks are retried once with a fresh context, then skipped
+- Never waste more than 2 attempts on a single task
+- Context flush happens automatically before retry
+- Stall detection runs at the START of each heartbeat cycle (step 1)
+
 ## Superpowers Skills
 The following skills from obra/superpowers are installed and should be used:
 - **systematic-debugging** — Use for ANY bug, test failure, or unexpected behavior. Root cause first, fix second.

@@ -62,14 +62,24 @@ Read memory/wake-state.md. Reply HEARTBEAT_OK if:
 - errors_this_hour >= 2
 - If hourly_reset is stale (>1hr), reset hourly counters first.
 
-## 1. PR Follow-ups (Highest Priority)
+## 1. Stall Recovery
+Check if a sub-agent session is active from a previous cycle:
+- If sub-agent session exists but has no new messages for >5 minutes: it's stalled
+- Kill the stalled session (sessions_send with cancel/abort if available, or just ignore it)
+- Flush any partial state to memory
+- Re-queue the task at the TOP of memory/work-queue.md with note "retry - previous attempt stalled"
+- Spawn a FRESH sub-agent for the same task on the next cycle
+- Increment errors_this_hour in memory/wake-state.md
+- After 2 consecutive stalls on the same task, SKIP it and move to the next item
+
+## 2. PR Follow-ups (Highest Priority)
 Run: gh pr list --author @me --state open --json number,title,reviewDecision,statusCheckRollup,url,updatedAt
-- New review comments? --> oss-followup for that PR. Go to step 5.
-- CI failing (our fault)? --> fix and push. Go to step 5.
+- New review comments? --> oss-followup for that PR. Go to step 6.
+- CI failing (our fault)? --> fix and push. Go to step 6.
 - PR merged? --> Update memory/pipeline-state.md. Continue.
 - PR stale >7 days, no review? --> Close with polite comment. Remove from pipeline.
 
-## 2. Merge Staging Files & Pick Work
+## 3. Merge Staging Files & Pick Work
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
 Read memory/work-queue.md:
@@ -78,12 +88,12 @@ Read memory/work-queue.md:
 - Queue empty --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
 Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit, skip to next item.
 
-## 3. Triage (in main session, < 2 min)
+## 4. Triage (in main session, < 2 min)
 1. oss-triage: Confirm open, unassigned, estimate complexity.
-2. If too complex or closed, remove from queue, go to step 2.
+2. If too complex or closed, remove from queue, go to step 3.
 3. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
 
-## 4. Spawn Implementation Sub-Agent
+## 5. Spawn Implementation Sub-Agent
 Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
   task: "Fix <repo>#<issue>: <title>.
     Read the attached repo-conventions.md and issue-details.md.
@@ -108,13 +118,13 @@ Pass them as attachments since sub-agents cannot access memory tools.
 The sub-agent runs in a FRESH context with zero pollution from prior tasks.
 Do NOT implement in the main session. Wait for the announce step.
 
-## 5. Handle Sub-Agent Result
+## 6. Handle Sub-Agent Result
 When the sub-agent announces back:
 - If PR submitted: update memory/pipeline-state.md with new PR.
 - If abandoned: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 
-## 6. Report & Loop
+## 7. Report & Loop
 Run dashboard-reporter: log cycle outcome (submitted/abandoned/followup), cost, repo, issue.
 Update memory/wake-state.md: increment counters.
 Remove completed/abandoned item from memory/work-queue.md.
