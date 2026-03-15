@@ -1,144 +1,175 @@
-# Throughput Architecture: 2-5 Commits Per Hour
+# Throughput Architecture: Maximum Quality PRs Per Day
 
-> Designing the autonomous loop, configuration, and pipelining strategy to achieve sustained 2-5 high-quality commits per hour from a single OpenClaw agent running Minimax M2.5 via OpenRouter.
+> Designing the autonomous loop, configuration, and pipelining strategy to achieve sustained high-quality OSS contributions from a single OpenClaw agent running Minimax M2.5 via OpenRouter.
+>
+> **Primary metric:** 3-5 merged PRs/day with >70% acceptance rate at <$2/merged PR.
+> **Secondary metric:** Fastest possible cycle time per task without sacrificing quality.
 
 ---
 
 ## Table of Contents
 
-1. [Throughput Analysis](#1-throughput-analysis)
-2. [Optimal Heartbeat Interval](#2-optimal-heartbeat-interval)
-3. [The Self-Wake Architecture](#3-the-self-wake-architecture)
-4. [Redesigned HEARTBEAT.md](#4-redesigned-heartbeatmd)
-5. [Updated openclaw.json](#5-updated-openclawjson)
-6. [Updated cron-jobs.json](#6-updated-cron-jobsjson)
-7. [Pipelining Strategy](#7-pipelining-strategy)
-8. [Fast Quality Gates](#8-fast-quality-gates)
-9. [Latency Optimizations](#9-latency-optimizations)
-10. [Realistic Throughput Expectations](#10-realistic-throughput-expectations)
+1. [Metric Reframing: Why Not "Commits Per Hour"](#1-metric-reframing)
+2. [M2.5 Capability Assessment](#2-m25-capability-assessment)
+3. [Optimal Heartbeat Interval](#3-optimal-heartbeat-interval)
+4. [The Self-Wake Architecture](#4-the-self-wake-architecture)
+5. [Context Pollution: Session Strategy](#5-context-pollution-session-strategy)
+6. [Issue Curation Layer](#6-issue-curation-layer)
+7. [Redesigned HEARTBEAT.md](#7-redesigned-heartbeatmd)
+8. [Updated openclaw.json](#8-updated-openclawjson)
+9. [Updated cron-jobs.json](#9-updated-cron-jobsjson)
+10. [Async CI & Pipelining Strategy](#10-async-ci--pipelining-strategy)
+11. [Fast Quality Gates](#11-fast-quality-gates)
+12. [Latency Optimizations](#12-latency-optimizations)
+13. [Realistic Throughput Expectations](#13-realistic-throughput-expectations)
 
 ---
 
-## 1. Throughput Analysis
+## 1. Metric Reframing
 
-### The Math
+### Why "Commits Per Hour" Is the Wrong Target
 
-**Target:** 2-5 commits/hour = 1 commit every **12-30 minutes**.
+The throughput critic's analysis (see `07-throughput-critique.md`) identifies a fundamental problem: optimizing for commits/hour incentivizes trivial work, damages repository reputation, and measures output instead of outcome.
 
-**Current state:** Heartbeat every 60 minutes. The agent can only begin new work on heartbeat ticks. This means at best 1 work cycle per hour — far too slow.
+**What happens when you optimize for 5 commits/hour:**
+- Agent gravitates toward README typos, whitespace fixes, single-line changes
+- These inflate commit counts but contribute minimal value
+- Maintainers get annoyed reviewing trivial PRs and may block the bot
+- One bad batch of AI slop PRs = permanent ban from repositories
 
-**What a single commit cycle requires:**
+**What matters to OSS maintainers:**
+- Does this PR solve a real problem?
+- Is it well-crafted and minimal?
+- Does the contributor respond to feedback?
 
-| Phase | Estimated Duration | Notes |
-|-------|-------------------|-------|
-| Discover/select issue | 1-3 min | If pre-queued via cron, ~0 min |
-| Clone/analyze repo | 1-2 min | If cached from prior work, ~0 min |
-| Read CONTRIBUTING.md + conventions | 0.5-1 min | Cached in memory after first visit |
-| Implement fix | 3-8 min | Depends on complexity; Minimax M2.5 is fast |
-| Run tests/lint | 1-3 min | Depends on repo's CI speed |
-| Self-review quality gate | 1-2 min | Lightweight check, not full subagent |
-| Commit + push + create PR | 0.5-1 min | Mechanical git operations |
-| Report to dashboard | 0.5 min | Non-blocking API call |
-| **Total** | **8-20 min** | **Fits 2-5/hour for simpler tasks** |
+### The Right Metrics
 
-**Conclusion:** The cycle time math works for documentation, dependency updates, simple bug fixes, and test additions. Complex multi-file features will take 20-40 minutes and naturally fall to 1-2/hour.
+| Metric | Target | Why |
+|--------|--------|-----|
+| **Merged PRs per day** | 3-5 (week 3+) | Measures actual impact |
+| **PR acceptance rate** | >70% | Measures quality |
+| **Mean time to merge** | <48 hours | Measures relevance |
+| **Cost per merged PR** | <$2 | Measures efficiency (M2.5 makes this possible) |
+| **Unique repos per week** | 5-10 | Measures breadth |
+| Issues resolved per day | 2-4 | Measures real value |
 
-### The Bottleneck Is Not the Model — It's the Loop
+### Ramp Schedule
 
-Minimax M2.5 via OpenRouter has fast inference times (typically 2-8 seconds per turn). The bottleneck is:
+| Phase | Timeline | Target |
+|-------|----------|--------|
+| Calibration | Week 1-2 | 1-2 merged PRs/day, tuning acceptance rate |
+| Ramp | Week 3-4 | 3-5 merged PRs/day on curated repos |
+| Steady state | Month 2+ | 5-10 merged PRs/day, >70% acceptance rate |
+| Aspirational | Month 3+ | 10-15 merged PRs/day with multi-repo pipelining |
 
-1. **Heartbeat interval** — currently 60 min, agent sits idle between heartbeats
-2. **No self-wake** — agent cannot trigger its own next cycle
-3. **No work pipelining** — agent finishes one task, then waits for next heartbeat
-4. **Human delay** — artificial response delays waste time
-5. **Cron isolation** — discovery runs in isolated sessions, results don't flow to main session efficiently
+### How This Relates to Cycle Time
+
+Even with merged-PRs-per-day as the primary metric, cycle time still matters. Faster cycles mean more PR attempts per day, which — given a consistent acceptance rate — means more merges. The architecture below optimizes cycle time while never sacrificing quality for speed.
+
+**Target cycle time: 15-30 minutes per task** (including quality gates and CI). This enables 2-4 PR attempts per hour during active work, yielding the 3-5 merged PRs/day target at a 50-65% real-world success rate.
 
 ---
 
-## 2. Optimal Heartbeat Interval
+## 2. M2.5 Capability Assessment
 
-### Why Not Just Set Heartbeat to 5 Minutes?
+### The Model Is Not the Bottleneck
 
-Setting `every: "5m"` means 12 heartbeat runs per hour. Each heartbeat:
-- Runs a full agent turn (model inference + tool calls)
-- Consumes tokens even when there's nothing to do
-- Most heartbeats will return `HEARTBEAT_OK` (wasted cycles)
+Minimax M2.5 is genuinely frontier-tier for coding tasks:
 
-**Cost analysis at 5-minute intervals with Minimax M2.5:**
-- ~288 heartbeats/day
-- Even with `HEARTBEAT_OK` fast-path (~$0.01-0.02 per tick via Minimax M2.5): ~$3-6/day
-- With actual work on ~30% of ticks: $15-25/day
-- Monthly: $450-750 in heartbeat overhead alone
+| Benchmark | M2.5 | Claude Sonnet 4.6 | Claude Opus 4.6 |
+|-----------|-------|--------------------|------------------|
+| SWE-bench Verified | **80.2%** | 79.6% | 80.8% |
+| Multi-SWE-bench | **51.3%** (best) | -- | -- |
 
-**At 10-minute intervals:**
-- ~144 heartbeats/day
-- Fast-path cost: ~$1.50-3/day
-- With work on ~50% of ticks: $10-18/day
-- Monthly: $300-540
+**Architecture advantage:** 230B total parameters, only 10B active (MoE). Frontier capability at 11x cheaper input tokens and 16x cheaper output tokens than Claude Sonnet.
 
-**At 15-minute intervals:**
-- ~96 heartbeats/day
-- Fast-path cost: ~$1-2/day
-- With work on ~70% of ticks: $8-15/day
-- Monthly: $240-450
+**Inference speed:**
+- Standard: ~45-50 tokens/second
+- Lightning variant: ~100 tokens/second
+- TTFT: 2.41s (MiniMax API), 0.49s (Together.ai)
+- A 2000-token response takes 20-40 seconds
+
+### Real-World Agentic Performance
+
+**Critical distinction:** SWE-bench measures isolated task completion with curated issues and pre-staged repos. Real-world agentic operation is harder:
+
+| Scenario | Expected Success Rate |
+|----------|-----------------------|
+| Well-scoped issues (good-first-issue, docs) | 60-75% |
+| Medium complexity (simple bug fixes, test additions) | 40-55% |
+| Complex or ambiguous issues | 15-30% |
+| **Blended (curated queue)** | **50-65%** |
+
+The 50-65% blended rate is achievable because the issue curation layer (Section 6) pre-filters for solvability, heavily weighting the queue toward higher-success-rate tasks.
+
+### Cost Per Task (via OpenRouter)
+
+| Scenario | Input Tokens | Output Tokens | Cost |
+|----------|-------------|---------------|------|
+| Trivial fix (1-2 turns) | 100K | 20K | $0.05 |
+| Small fix (3-5 turns) | 300K | 75K | $0.17 |
+| Medium fix (5-10 turns) | 600K | 150K | $0.33 |
+| Complex fix (10+ turns) | 1M+ | 250K+ | $0.55+ |
+
+**At 50-65% success rate, cost per merged PR: $0.30-1.10.** This is well under the $2 target.
+
+---
+
+## 3. Optimal Heartbeat Interval
+
+### The Trade-off
+
+| Interval | Heartbeats/Day | Idle Cost/Day | Response Latency |
+|----------|---------------|---------------|------------------|
+| 5 min | 288 | $3-6 | 0-5 min |
+| 10 min | 144 | $1.50-3 | 0-10 min |
+| 15 min | 96 | $1-2 | 0-15 min |
+| 60 min (current) | 24 | $0.25-0.50 | 0-60 min |
 
 ### Recommendation: 10-Minute Heartbeat + Self-Wake
 
 The optimal architecture is a **hybrid approach**:
 
-1. **Base heartbeat: `every: "10m"`** — provides a safety net; agent is guaranteed to wake up at least every 10 minutes
-2. **Self-wake via system events** — after completing a task, the agent triggers an immediate next cycle using `openclaw system event --mode now`
-3. **Net effect:** The agent runs continuously when there's work to do (self-wake chain), but doesn't burn tokens when idle (10-min heartbeat catches new work)
+1. **Base heartbeat: `every: "10m"`** — safety net ensuring the agent wakes at least every 10 minutes to check for new work or PR reviews
+2. **Self-wake via system events** — after completing a task, the agent triggers `openclaw system event --mode now` for an immediate next cycle
+3. **Net effect:** Continuous throughput during active work; cost-efficient idle when no work is queued
 
-This gives us the **best of both worlds**: continuous throughput during active work, and cost-efficient idle behavior.
+This was validated against the critic's concern about idle cost: at $1.50-3/day for heartbeat overhead with M2.5, this is negligible compared to work execution costs ($5-15/day).
 
 ---
 
-## 3. The Self-Wake Architecture
+## 4. The Self-Wake Architecture
 
 ### How It Works
 
-OpenClaw's `system event --mode now` triggers an immediate heartbeat run. The agent can invoke this at the end of each work cycle to create a **continuous autonomous loop** without waiting for the next scheduled heartbeat.
+OpenClaw's `system event --mode now` triggers an immediate heartbeat run. The agent invokes this at the end of each work cycle to create a **continuous autonomous loop**.
 
 ```
-[Heartbeat fires] → [Agent reads HEARTBEAT.md] → [Finds work] → [Implements] → [Commits] →
-    [Reports to dashboard] → [Runs: openclaw system event --mode now] → [Immediate next heartbeat] →
-    [Agent reads HEARTBEAT.md] → [Finds work] → ... (loop continues)
+[Heartbeat fires] --> [Agent reads HEARTBEAT.md] --> [Finds work] --> [Implements] --> [Submits PR] -->
+    [Reports to dashboard] --> [exec: openclaw system event --mode now] --> [Immediate next heartbeat] -->
+    [Agent reads HEARTBEAT.md] --> [Finds work] --> ... (loop continues)
 ```
 
 When there's no more work:
 ```
-[Heartbeat fires] → [Agent reads HEARTBEAT.md] → [No work found] → [Responds HEARTBEAT_OK] →
+[Heartbeat fires] --> [Agent reads HEARTBEAT.md] --> [No work found] --> [HEARTBEAT_OK] -->
     [Sleeps until next 10-min heartbeat]
 ```
 
-### Implementation
+### Circuit Breakers (Preventing Runaway Loops)
 
-The self-wake is triggered from within the HEARTBEAT.md checklist itself. The agent's final step after completing any work cycle is:
+| Breaker | Threshold | Action |
+|---------|-----------|--------|
+| Max consecutive self-wakes | 8 | Force cooldown; wait for next scheduled heartbeat |
+| Errors this hour | 2 consecutive failures | Pause self-wake; wait for next scheduled heartbeat |
+| PRs submitted this hour | 6 | Pause new submissions; focus on follow-ups only |
+| PRs per repo per day | 2-3 | Skip that repo; pick from different repos |
+| GitHub API rate limit | >80% consumed | Pause all work; wait for rate limit reset |
+| Work queue empty | 0 items | HEARTBEAT_OK; no self-wake |
 
-```bash
-openclaw system event --text "Work cycle complete. Ready for next task." --mode now
-```
+### Self-Wake State Tracking
 
-This is a simple `exec` tool call — no framework modification required.
-
-### Guard Rails for Self-Wake
-
-**Critical: Prevent runaway loops.** The self-wake chain must have circuit breakers:
-
-1. **Max consecutive wakes:** Track wake count in memory. After 8 consecutive self-wakes without a natural heartbeat pause, force a cooldown (skip the self-wake, wait for next scheduled heartbeat). This caps a burst at ~80-120 minutes of continuous work before a mandatory pause.
-
-2. **Cost ceiling per hour:** If estimated token spend exceeds a threshold in the current hour, skip self-wake and wait.
-
-3. **Error circuit breaker:** If 2 consecutive cycles fail (no commit produced, error encountered), stop self-waking and wait for next scheduled heartbeat.
-
-4. **Work queue empty:** If discovery finds no suitable issues, respond `HEARTBEAT_OK` and don't self-wake.
-
-5. **Rate limit awareness:** If GitHub API rate limits are approaching (>80% consumed), pause self-wake.
-
-### Self-Wake Counter (Memory-Based)
-
-The agent tracks wake state in `memory/wake-state.md`:
+Tracked in `memory/wake-state.md`:
 
 ```markdown
 # Wake State
@@ -147,69 +178,321 @@ The agent tracks wake state in `memory/wake-state.md`:
 - commits_this_hour: 2
 - errors_this_hour: 0
 - hourly_reset: 2026-03-16T14:00:00Z
+- prs_today_by_repo:
+  - expressjs/express: 1
+  - prisma/prisma: 0
 ```
 
-On each heartbeat:
-- If `consecutive_wakes >= 8` → skip self-wake, reset counter on next scheduled heartbeat
-- If `errors_this_hour >= 2` → skip self-wake
-- If `commits_this_hour >= 6` → skip self-wake (anti-spam ceiling)
-- On scheduled (non-self-wake) heartbeat → reset `consecutive_wakes` to 0
+On scheduled (non-self-wake) heartbeat: reset `consecutive_wakes` to 0.
+On hourly boundary: reset `commits_this_hour`, `errors_this_hour`.
+On daily reset (04:00): reset `prs_today_by_repo`.
 
 ---
 
-## 4. Redesigned HEARTBEAT.md
+## 5. Context Pollution: Two-Layer Session Architecture
 
-The HEARTBEAT.md must be optimized for speed. Every word costs tokens. The checklist must drive a tight loop with minimal deliberation.
+### The Problem
+
+The critic correctly identifies that **context pollution degrades quality after 3-4 tasks** in a single session:
+
+- Residual context from task N bleeds into task N+1
+- The model may reference files from the wrong repository
+- Error patterns from one task bias approaches to the next
+- M2.5's 196K context window fills quickly with multi-repo implementation history
+
+### The Solution: Orchestrator + Sub-Agent Sessions
+
+The key insight (from the critic's follow-up research): **the main session is the orchestrator; sub-agents are the disposable workers.** This satisfies both the "single agent" requirement AND the "fresh context per task" requirement.
+
+**Layer 1: Main Session (Orchestrator)**
+
+The main session runs the heartbeat loop and handles:
+- Reading HEARTBEAT.md and executing the checklist
+- Checking PR status and queuing follow-ups
+- Picking work from the queue
+- Reporting to the dashboard
+- Self-wake triggers
+- State tracking (memory files)
+
+The main session **never touches implementation code directly.** It stays clean, lightweight, and focused on orchestration. Context pollution from coding tasks never enters this session.
+
+**Layer 2: Sub-Agent Sessions (Implementation Workers)**
+
+Each coding task is delegated to a sub-agent via `sessions_spawn`:
+- Fresh context per task -- zero cross-task pollution
+- The sub-agent receives ONLY: the issue description, repo conventions (from memory), and the task directive
+- Sub-agent runs with `maxConcurrent: 1` (serialized) -- no parallel session sprawl
+- Sub-agent has full coding tools but no session management tools (can't spawn further sub-agents)
+- On completion, the sub-agent posts a summary back to the main session (the "announce step")
+- Sub-agent session is auto-archived after completion
+
+**How it flows:**
+
+```
+Main Session (orchestrator):
+  [Heartbeat] --> [Pick work from queue] --> [sessions_spawn: "Implement fix for issue #123"]
+       |                                              |
+       |                                    Sub-Agent Session (worker):
+       |                                      [Fresh context]
+       |                                      [Clone repo / checkout branch]
+       |                                      [Read issue + CONTRIBUTING.md]
+       |                                      [Implement fix]
+       |                                      [Run safety-checker]
+       |                                      [Run self-review]
+       |                                      [Run local tests]
+       |                                      [Commit + push + create PR]
+       |                                      [Announce result back to main]
+       |                                              |
+       | <--- [Receive announce: "PR #456 submitted"] |
+       |                                              |
+  [Update pipeline-state.md] --> [Self-wake] --> [Next task...]
+```
+
+### Why This Architecture Works
+
+1. **Zero context pollution.** Each implementation runs in isolation. The main session only sees the announce summary (status, PR URL, stats), not the full coding context.
+
+2. **Maintains "single agent" identity.** There is one `clawoss` agent with one persistent main session. Sub-agents are internal implementation details, not separate agents. They use the same model, same identity, same GitHub credentials.
+
+3. **Self-wake chain preserved.** System events target the main session. The orchestrator handles all self-wake logic. Sub-agent completion triggers the announce step, which naturally flows back to the main session for the next cycle.
+
+4. **`sessions_spawn` is non-blocking.** The main session can fire off a sub-agent and immediately handle other orchestration tasks (checking PR status, processing follow-ups) while the sub-agent works. However, with `maxConcurrent: 1`, we serialize implementation to avoid resource contention.
+
+5. **Cost-neutral vs. main-session implementation.** The sub-agent uses the same model (M2.5) at the same cost. The overhead is only the announce step (~100 tokens). The savings from avoiding context pollution (fewer retries, higher success rate) more than compensate.
+
+### Configuration Requirements
+
+**Critical:** The clawoss agent needs `"default": true` in the agent list config. Without this flag, cron jobs and heartbeats targeting the main session will be rejected by OpenClaw.
+
+```json5
+"list": [
+  {
+    "id": "clawoss",
+    "default": true,                    // REQUIRED for main session routing
+    "model": { "primary": "openrouter/minimax/minimax-m2.5" },
+    "tools": { "profile": "coding" }
+  }
+]
+```
+
+Sub-agent configuration in defaults:
+```json5
+"subagents": {
+  "model": "openrouter/minimax/minimax-m2.5",
+  "maxConcurrent": 1,                  // Serialized: one implementation at a time
+  "runTimeoutSeconds": 600             // 10 min per task (was 120 for review-only; now full implementation)
+}
+```
+
+### Fallback: What If Sub-Agent Fails?
+
+If the sub-agent times out or errors:
+- The announce step reports the failure to the main session
+- The main session logs the failure in `memory/wake-state.md` (increment `errors_this_hour`)
+- The issue is marked as failed in `memory/work-queue.md` with the error reason
+- The main session continues to the next task via self-wake
+
+### Additional Safeguards
+
+- **Daily session reset at 04:00** -- already configured; hard reset for main session
+- **Memory-based state** -- all persistent state lives in memory files, not session history
+- **Sub-agent auto-archive** -- sub-agent sessions are archived after 60 minutes (default `archiveAfterMinutes`), preventing disk bloat
+- **Circuit breakers** -- still enforced at the orchestrator level (main session)
+
+---
+
+## 6. Issue Curation Layer
+
+### Why This Is Critical
+
+The critic identifies this as a must-have: **pre-filter issues for solvability before attempting them.** Without curation, the agent wastes cycles on issues that are:
+- Too complex (multi-file architectural changes)
+- Too ambiguous (no clear reproduction steps)
+- Already being worked on
+- In hostile repos (anti-AI-PR policies)
+- Requiring domain expertise the model lacks
+
+### Three-Stage Curation Pipeline
+
+**Stage 1: Discovery Cron (every 2 hours, isolated session)**
+
+Searches target repos for candidate issues. Filters:
+- Labels: `good-first-issue`, `help-wanted`, `bug`, `documentation`, `tests`
+- NOT labeled: `wontfix`, `duplicate`, `question`, `discussion`
+- No assignee (not already claimed)
+- Created within last 30 days (not stale)
+- Repo has merged an external PR in the last 30 days (is active and receptive)
+
+**Stage 2: Solvability Scoring (part of discovery)**
+
+Each candidate issue gets a score (1-10):
+
+| Factor | Points |
+|--------|--------|
+| Has clear reproduction steps | +2 |
+| Single file likely affected | +2 |
+| Has related test file | +1 |
+| Labeled `good-first-issue` | +2 |
+| Repo has CONTRIBUTING.md | +1 |
+| Repo has merged AI PRs before | +2 |
+| Issue has >3 comments (complex discussion) | -2 |
+| Issue references multiple files/components | -2 |
+| Repo has anti-AI-PR policy | -10 (auto-reject) |
+
+Issues scoring >= 5 go into the work queue. Issues scoring >= 7 are prioritized.
+
+**Stage 3: Triage Confirmation (at execution time)**
+
+Before starting implementation, the agent runs `oss-triage`:
+- Confirms issue is still open and unassigned
+- Re-reads issue description for any updates
+- Checks if the issue is reproducible with a quick test
+- Estimates implementation complexity (< 2 minutes)
+- If complexity is too high or issue changed, skip and pick next from queue
+
+### Maintainer Relationship Tracking
+
+Stored in `memory/repos/<repo-slug>.md`:
 
 ```markdown
-# Heartbeat — Fast Autonomous Loop
-
-Read memory/wake-state.md. Update counters. If circuit breakers tripped, reply HEARTBEAT_OK.
-
-## 1. Check Active PRs (1 min max)
-Run: gh pr list --author @me --state open --json number,title,reviewDecision,statusCheckRollup
-- If reviews received → run oss-followup. Then continue to step 4.
-- If CI failing on our PR → investigate, fix, push. Then continue to step 4.
-- If PR approved + CI green → it will be merged by maintainer. Continue.
-
-## 2. Pre-Queued Work (0 min if queue empty)
-Check memory/work-queue.md for pre-discovered issues.
-- If queue has items → pick top item, skip to step 3.
-- If queue empty → run oss-discover (fast mode: max 3 repos, max 5 issues). Write results to memory/work-queue.md.
-
-## 3. Execute Work Cycle (5-15 min)
-Pick ONE issue from queue. Run the pipeline:
-1. oss-triage: confirm issue is still open, assess complexity (< 2 min)
-2. repo-analyzer: read conventions if not in memory (< 1 min, skip if cached)
-3. oss-implement: write the fix (3-8 min)
-4. safety-checker: validate diff size, no secrets, file count (< 30 sec)
-5. oss-review: lightweight self-check — does the change match the issue? (< 1 min)
-6. oss-submit: commit, push, create PR (< 1 min)
-
-## 4. Report & Continue
-Run dashboard-reporter to log this cycle.
-Update memory/wake-state.md: increment commits_this_hour, consecutive_wakes.
-Remove completed item from memory/work-queue.md.
-
-If circuit breakers OK and work remains → exec: openclaw system event --text "Cycle complete" --mode now
-If no work or breakers tripped → HEARTBEAT_OK
+# expressjs/express
+- receptiveness: high (3/4 PRs merged)
+- avg_review_time: 18 hours
+- preferred_pr_style: small, focused, with tests
+- anti_ai_policy: none detected
+- our_history:
+  - PR #8901: merged (docs fix, 2026-03-15)
+  - PR #8920: merged (test addition, 2026-03-16)
+  - PR #8935: rejected (style mismatch, 2026-03-17)
+- last_updated: 2026-03-17
 ```
 
-### Key Design Decisions
-
-1. **Work queue is pre-populated.** Discovery runs in the background (cron) so heartbeat cycles don't waste time searching. The heartbeat just picks from the queue.
-
-2. **Skills are called in sequence, not debated.** The checklist is imperative: "run X, then Y." No open-ended reasoning about what to do next.
-
-3. **Time budgets per step.** Each step has a max time. If repo-analyzer takes >1 min, skip and use defaults. This prevents any single step from blowing the cycle time.
-
-4. **One issue per cycle.** Never try to batch multiple issues. Finish one, commit, report, then self-wake for the next.
-
-5. **Follow-ups take priority.** Responding to PR reviews is higher priority than new work — it progresses existing PRs toward merge.
+This data feeds back into solvability scoring: repos with higher receptiveness get higher-priority issues in the queue.
 
 ---
 
-## 5. Updated openclaw.json
+## 7. Redesigned HEARTBEAT.md
+
+The HEARTBEAT.md drives a tight autonomous loop. Because `lightContext: true` strips all bootstrap files except HEARTBEAT.md, this file must be self-contained with all operational directives.
+
+```markdown
+# Heartbeat -- Autonomous Work Loop
+
+Execute this checklist strictly. One task per cycle. Quality over speed.
+
+## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
+
+### Safety (non-negotiable)
+- NEVER push to main/master or default branches directly
+- NEVER force-push to any branch
+- NEVER commit secrets, credentials, API keys, or .env files
+- NEVER modify CI/CD pipelines in contributed repos without explicit approval
+- GitHub token scope must be public_repo (least privilege)
+
+### PR Limits
+- Max 200 lines changed, max 5 files per PR
+- Max 2-3 PRs per repo per day, 30-min gap between same-repo PRs
+- Max 10 PRs total per day across all repos
+- Max 5 active PRs across all repos at any time
+- Max 3 follow-up revision rounds per PR -- after 3, politely disengage
+- Do NOT submit trivial PRs (whitespace-only, comment-only unless meaningful)
+- ALWAYS use branch naming: clawoss/<type>/<description>
+
+### Quality (non-negotiable)
+- Read CONTRIBUTING.md before first PR to any repo
+- Every code change must include relevant tests
+- Every PR description must explain the "why" not just the "what"
+- Commit messages: Conventional Commits format -- type(scope): description
+- Code style must match the target repo's existing conventions
+- No AI-slop: no unnecessary comments, no over-engineering, no "I" statements
+- If tests fail after 2 fix attempts, abandon task
+- If self-review fails 3+ checks, abandon task
+
+### Failure Handling
+- If a contribution is rejected, log reason and adapt
+- If repo's CI is broken (not our fault), skip and move to next
+- If rate-limited by GitHub API, back off and wait
+- Never get stuck in retry loops -- fail fast and move forward
+
+## 0. Circuit Breakers
+Read memory/wake-state.md. Reply HEARTBEAT_OK if:
+- consecutive_wakes >= 8 (mandatory cooldown)
+- errors_this_hour >= 2
+- If hourly_reset is stale (>1hr), reset hourly counters first.
+
+## 1. PR Follow-ups (Highest Priority)
+Run: gh pr list --author @me --state open --json number,title,reviewDecision,statusCheckRollup,url,updatedAt
+- New review comments? --> oss-followup for that PR. Go to step 5.
+- CI failing (our fault)? --> fix and push. Go to step 5.
+- PR merged? --> Update memory/pipeline-state.md. Continue.
+- PR stale >7 days, no review? --> Close with polite comment. Remove from pipeline.
+
+## 2. Merge Staging Files & Pick Work
+Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
+
+Read memory/work-queue.md:
+- Urgent items (PR follow-ups) --> pick first urgent.
+- Normal items --> pick top item with score >= 5.
+- Queue empty --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
+Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit, skip to next item.
+
+## 3. Triage (in main session, < 2 min)
+1. oss-triage: Confirm open, unassigned, estimate complexity.
+2. If too complex or closed, remove from queue, go to step 2.
+3. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
+
+## 4. Spawn Implementation Sub-Agent
+Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
+  task: "Fix <repo>#<issue>: <title>. Repo conventions in memory/repos/<slug>.md.
+    1. Clone repo, create branch clawoss/<type>/<desc>.
+    2. Implement fix (max 200 lines, max 5 files).
+    3. Run safety-checker: diff size, secrets scan, branch check.
+    4. Self-review: 5-question check. 3+ NO = abandon.
+    5. Run local tests (related tests, 3-min timeout). 2 fix attempts max.
+    6. Commit, push, create PR with clear description.
+    7. Do NOT wait for remote CI. Submit and report result."
+  label: "<repo>#<issue>"
+  runTimeoutSeconds: 600
+
+The sub-agent runs in a FRESH context with zero pollution from prior tasks.
+Do NOT implement in the main session. Wait for the announce step.
+
+## 5. Handle Sub-Agent Result
+When the sub-agent announces back:
+- If PR submitted: update memory/pipeline-state.md with new PR.
+- If abandoned: log reason in memory/work-queue.md.
+- If timeout/error: increment errors_this_hour in wake-state.md.
+
+## 6. Report & Loop
+Run dashboard-reporter: log cycle outcome (submitted/abandoned/followup), cost, repo, issue.
+Update memory/wake-state.md: increment counters.
+Remove completed/abandoned item from memory/work-queue.md.
+
+If circuit breakers OK AND work-queue.md has items AND active PRs < 5:
+  exec: openclaw system event --text "Cycle complete" --mode now
+
+Otherwise: HEARTBEAT_OK
+```
+
+### Key Design Principles
+
+1. **Two-layer session architecture** — the main session orchestrates (triage, queue management, self-wake); sub-agents implement (coding, testing, PR submission). This provides fresh context per task with zero cross-task pollution.
+
+2. **Rules section replaces AGENTS.md** — because `lightContext: true` strips AGENTS.md, all critical safety rules are embedded directly in HEARTBEAT.md. The sub-agent receives implementation rules via its task prompt.
+
+3. **Async CI** — the sub-agent does NOT wait for GitHub Actions CI. It submits the PR and announces the result. CI failures are caught reactively by the PR follow-up cron (every 30 min). This eliminates the 5-15 minute CI bottleneck identified by the critic.
+
+4. **Issue scoring threshold** — only issues with solvability score >= 5 are attempted. This implements the critic's "issue curation layer" requirement.
+
+5. **Anti-AI-PR policy detection** — repo-analyzer checks for explicit policies against AI PRs. If detected, the repo is permanently skipped.
+
+6. **Sub-agent isolation** — the main session never sees implementation code, diffs, or test output. It only receives the announce summary (status + PR URL). This keeps the orchestrator's context permanently clean.
+
+7. **Staging file pattern for memory race conditions** — the `work-queue-refill` cron (isolated session) and `pr-followup-scan` cron (main session) both write to work queue files. To avoid race conditions between concurrent cron and heartbeat writes, cron jobs write to staging files (`memory/work-queue-staging.md`, `memory/followup-staging.md`) and the heartbeat merges them into `memory/work-queue.md` at the start of each cycle. Only the heartbeat (main session) writes to `work-queue.md`.
+
+---
+
+## 8. Updated openclaw.json
 
 ```json5
 {
@@ -241,22 +524,22 @@ If no work or breakers tripped → HEARTBEAT_OK
         }
       },
 
-      // === THROUGHPUT-CRITICAL CHANGES ===
+      // === THROUGHPUT-CRITICAL SETTINGS ===
 
       "heartbeat": {
-        "every": "10m",                        // Was 60m. 10m base interval for safety net.
+        "every": "10m",                        // Was 60m. 10m base; self-wake makes it near-continuous.
         "model": "openrouter/minimax/minimax-m2.5",
         "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",
-        "lightContext": true,                  // Only inject HEARTBEAT.md, not full bootstrap. Saves tokens.
-        "isolatedSession": false,              // Must run in main session for context continuity.
-        "target": "none"                       // No external message delivery. Internal work only.
+        "lightContext": true,                  // Only inject HEARTBEAT.md. Saves tokens + reduces context pollution.
+        "isolatedSession": false,              // Main session for self-wake chain continuity.
+        "target": "none"                       // Internal work only; no external delivery.
       },
 
       "humanDelay": {
-        "mode": "off"                          // Was default (natural). Zero artificial delay.
+        "mode": "off"                          // Was default (natural). Zero artificial delay. Saves 800-2500ms/block.
       },
 
-      // === END THROUGHPUT CHANGES ===
+      // === END THROUGHPUT SETTINGS ===
 
       "sandbox": {
         "enabled": true,
@@ -270,18 +553,19 @@ If no work or breakers tripped → HEARTBEAT_OK
         "targetTokens": 500000,
         "model": "openrouter/minimax/minimax-m2.5",
         "keepRecentTokens": 50000,
-        "memoryFlush": true                    // Flush to memory before compacting — preserves state across compactions.
+        "memoryFlush": true                    // Flush to memory before compacting.
       },
       "subagents": {
         "model": "openrouter/minimax/minimax-m2.5",
-        "maxConcurrent": 1,                    // Keep at 1 — single session architecture. Only used for oss-review.
-        "runTimeoutSeconds": 120               // Was 300. Review subagent must finish in 2 min or abort.
+        "maxConcurrent": 1,                    // Serialized: one implementation sub-agent at a time.
+        "runTimeoutSeconds": 600               // 10 min per task. Full implementation cycle, not just review.
       },
       "imageMaxDimensionPx": 1024
     },
     "list": [
       {
         "id": "clawoss",
+        "default": true,                       // REQUIRED: routes heartbeats + cron to main session.
         "model": {
           "primary": "openrouter/minimax/minimax-m2.5"
         },
@@ -331,7 +615,7 @@ If no work or breakers tripped → HEARTBEAT_OK
   "messages": {
     "queue": {
       "mode": "collect",                       // Batch system events; don't interrupt active work.
-      "debounceMs": 500,                       // Short debounce — we want fast reaction to self-wake events.
+      "debounceMs": 500,                       // Short debounce for fast self-wake reaction.
       "cap": 10
     }
   },
@@ -366,47 +650,49 @@ If no work or breakers tripped → HEARTBEAT_OK
 }
 ```
 
-### Key Changes Summary
+### Changes Summary
 
 | Setting | Before | After | Why |
 |---------|--------|-------|-----|
-| `heartbeat.every` | `"60m"` | `"10m"` | 6x faster base cycle; self-wake makes it near-continuous |
-| `heartbeat.lightContext` | not set | `true` | Only loads HEARTBEAT.md, saving ~5-10K tokens per heartbeat |
-| `heartbeat.target` | not set | `"none"` | No external delivery; all work is internal |
-| `humanDelay.mode` | default (`"natural"`) | `"off"` | Eliminates 800-2500ms artificial delay per response block |
-| `subagents.runTimeoutSeconds` | `300` | `120` | Review subagent must be fast or fail |
-| `messages.queue` | not set | `collect` with 500ms debounce | Fast reaction to self-wake events |
+| `heartbeat.every` | `"60m"` | `"10m"` | 6x faster base cycle; self-wake makes continuous |
+| `heartbeat.lightContext` | not set | `true` | Saves ~5-10K tokens/heartbeat + reduces context pollution |
+| `heartbeat.target` | not set | `"none"` | No external delivery; internal work only |
+| `humanDelay.mode` | default | `"off"` | Eliminates 800-2500ms delay per response block |
+| `agents.list[].default` | not set | `true` | **Required** for heartbeat/cron routing to main session |
+| `subagents.runTimeoutSeconds` | `300` | `600` | Full implementation cycle per sub-agent (was 120 for review-only) |
+| `subagents.maxConcurrent` | `1` | `1` (unchanged) | Serialized execution; one task at a time |
+| `messages.queue` | not set | `collect`, 500ms debounce | Fast reaction to self-wake events |
 
 ---
 
-## 6. Updated cron-jobs.json
+## 9. Updated cron-jobs.json
 
-The cron system shifts from "do the work" to "prepare the work queue." The heartbeat loop does the actual execution.
+The cron system shifts from "do the work" to "prepare the work queue and scan for follow-ups." The heartbeat loop handles execution.
 
 ```json
 [
   {
     "id": "work-queue-refill",
-    "name": "Refill work queue",
+    "name": "Discover and curate issues",
     "schedule": { "kind": "cron", "expr": "0 */2 * * *" },
     "sessionTarget": "isolated",
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Run oss-discover skill in batch mode. Search target repos for 10-15 candidate issues. Score by feasibility and impact. Write top 10 to memory/work-queue.md. Do NOT start implementing — just discover and queue.",
+      "message": "Run oss-discover in batch mode. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for anti-AI-PR policies and skip those repos.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }
   },
   {
     "id": "pr-followup-scan",
-    "name": "Scan PRs for reviews",
+    "name": "Scan PRs for reviews and CI status",
     "schedule": { "kind": "cron", "expr": "*/30 * * * *" },
     "sessionTarget": "main",
     "wakeMode": "now",
     "payload": {
       "kind": "systemEvent",
-      "message": "PR follow-up check: run gh pr list --author @me --state open. If any have new review comments, add to top of work-queue.md with priority: urgent."
+      "message": "PR follow-up scan: run gh pr list --author @me --state open --json number,reviewDecision,statusCheckRollup,updatedAt. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent. (Staging file -- heartbeat merges into work-queue.md to avoid race conditions.)"
     }
   },
   {
@@ -417,7 +703,7 @@ The cron system shifts from "do the work" to "prepare the work queue." The heart
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Compile daily report: PRs submitted, merged, rejected. Commits count. Repos contributed to. Token spend estimate. Send to dashboard-reporter skill.",
+      "message": "Compile daily report: PRs submitted vs merged vs rejected. Acceptance rate. Cost estimate. Repos contributed to. Update memory/pipeline-state.md stats. Send to dashboard-reporter skill. Calculate cost-per-merged-PR metric.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }
@@ -430,7 +716,7 @@ The cron system shifts from "do the work" to "prepare the work queue." The heart
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Analyze the past week: acceptance rate per repo, rejection patterns, average cycle time. Update MEMORY.md with strategy adjustments. Prune stale entries from work-queue.md.",
+      "message": "Weekly retrospective: acceptance rate per repo, rejection reasons, average cycle time. Update solvability scores in memory/repos/. Adjust issue selection strategy based on what worked. Prune stale work-queue items. Update MEMORY.md with learned patterns.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }
@@ -443,7 +729,7 @@ The cron system shifts from "do the work" to "prepare the work queue." The heart
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Review memory files older than 14 days. Archive patterns to MEMORY.md. Remove stale daily logs and expired work queue items.",
+      "message": "Review memory files older than 14 days. Archive important patterns to MEMORY.md. Remove stale daily logs and expired work queue items. Prune closed PRs from pipeline-state.md.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }
@@ -451,375 +737,309 @@ The cron system shifts from "do the work" to "prepare the work queue." The heart
 ]
 ```
 
-### Key Changes from Previous Cron Config
+### Changes from Previous Config
 
 | Change | Before | After | Why |
 |--------|--------|-------|-----|
-| Discovery | Once daily at 8am | Every 2 hours, isolated | Keep work queue full; agent never starves for work |
-| PR follow-up | Every 4 hours, isolated | Every 30 min, main session | Reviews are urgent; faster response = faster merge |
-| PR follow-up wake | Next heartbeat | `now` | Immediately wake agent to handle reviews |
-| All payloads | Free-text strings | Structured `kind`/`message` | Proper OpenClaw cron-jobs.json format |
-| Discovery directive | "Search and write" | "Queue only, don't implement" | Separation of concerns: cron discovers, heartbeat executes |
+| Discovery | Once daily at 8am | Every 2 hours, with solvability scoring | Keep queue full; pre-filter for quality |
+| PR follow-up | Every 4 hours, isolated | Every 30 min, main session, `wakeMode: now` | Reviews are urgent; fast response = faster merge |
+| Daily report | Simple stats | Includes acceptance rate + cost-per-merged-PR | Tracks the metrics that matter |
+| Weekly retro | Pattern analysis only | Feeds back into solvability scoring | Closes the learning loop |
+| All payloads | Free-text strings | Structured `kind`/`message` format | Proper OpenClaw cron schema |
 
 ---
 
-## 7. Pipelining Strategy
+## 10. Async CI & Pipelining Strategy
 
-### The Problem
+### The CI Bottleneck (Critic's Key Insight)
 
-Without pipelining, the agent's cycle is strictly serial:
+> "If the agent waits for CI (5-15 minutes typical), 5 commits/hour is mathematically impossible."
+
+CI is the single biggest time sink. The solution: **never wait for CI.**
+
+### Async CI Flow
 
 ```
-Discover → Implement → Submit → Wait for review → (idle) → Next task
+Agent submits PR --> PR appears on GitHub --> GitHub Actions starts CI --> Agent moves to next task
+                                                    |
+                                              [5-15 minutes later]
+                                                    |
+                                              CI passes/fails
+                                                    |
+                                   PR follow-up cron (every 30 min) detects result
+                                                    |
+                                   If CI failed (our fault): inject urgent fix into work queue
+                                   If CI passed: no action needed (wait for maintainer review)
 ```
 
-The "wait for review" gap can be hours or days. The agent should not block on reviews.
+**The agent runs local tests before submitting** (Gate 2 in quality gates). This catches most issues. Remote CI may catch environment-specific failures, which are handled reactively.
 
-### The Pipeline
+### Pipeline State Machine
 
-The agent maintains a **multi-stage pipeline** tracked in `memory/pipeline-state.md`:
+Each PR moves through states tracked in `memory/pipeline-state.md`:
+
+```
+IMPLEMENTING --> LOCAL_TESTS_PASS --> SUBMITTED --> CI_RUNNING --> AWAITING_REVIEW --> MERGED/REJECTED/STALE
+```
 
 ```markdown
 # Pipeline State
 
-## Active PR (awaiting review)
-- repo: facebook/react
-- pr: #12345
+## Active PRs (max 5)
+
+### expressjs/express#8901
+- branch: clawoss/docs/middleware-typo
 - submitted: 2026-03-16T10:30:00Z
 - status: awaiting_review
+- ci: passed
+- last_check: 2026-03-16T11:00:00Z
 
-## Active PR (awaiting review)
-- repo: vercel/next.js
-- pr: #67890
+### prisma/prisma#4567
+- branch: clawoss/test/schema-validation
 - submitted: 2026-03-16T11:15:00Z
 - status: ci_running
+- ci: pending
+- last_check: 2026-03-16T11:30:00Z
 
-## Current Work
-- repo: none (picking from queue)
-
-## Work Queue (from cron discovery)
-- [ ] expressjs/express#8901 - Fix typo in middleware docs
-- [ ] prisma/prisma#4567 - Add missing test for schema validation
-- [ ] vitejs/vite#2345 - Update deprecated API usage in plugin
+## Stats Today
+- submitted: 4
+- merged: 1
+- rejected: 0
+- abandoned: 1
+- acceptance_rate: 100% (1/1 reviewed)
+- cost_per_merged: $0.85
 ```
 
 ### Pipeline Rules
 
-1. **Never block on reviews.** After submitting a PR, immediately move to the next task. PR follow-ups are handled reactively when the cron scan detects new review comments.
+1. **Never block on reviews or CI.** Submit and move on.
+2. **Max 5 active PRs.** Beyond 5, stop submitting; focus on follow-ups.
+3. **Follow-ups take absolute priority.** Review comments go to top of queue as `urgent`.
+4. **Per-repo rate limiting:** Max 2-3 PRs/repo/day, min 30-min gap.
+5. **Stale PR cleanup:** Close PRs with no review activity after 7 days.
+6. **Max 3 follow-up rounds per PR.** After 3, politely disengage.
 
-2. **Max 5 active PRs at any time.** Beyond 5, the agent stops submitting new PRs and focuses on follow-ups. This prevents overwhelming maintainers and avoids spreading attention too thin.
+### Effective Throughput With Pipelining
 
-3. **Follow-ups take priority over new work.** When the 30-minute PR scan detects review comments, the follow-up item goes to the TOP of the work queue with `priority: urgent`. The next heartbeat cycle handles it first.
-
-4. **Track per-repo cadence.** The existing anti-spam rule (max 3 PRs/repo/day, min 30-min gap) is enforced by checking pipeline-state.md before starting new work on a repo.
-
-5. **Stale PR cleanup.** If a PR has been open >7 days with no review activity, close it with a polite comment and remove from pipeline. Don't let stale PRs accumulate.
-
-### Pipeline Flow Diagram
-
+Without pipelining (serial, wait for CI):
 ```
-                    ┌─────────────────┐
-                    │  Work Queue     │ ← Filled by cron (every 2hr)
-                    │  (10-15 items)  │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Pick Top Item  │ ← Heartbeat cycle picks one
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Implement      │ ← 3-8 min
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Quality Gate   │ ← 1-2 min (safety-checker + oss-review)
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Submit PR      │ ← Add to Active PRs in pipeline-state.md
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Self-Wake      │ ← Immediately start next cycle
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Next Item...   │ ← Continuous loop
-                    └─────────────────┘
-
-    Meanwhile, independently:
-
-    ┌──────────────────────────┐
-    │  PR Follow-up Cron       │ ← Every 30 min
-    │  Scans for review        │
-    │  comments, injects       │
-    │  urgent items into queue │
-    └──────────────────────────┘
+Task 1 [15 min] --> CI wait [10 min] --> Task 2 [15 min] --> CI wait [10 min] ...
+= 50 min per 2 PRs = ~2.4 PRs/hour
 ```
+
+With pipelining (async CI):
+```
+Task 1 [15 min] --> Task 2 [15 min] --> Task 3 [15 min] --> Task 4 [15 min] ...
+= 15 min per PR = ~4 PR attempts/hour
+```
+
+**Pipelining doubles effective throughput** by eliminating CI wait time from the critical path.
 
 ---
 
-## 8. Fast Quality Gates
+## 11. Fast Quality Gates
 
-Quality gates must be fast (< 2 minutes total) but effective. No gate should require a separate model invocation unless absolutely necessary.
+Quality gates must be fast (< 4 minutes total for simple PRs) but effective. The critic emphasized: quality gate before every PR submission.
 
-### Gate 1: Pre-Commit Checks (< 30 seconds)
+**Important:** Gates 1-3 run inside the implementation sub-agent (fresh context, no orchestrator pollution). Gate 4 (optional subagent review) spawns a second-level sub-agent from within the implementation sub-agent, providing a truly independent review perspective. This requires `maxSpawnDepth >= 2` if used, but for cost/complexity reasons we recommend keeping Gate 3 (self-check) as the primary LLM gate and reserving Gate 4 for exceptional cases only.
 
-Run by `safety-checker` skill. All checks are mechanical (no LLM needed):
+### Gate 1: Pre-Commit Mechanical Checks (< 30 seconds)
+
+Run by `safety-checker` skill. No LLM needed:
 
 ```bash
-# Diff size check
+# Diff size
 LINES=$(git diff --stat HEAD | tail -1 | awk '{print $4}')
-[ "$LINES" -gt 200 ] && echo "FAIL: diff too large ($LINES lines)" && exit 1
+[ "$LINES" -gt 200 ] && echo "FAIL: diff too large" && exit 1
 
-# File count check
+# File count
 FILES=$(git diff --name-only HEAD | wc -l)
-[ "$FILES" -gt 5 ] && echo "FAIL: too many files changed ($FILES)" && exit 1
+[ "$FILES" -gt 5 ] && echo "FAIL: too many files" && exit 1
 
 # Secret scan
-git diff HEAD | grep -iE '(api_key|secret|password|token|credential)' && echo "WARN: possible secret" && exit 1
+git diff HEAD | grep -iE '(api_key|secret|password|token|credential)' && echo "FAIL: possible secret" && exit 1
 
-# No force-push or main branch
+# Branch check
 BRANCH=$(git branch --show-current)
-[ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ] && echo "FAIL: on protected branch" && exit 1
+echo "$BRANCH" | grep -qE '^(main|master|develop)$' && echo "FAIL: protected branch" && exit 1
+echo "$BRANCH" | grep -q '^clawoss/' || echo "FAIL: wrong branch naming" && exit 1
 ```
 
-### Gate 2: Repo Test Suite (1-3 minutes)
+### Gate 2: Local Test Suite (1-3 minutes, 3-min timeout)
 
-Run the target repo's test suite. This is the most time-variable gate.
+Run related tests when possible:
+- Jest: `npx jest --findRelatedTests <changed-files>`
+- pytest: `python -m pytest <changed-files> --timeout=180`
+- Generic: run full suite with 3-minute timeout
 
-**Speed optimization:** Only run tests related to changed files when possible:
-- If the repo has a test runner that supports `--related` or `--changed` flags (Jest, pytest), use it
-- If not, run the full suite but set a 3-minute timeout
-- If tests timeout, the PR description notes "full test suite not run; please verify in CI"
+If tests timeout: note in PR description "Local test suite exceeded timeout; please verify in CI." Do NOT skip submission — let CI be the arbiter.
 
-### Gate 3: Lightweight LLM Self-Check (< 1 minute)
+### Gate 3: LLM Self-Check (< 1 minute)
 
-Instead of spawning a full review subagent (expensive, slow), run a single-turn self-check within the main session:
+Single-turn check within the main session (no subagent):
 
 ```
-Review your diff against the issue description. Answer these 5 questions:
-1. Does the change address the stated issue? (yes/no)
-2. Are there any files changed that are unrelated to the issue? (yes/no)
-3. Is the change minimal and focused? (yes/no)
-4. Does the PR description explain why, not just what? (yes/no)
-5. Does the code match the repo's existing style? (yes/no)
+Review the diff against the issue. Answer YES or NO:
+1. Does the change address the stated issue?
+2. Is the change minimal (no unrelated files)?
+3. Does the code match the repo's style?
+4. Does the PR description explain WHY?
+5. Are there tests for the change (if code change)?
 
-If any answer is "no", fix it before submitting. If 3+ are "no", abandon this task.
+If 3+ are NO: abandon this task and log reason.
+If 1-2 are NO: fix before submitting.
 ```
 
-This is cheaper than a subagent and catches the most common quality issues.
+### Gate 4: Subagent Review (Complex PRs Only, < 2 minutes)
 
-### Gate 4: Full Subagent Review (Optional, for complex PRs only)
+Triggered only when diff > 100 lines OR changes span 3+ files:
+- Spawns `oss-review` subagent with 120-second timeout
+- Fresh context (no pollution from implementation reasoning)
+- If timeout: lightweight self-check stands
 
-Only triggered when:
-- Diff > 100 lines
-- Changes span 3+ files
-- The issue is labeled as anything other than "good-first-issue" or "docs"
+### Gate Summary
 
-When triggered, the `oss-review` subagent gets a 2-minute timeout (`runTimeoutSeconds: 120`). If it doesn't finish in time, the lightweight self-check result stands.
-
-### Total Gate Time Budget
-
-| Gate | Time | When |
-|------|------|------|
-| Pre-commit mechanical checks | < 30s | Always |
-| Repo test suite | 1-3 min | Always |
-| Lightweight self-check | < 1 min | Always |
-| Full subagent review | 1-2 min | Complex PRs only |
-| **Total (simple PR)** | **2-4 min** | |
-| **Total (complex PR)** | **3-6 min** | |
+| Gate | Time | When | Cost |
+|------|------|------|------|
+| Mechanical checks | < 30s | Always | $0 |
+| Local tests | 1-3 min | Always | $0 |
+| LLM self-check | < 1 min | Always | ~$0.02 |
+| Subagent review | < 2 min | Complex PRs | ~$0.10 |
+| **Total (simple)** | **2-4 min** | | **~$0.02** |
+| **Total (complex)** | **3-6 min** | | **~$0.12** |
 
 ---
 
-## 9. Latency Optimizations
+## 12. Latency Optimizations
 
-Every millisecond matters when targeting 12-30 minute cycles. These optimizations reduce per-turn overhead.
-
-### 9.1 Disable Human Delay
-
+### 12.1 Disable Human Delay
 ```json5
 "humanDelay": { "mode": "off" }
 ```
+Saves 800-2500ms per response block. Over a 10-turn cycle: 8-25 seconds saved.
 
-Saves 800-2500ms per response block. Over a 10-turn work cycle, this saves 8-25 seconds.
-
-### 9.2 Reduce WebSocket Throttle
-
-Set before starting the gateway:
-
+### 12.2 Reduce WebSocket Throttle
 ```bash
-export OPENCLAW_WS_DELTA_THROTTLE_MS=20
+export OPENCLAW_WS_DELTA_THROTTLE_MS=20  # Default: 150ms
 ```
+7x faster token delivery.
 
-Reduces token delivery delay from 150ms to 20ms. Primarily affects streaming response display but can impact total turn time.
-
-### 9.3 Light Context for Heartbeats
-
+### 12.3 Light Context for Heartbeats
 ```json5
 "heartbeat": { "lightContext": true }
 ```
+Only injects HEARTBEAT.md. Saves ~5-10K input tokens per heartbeat. Also reduces context pollution between tasks.
 
-Only injects `HEARTBEAT.md` into the context for heartbeat runs, not the full bootstrap set (AGENTS.md, SOUL.md, USER.md, IDENTITY.md, TOOLS.md, BOOTSTRAP.md). Saves ~5-10K input tokens per heartbeat.
+### 12.4 Work Queue Prefetch
+Discovery cron fills `memory/work-queue.md` every 2 hours. Heartbeat picks from queue instead of searching. Saves 1-3 min/cycle.
 
-**Trade-off:** The agent won't have AGENTS.md instructions during heartbeat runs. The HEARTBEAT.md must be self-contained with all necessary directives. This is why we put the full work loop checklist in HEARTBEAT.md rather than relying on AGENTS.md.
+### 12.5 Repo Convention Caching
+After first visit, conventions are cached in `memory/repos/<repo-slug>.md`. Subsequent visits skip `repo-analyzer`. Saves 1-2 min/cycle.
 
-### 9.4 Minimize Thinking Mode
+### 12.6 Async CI (Not Waiting)
+Submit PR and move on. CI results handled reactively. Saves 5-15 min/cycle.
 
-For Minimax M2.5 via OpenRouter, extended thinking/chain-of-thought burns extra tokens and time. If the model supports thinking level configuration:
+### 12.7 Prompt Cache Warmth
+Self-wake keeps the session active (turns < 5 min apart), maximizing OpenClaw's prompt cache hits (cache prunes after 5 min idle).
 
-```json5
-"thinkingDefault": "minimal"
-```
+### Combined Impact
 
-Saves approximately 1-2 seconds per turn based on latency benchmarks.
+| Optimization | Time Saved/Cycle |
+|-------------|-----------------|
+| Async CI | 5-15 min |
+| Work queue prefetch | 1-3 min |
+| Repo convention cache | 1-2 min |
+| Human delay off | 8-25 sec |
+| Light context | 2-5 sec (fewer tokens) |
+| WebSocket throttle | 1-3 sec |
+| **Total** | **7-21 min** |
 
-### 9.5 Aggressive Prompt Caching
-
-OpenClaw v2026.2.0+ preserves cache between turns (prunes context only after 5 minutes idle). The self-wake architecture naturally keeps the session active, maximizing cache hits. No configuration needed — this happens automatically as long as turns are < 5 minutes apart.
-
-### 9.6 Work Queue Prefetch
-
-The 2-hour discovery cron prefills `memory/work-queue.md`. When the heartbeat fires, the agent doesn't need to search for work — it reads from the queue. This saves 1-3 minutes per cycle that would otherwise be spent on discovery.
-
-### 9.7 Repo Convention Caching
-
-After first visiting a repo, the `repo-analyzer` skill writes conventions to `memory/repos/<repo-slug>.md`:
-
-```markdown
-# vercel/next.js
-- test_framework: jest
-- lint: eslint + prettier
-- commit_style: conventional
-- pr_template: yes (.github/PULL_REQUEST_TEMPLATE.md)
-- contributing_notes: must sign CLA
-- last_updated: 2026-03-16
-```
-
-Subsequent visits skip the analyzer, saving 1-2 minutes.
+These optimizations reduce a 25-40 min serial cycle to a **15-25 min pipelined cycle**.
 
 ---
 
-## 10. Realistic Throughput Expectations
+## 13. Realistic Throughput Expectations
 
-### Honest Projections with Minimax M2.5
+### Honest Projections (Calibrated Against Critic's Analysis)
 
-**Minimax M2.5 characteristics:**
-- Fast inference via OpenRouter (2-8s per turn)
-- Lower cost than Claude Opus/Sonnet
-- Good at straightforward code tasks
-- Less capable at complex architectural reasoning
-- Unknown context window limits through OpenRouter (likely 128K-256K)
+**Key assumptions:**
+- M2.5 real-world agentic success rate: **30-45% blended** (critic calibration: 67% on pre-curated well-defined tasks, 15% on complex/ambiguous; weighted average with curation layer)
+- Async CI (no waiting for remote CI)
+- Pre-curated work queue with solvability scoring
+- 15-25 minute cycle time for small-to-medium tasks
+- Per-repo rate limiting (2-3/repo/day)
+- **Critical: "merged PRs/day" lags "submitted PRs/day" by 1-7 days** due to maintainer review time
 
-### Throughput by Task Type
+### Submitted vs. Merged PRs (The Pipeline Lag)
 
-| Task Type | Cycle Time | Commits/Hour | Quality Risk |
-|-----------|-----------|--------------|--------------|
-| Documentation fixes | 8-12 min | 4-5 | Low |
-| Dependency updates (minor) | 10-15 min | 3-4 | Low |
-| Test additions | 12-18 min | 2-3 | Medium |
-| Simple bug fixes | 15-25 min | 2-3 | Medium |
-| Small refactors | 20-30 min | 1-2 | High |
-| Feature additions | 25-40 min | 1-2 | High |
+The agent can SUBMIT PRs much faster than they get MERGED. Most OSS PRs take 1-7 days for first review. The pipeline needs to fill before merged-per-day stabilizes:
 
-### Blended Throughput Projection
+| Phase | PR Attempts/Day | Acceptance Rate | Submitted/Day | Merged/Day (actual) |
+|-------|----------------|----------------|---------------|---------------------|
+| Week 1-2 (calibration) | 8-12 | 30-40% | 3-5 | **1-2** (pipeline filling) |
+| Week 3-4 (ramp) | 15-25 | 35-45% | 5-11 | **3-7** (pipeline filling) |
+| Month 2+ (steady state) | 20-35 | 40-50% | 8-17 | **5-12** (pipeline full) |
 
-Assuming a realistic task mix (40% docs/deps, 30% tests/simple bugs, 20% small fixes, 10% features):
+**Note:** "Merged/Day" reflects the lag. By month 2, the pipeline is full -- PRs submitted in earlier days are getting reviewed and merged, so the daily merge rate catches up to the daily acceptance rate.
 
-| Metric | Pessimistic | Realistic | Optimistic |
-|--------|-------------|-----------|------------|
-| Commits/hour (burst) | 2 | 3-4 | 5 |
-| Commits/hour (sustained 8hr) | 1.5 | 2-3 | 4 |
-| Commits/day (24hr) | 20-30 | 35-50 | 60-80 |
-| PR merge rate | 25-35% | 40-55% | 60-70% |
-| Merged PRs/day | 5-10 | 14-27 | 36-56 |
+### Cost Breakdown (Two Scenarios)
 
-### Cost Projections
+**24/7 Operation:**
 
 | Component | Daily Cost | Monthly Cost |
 |-----------|-----------|--------------|
-| Heartbeat overhead (10m, lightContext) | $2-4 | $60-120 |
-| Work execution (35-50 cycles/day) | $15-30 | $450-900 |
-| Discovery cron (12x/day) | $1-3 | $30-90 |
-| PR follow-up cron (48x/day) | $2-5 | $60-150 |
-| Review subagent (10% of PRs) | $1-3 | $30-90 |
-| **Total** | **$21-45** | **$630-1,350** |
+| Heartbeat overhead (10m, lightContext) | $1.50-3 | $45-90 |
+| Work execution (20-35 cycles/day) | $4-10 | $120-300 |
+| Discovery cron (12x/day) | $0.50-1 | $15-30 |
+| PR follow-up cron (48x/day) | $0.50-1 | $15-30 |
+| Sub-agent implementation (~all tasks) | included above | included above |
+| **Total (24/7)** | **$7-15** | **$210-450** |
 
-*Note: Minimax M2.5 pricing through OpenRouter is significantly cheaper than Claude Opus/Sonnet, which makes high-throughput operation viable. Actual costs depend on OpenRouter pricing tiers and token consumption patterns.*
+**Active Hours Only (8-12 hrs/day via `activeHours` config):**
 
-### The Quality-Throughput Trade-off
+| Component | Daily Cost | Monthly Cost |
+|-----------|-----------|--------------|
+| Heartbeat overhead | $0.50-1.50 | $15-45 |
+| Work execution | $2-6 | $60-180 |
+| Discovery + follow-up crons | $0.50-1 | $15-30 |
+| **Total (active hours)** | **$3-9** | **$90-255** |
 
-**Pushing for 5 commits/hour** means:
-- Only documentation and trivial fixes
-- Minimal review time
-- Higher rejection rate
-- Risk of being perceived as spam
+### Cost Per Merged PR
 
-**Settling for 2-3 commits/hour** means:
-- Mix of docs, tests, and real bug fixes
-- Proper quality gates
-- Higher merge rate
-- Better reputation with maintainers
+| Phase | Cost/Day | Merged/Day | Cost/Merged PR |
+|-------|---------|-----------|----------------|
+| Week 1-2 | $3-6 | 1-2 | **$1.50-6.00** |
+| Week 3-4 | $5-10 | 3-7 | **$0.70-3.30** |
+| Month 2+ | $7-15 | 5-12 | **$0.60-3.00** |
 
-**Recommendation:** Target **2-3 commits/hour sustained** with occasional bursts to 5 during documentation-heavy periods. Quality over quantity — 2 merged PRs are worth more than 5 rejected ones.
+**Month 2+ meets the <$2/merged PR target at the realistic end.** Early phases may exceed $2 while calibrating -- this is expected. The cost per merged PR improves as the issue curation layer learns which repos and issue types have the highest acceptance rates.
 
----
+### The Quality-Throughput Sweet Spot
 
-## Appendix A: Updated HEARTBEAT.md (Full Version)
+The target is **3-5 merged PRs/day with >70% acceptance rate** as the initial goal (weeks 3-4). At steady state, the architecture is designed to scale to **5-12 merged PRs/day** as the pipeline fills and curation improves.
 
-This replaces `/workspace/HEARTBEAT.md`:
+Key expectations for the dashboard:
+- **Submitted PRs/day** will ramp faster than **Merged PRs/day** -- this is normal pipeline lag, not a quality problem
+- **Acceptance rate** is the leading indicator of quality; if it drops below 30%, pause and recalibrate
+- **Cost per merged PR** should trend downward as curation improves; if it trends up, the agent is attempting tasks that are too complex
 
-```markdown
-# Heartbeat — Fast Autonomous Loop
+### What Could Go Wrong
 
-On each heartbeat, execute this checklist strictly and sequentially.
-
-## 0. Circuit Breaker Check
-Read memory/wake-state.md. If any condition is true, reply HEARTBEAT_OK:
-- consecutive_wakes >= 8
-- errors_this_hour >= 2
-- commits_this_hour >= 6
-If hourly_reset is stale (>1 hour ago), reset all hourly counters.
-
-## 1. PR Follow-ups (Priority: Urgent)
-Run: gh pr list --author @me --state open --json number,title,reviewDecision,statusCheckRollup,url
-- If any PR has new review comments → run oss-followup for that PR. Then go to step 4.
-- If any PR has failing CI that we caused → investigate and fix. Then go to step 4.
-- Otherwise continue.
-
-## 2. Pick Work
-Check memory/work-queue.md:
-- If items with priority: urgent exist → pick first urgent item.
-- If normal items exist → pick top item.
-- If queue is empty → run oss-discover (fast: 3 repos, 5 issues max). If still nothing, reply HEARTBEAT_OK.
-
-## 3. Execute
-For the selected issue, run in sequence:
-1. oss-triage: Confirm still open. If closed/assigned, remove from queue, go to step 2.
-2. repo-analyzer: Only if repo not in memory/repos/. Otherwise skip.
-3. oss-implement: Write the fix. Max 200 lines changed, max 5 files.
-4. safety-checker: Diff size, secrets scan, branch check. If FAIL, abandon and log.
-5. oss-review: Quick self-check (5 questions). If 3+ fail, abandon and log.
-6. oss-submit: Commit, push, create PR.
-
-## 4. Report & Loop
-Run dashboard-reporter with cycle results.
-Update memory/wake-state.md: increment commits_this_hour, consecutive_wakes.
-Update memory/pipeline-state.md with new PR if submitted.
-Remove completed item from memory/work-queue.md.
-
-If circuit breakers OK and work remains:
-  exec: openclaw system event --text "Cycle done, continuing" --mode now
-
-Otherwise: HEARTBEAT_OK
-```
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|------------|
+| Repos block bot account | Medium | High | Per-repo rate limiting, reputation tracking, quality gates |
+| Context pollution degrades quality | Low (with sub-agents) | Medium | Two-layer session architecture; fresh context per task |
+| OpenRouter rate limits or outages | Low-Medium | Medium | Consider direct MiniMax API as fallback |
+| Cost overrun from stuck loops | Low | Medium | Circuit breakers, max consecutive wakes, error limits |
+| M2.5 agentic performance lower than expected | Low | High | Start with documentation/simple fixes; ramp based on data |
+| Maintainer review lag inflates pipeline | Medium | Low | Stale PR cleanup after 7 days; cap at 5 active PRs |
+| Memory file race conditions | Low (with staging) | Medium | Staging file pattern; only heartbeat writes to work-queue.md |
 
 ---
 
-## Appendix B: New Memory Files
+## Appendix A: New Memory Files
 
 ### memory/wake-state.md
-
 ```markdown
 # Wake State
 - consecutive_wakes: 0
@@ -827,24 +1047,38 @@ Otherwise: HEARTBEAT_OK
 - commits_this_hour: 0
 - errors_this_hour: 0
 - hourly_reset: 2026-03-16T00:00:00Z
+- prs_today_by_repo: {}
 ```
 
 ### memory/work-queue.md
-
 ```markdown
 # Work Queue
-<!-- Populated by work-queue-refill cron job. Consumed by heartbeat loop. -->
-<!-- Format: priority | repo | issue | title | complexity | discovered -->
+<!-- Consumed by heartbeat loop. Only heartbeat writes to this file. -->
+<!-- Cron jobs write to staging files; heartbeat merges them here. -->
+<!-- Format: priority | repo | issue | title | solvability_score | discovered -->
 
-- [ ] normal | expressjs/express#8901 | Fix typo in middleware docs | trivial | 2026-03-16
-- [ ] normal | prisma/prisma#4567 | Add test for schema validation | simple | 2026-03-16
+- [ ] normal | expressjs/express#8901 | Fix typo in middleware docs | 8 | 2026-03-16
+- [ ] normal | prisma/prisma#4567 | Add test for schema validation | 6 | 2026-03-16
+```
+
+### memory/work-queue-staging.md
+```markdown
+# Work Queue Staging
+<!-- Written by work-queue-refill cron (isolated session). -->
+<!-- Heartbeat merges contents into work-queue.md and clears this file. -->
+```
+
+### memory/followup-staging.md
+```markdown
+# Follow-up Staging
+<!-- Written by pr-followup-scan cron. -->
+<!-- Heartbeat merges contents into work-queue.md as priority: urgent and clears this file. -->
 ```
 
 ### memory/pipeline-state.md
-
 ```markdown
 # Pipeline State
-<!-- Tracks active PRs and current work. Max 5 active PRs. -->
+<!-- Max 5 active PRs. Updated by heartbeat loop. -->
 
 ## Active PRs
 <!-- None yet -->
@@ -854,21 +1088,40 @@ Otherwise: HEARTBEAT_OK
 - merged: 0
 - rejected: 0
 - abandoned: 0
+- acceptance_rate: N/A
+- cost_per_merged: N/A
 ```
 
 ---
 
-## Appendix C: Environment Setup Script Addition
-
-Add to the gateway startup script:
+## Appendix B: Environment Setup
 
 ```bash
 # Throughput optimizations
-export OPENCLAW_WS_DELTA_THROTTLE_MS=20  # Reduce WebSocket token delivery delay
+export OPENCLAW_WS_DELTA_THROTTLE_MS=20  # 7x faster WebSocket delivery
 
 # Start gateway
 openclaw gateway start --config ./config/openclaw.json
 ```
+
+---
+
+## Appendix C: Decision Log
+
+| Decision | Considered | Chosen | Rationale |
+|----------|-----------|--------|-----------|
+| Primary metric | Commits/hour | Merged PRs/day | Critic: commits incentivizes trivial work |
+| Session strategy | a) lightContext + memory flush, b) Isolated session per task, c) **Orchestrator + sub-agent** | **(c) Orchestrator + sub-agent** | Critic v2: fresh context per task via `sessions_spawn`; main session stays clean as orchestrator; preserves self-wake chain and "single agent" identity |
+| Agent default flag | Not set | `"default": true` | Critic: required for heartbeat/cron routing to main session; without it, jobs are rejected. **Also fixed in live config/openclaw.json.** |
+| Sub-agent timeout | 120s (review only) | 600s (full implementation) | Sub-agents now run entire implementation cycle, not just review |
+| CI handling | Wait for CI | Async (submit + move on) | CI wait eliminates high-throughput possibility |
+| Heartbeat interval | 5m / 10m / 15m / 55m | 10m + self-wake | Balance cost, responsiveness, cache warmth |
+| Quality gate | Subagent every PR | Lightweight self-check inside sub-agent | Quality gates run inside the implementation sub-agent, not in main session |
+| Issue selection | All labeled issues | Solvability scoring >= 5 | Pre-filter reduces wasted cycles |
+| Self-review model | Different model | Same model, different prompt strategy | Single-model constraint (M2.5 only) |
+| lightContext safety | lightContext off (full bootstrap) | lightContext on + **full AGENTS.md rules replicated in HEARTBEAT.md** | Critic v3: lightContext strips AGENTS.md; all safety rules must be embedded in HEARTBEAT.md or they're invisible during autonomous operation |
+| Memory file concurrency | Single work-queue.md for all writers | **Staging file pattern** (cron writes to staging, heartbeat merges) | Critic v3: race condition between isolated cron sessions and main session writing same file |
+| Throughput projections | 14-27 merged PRs/day | **5-12 merged PRs/day** (steady state) | Critic v3: pipeline lag (1-7 day review), blended success rate 30-45% not 50-65% |
 
 ---
 
@@ -881,4 +1134,6 @@ openclaw gateway start --config ./config/openclaw.json
 - [How Does OpenClaw Work? Inside the Agent Loop](https://tomaszs2.medium.com/how-does-openclaw-work-inside-the-agent-loop-that-powers-200-000-github-stars-e61db2bbfcbb)
 - [OpenClaw v2026.2.25 Release Notes](https://globalclaw.github.io/globalclaw-blog/posts/2026-02-26-openclaw-2026-2-25.html)
 - [OpenClaw DeepWiki](https://deepwiki.com/openclaw/openclaw)
-- [How I Built a Deterministic Multi-Agent Dev Pipeline Inside OpenClaw](https://dev.to/ggondim/how-i-built-a-deterministic-multi-agent-dev-pipeline-inside-openclaw-and-contributed-a-missing-4ool)
+- [Throughput Critique Analysis](./07-throughput-critique.md)
+- [SWE-bench Verified Leaderboard](https://www.swebench.com/)
+- [Minimax M2.5 Technical Report](https://arxiv.org/abs/2505.17279)

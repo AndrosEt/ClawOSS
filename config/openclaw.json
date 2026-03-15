@@ -1,131 +1,31 @@
 {
-  "gateway": {
-    "port": 18789,
-    "mode": "headless"
-  },
-
-  "identity": {
-    "name": "ClawOSS",
-    "theme": "lobster",
-    "github": "BillionClaw"
-  },
-
   "agents": {
-    "defaults": {
-      "workspace": "./workspace",
-      "model": {
-        "primary": "openrouter/minimax/minimax-m2.5",
-        "fallbacks": ["openrouter/minimax/minimax-m2.5"]
-      },
-      "models": {
-        "allowlist": [
-          "openrouter/minimax/minimax-m2.5"
-        ],
-        "aliases": {
-          "default": "openrouter/minimax/minimax-m2.5"
-        }
-      },
-      "heartbeat": {
-        "every": "60m",
-        "model": "openrouter/minimax/minimax-m2.5",
-        "prompt": "Run the heartbeat checklist in HEARTBEAT.md",
-        "isolatedSession": false
-      },
-      "sandbox": {
-        "enabled": true,
-        "allowPaths": [
-          "/tmp/clawoss-workdir",
-          "~/.openclaw/workspace"
-        ]
-      },
-      "compaction": {
-        "mode": "auto",
-        "targetTokens": 500000,
-        "model": "openrouter/minimax/minimax-m2.5",
-        "keepRecentTokens": 50000,
-        "memoryFlush": true
-      },
-      "subagents": {
-        "model": "openrouter/minimax/minimax-m2.5",
-        "maxConcurrent": 1,
-        "runTimeoutSeconds": 300
-      },
-      "imageMaxDimensionPx": 1024
-    },
     "list": [
       {
         "id": "clawoss",
-        "model": {
-          "primary": "openrouter/minimax/minimax-m2.5"
-        },
+        "default": true,
+        "name": "ClawOSS",
+        "workspace": "/Users/kevinlin/clawOSS/workspace",
+        "model": "openrouter/minimax/minimax-m2.5",
         "tools": {
           "profile": "coding"
+        },
+        "heartbeat": {
+          "every": "15m"
         }
       }
     ]
   },
-
+  "gateway": {
+    "port": 18789,
+    "mode": "local"
+  },
   "skills": {
-    "allowBundled": ["github", "agent-tools"],
     "load": {
-      "extraDirs": [],
-      "watch": true,
-      "watchDebounceMs": 500
-    },
-    "entries": {
-      "github": {
-        "enabled": true
-      }
+      "watch": true
     }
   },
-
-  "tools": {
-    "profile": "coding",
-    "allow": [
-      "exec",
-      "memory_search",
-      "memory_get",
-      "memory_write",
-      "web_fetch",
-      "web_search"
-    ],
-    "deny": [
-      "imsg",
-      "wacli",
-      "discord",
-      "spotify-player",
-      "openhue",
-      "sonos",
-      "camsnap",
-      "peekaboo"
-    ]
-  },
-
   "logging": {
-    "level": "info",
-    "file": "/tmp/openclaw/clawoss-{date}.log",
-    "consoleLevel": "warn",
-    "consoleStyle": "compact",
-    "redactSensitive": true
-  },
-
-  "session": {
-    "scope": "agent",
-    "resetTriggers": {
-      "daily": "04:00"
-    },
-    "maintenance": {
-      "mode": "enforce",
-      "pruneAfter": "7d",
-      "maxEntries": 100
-    }
-  },
-
-  "diagnostics": {
-    "enabled": true,
-    "otel": {
-      "endpoint": "https://clawoss-dashboard.vercel.app/api/otel",
-      "logs": true
-    }
+    "level": "info"
   }
 }
