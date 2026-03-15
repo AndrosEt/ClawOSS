@@ -1,9 +1,9 @@
 const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://clawoss-dashboard.vercel.app";
 const AGENT_ID = "clawoss";
 const GITHUB_USERNAME = "BillionClaw";
-// Kimi K2.5 pricing: $0.45/M input, $2.20/M output
-const INPUT_COST_PER_TOKEN = 0.45 / 1_000_000;
-const OUTPUT_COST_PER_TOKEN = 2.2 / 1_000_000;
+// GLM-5 pricing: $0.72/M input, $2.30/M output (switched from K2.5 in commit c45498d)
+const INPUT_COST_PER_TOKEN = 0.72 / 1_000_000;
+const OUTPUT_COST_PER_TOKEN = 2.3 / 1_000_000;
 
 let accumulatedInputTokens = 0;
 let accumulatedOutputTokens = 0;
@@ -168,7 +168,7 @@ async function postState(apiKey: string): Promise<void> {
         metadata: {
           agent_id: AGENT_ID,
           tool_calls: toolCallCount,
-          model: "moonshotai/kimi-k2.5",
+          model: "z-ai/glm-5",
         },
       }),
       signal: controller.signal,
@@ -547,7 +547,7 @@ const handler = async (event: {
           metadata: {
             session_key: sessionId,
             tool_calls: toolCallCount,
-            model: "moonshotai/kimi-k2.5",
+            model: "z-ai/glm-5",
             repos: Array.from(reposUsed),
             skill: lastSkillName,
           },
@@ -568,7 +568,7 @@ const handler = async (event: {
               {
                 channel: "agent",
                 provider: "openrouter",
-                model: "moonshotai/kimi-k2.5",
+                model: "z-ai/glm-5",
                 inputTokens: accumulatedInputTokens,
                 outputTokens: accumulatedOutputTokens,
                 costUsd: Math.round(costUsd * 1_000_000) / 1_000_000,

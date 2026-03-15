@@ -10,6 +10,12 @@ export interface CostModel {
 }
 
 export const COST_MODELS: Record<string, CostModel> = {
+  "z-ai/glm-5": {
+    name: "GLM-5",
+    provider: "openrouter",
+    inputCostPerToken: 0.72 / 1_000_000,
+    outputCostPerToken: 2.3 / 1_000_000,
+  },
   "moonshotai/kimi-k2.5": {
     name: "Kimi K2.5",
     provider: "openrouter",
@@ -42,8 +48,8 @@ export const COST_MODELS: Record<string, CostModel> = {
   },
 };
 
-// Default model for the ClawOSS agent
-export const DEFAULT_MODEL = "moonshotai/kimi-k2.5";
+// Default model for the ClawOSS agent (switched from kimi-k2.5 to glm-5 in commit c45498d)
+export const DEFAULT_MODEL = "z-ai/glm-5";
 export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL];
 
 /**
