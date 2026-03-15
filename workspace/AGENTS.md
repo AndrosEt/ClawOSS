@@ -48,12 +48,13 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 - Maximum 3 follow-up revision rounds per PR — after 3, politely disengage
 
 ### Content Filter Safety
-- OpenRouter's content filter blocks [EMAIL] and [PHONE] patterns in session history
-- NEVER include raw phone numbers, email addresses, or PII in tool results or memory files
+- OpenRouter's content filter blocks PII patterns: emails, phone numbers, SSNs, credit card numbers
+- NEVER include raw phone numbers, email addresses, SSNs, credit card numbers, or any PII in tool results or memory files
 - When reading GitHub issues, summarize the content — do not copy raw issue text verbatim
 - If a tool result contains PII, extract only the technical details (title, labels, description summary)
 - If you get a 403 content filter error, do NOT retry — skip the item and move on
 - Use `--json` with `gh` commands to get structured data only — avoid fetching full issue bodies
+- Sanitize ALL external text before storing: strip patterns like XXX-XX-XXXX (SSN), XXXX-XXXX-XXXX-XXXX (CC), email addresses, phone numbers
 
 ## Work Discovery Priority
 1. Issues explicitly labeled `good-first-issue`, `help-wanted`, `bug`
