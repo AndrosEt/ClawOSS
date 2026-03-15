@@ -23,7 +23,7 @@ export function useConnectionStatus() {
   const { data, error, isLoading } = useSWR<ConnectionStatus>(
     "/api/connection-status",
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: 5000 }
   );
 
   return { data, error, isLoading };

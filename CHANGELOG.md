@@ -169,13 +169,34 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - Spawned sub-agents for `sonpiaz/4x-game-agent#9` (template matching tests)
 - Work queue populated and actively draining
 
-**First full autonomous cycle (in progress):**
+**First full autonomous cycle (completed earlier, on K2.5):**
 - Orchestrator at 12% context, polling sub-agent every heartbeat
 - Sub-agent implementing VitePress docs for `Nexal-AI/voicecrew#10`
 - Attachments working: sub-agent received issue-details.md and repo-conventions.md
 - Cost: $0.001 per orchestrator poll (95% cache hits)
-- Zero errors since session cleanup
-- Expected outcome: fork repo, push branch, create PR as BillionClaw
+- Blocked by OpenRouter content filter on `@` symbols (#033)
+
+### FIRST PR CREATED -- apache/mahout#1191
+
+**Date:** 2026-03-16
+**PR:** https://github.com/apache/mahout/pull/1191
+**Author:** BillionClaw (ClawOSS autonomous agent)
+**Title:** [QDP] Add direct coverage for Parquet readers
+
+This is the milestone. ClawOSS autonomously discovered an issue, implemented a fix, and submitted a PR to a major Apache project — all without human intervention.
+
+**Stats:**
+- 5 files changed, +359 lines, -2 lines
+- 11 new tests, all passing, zero regressions
+- Rust project (no `@` decorator issues)
+- Created by Kimi Code (k2p5) via direct API (not OpenRouter)
+
+**What made it work:**
+1. **Kimi Code direct API** — bypassed OpenRouter's content filter entirely
+2. **Rust project** — no Python/Java `@` decorators to trigger the filter
+3. **V6 heartbeat loop** — all 9 steps executing correctly
+4. **Sub-agent with reproduce-first workflow** — failing test first, then fix
+5. **ANNOUNCE_SKIP** — clean result passing from sub-agent to orchestrator
 
 ### Research Documents Created
 

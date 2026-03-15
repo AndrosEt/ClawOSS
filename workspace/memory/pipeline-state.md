@@ -2,7 +2,9 @@
 <!-- Max 5 active PRs. Updated by heartbeat loop. -->
 
 ## Active PRs
-<!-- None yet -->
+| PR | Repo | Issue | Status | Updated |
+|----|------|-------|--------|---------|
+| https://github.com/apache/mahout/pull/1191 | apache/mahout | #1184 | open | 2026-03-16 |
 
 ## Stats Today
 - submitted: 0

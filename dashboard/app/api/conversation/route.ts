@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("session");
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 500);
-    const after = searchParams.get("after"); // ISO timestamp for polling
+    const after = searchParams.get("after") || searchParams.get("since"); // ISO timestamp for incremental polling
     const sessionsOnly = searchParams.get("sessions") === "true";
     const repo = searchParams.get("repo");
     const issue = searchParams.get("issue");

@@ -10,6 +10,12 @@ export interface CostModel {
 }
 
 export const COST_MODELS: Record<string, CostModel> = {
+  "kimi-coding/k2p5": {
+    name: "Kimi K2.5 (Kimi Code)",
+    provider: "kimi-code",
+    inputCostPerToken: 0.6 / 1_000_000,
+    outputCostPerToken: 3.0 / 1_000_000,
+  },
   "z-ai/glm-5": {
     name: "GLM-5",
     provider: "openrouter",
@@ -17,7 +23,7 @@ export const COST_MODELS: Record<string, CostModel> = {
     outputCostPerToken: 2.3 / 1_000_000,
   },
   "moonshotai/kimi-k2.5": {
-    name: "Kimi K2.5",
+    name: "Kimi K2.5 (OpenRouter)",
     provider: "openrouter",
     inputCostPerToken: 0.45 / 1_000_000,
     outputCostPerToken: 2.2 / 1_000_000,
@@ -48,13 +54,13 @@ export const COST_MODELS: Record<string, CostModel> = {
   },
 };
 
-// Default model for the ClawOSS agent (switched from kimi-k2.5 to glm-5 in commit c45498d)
-export const DEFAULT_MODEL = "z-ai/glm-5";
+// Default model for the ClawOSS agent (switched to Kimi Code direct API in commit c98540f)
+export const DEFAULT_MODEL = "kimi-coding/k2p5";
 export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL];
 
 /**
  * Compute the cost for a given token usage.
- * Falls back to the default Kimi K2.5 pricing if model is unknown.
+ * Falls back to the default Kimi Code pricing if model is unknown.
  */
 export function computeTokenCost(
   inputTokens: number,

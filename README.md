@@ -6,6 +6,8 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 
 > **OpenClaw is the engine; ClawOSS is the race car.** We do not modify OpenClaw. We configure it — writing skills, workspace instructions, hooks, and monitoring — to produce the highest quality OSS contributions possible.
 
+**First autonomous PR:** [apache/mahout#1191](https://github.com/apache/mahout/pull/1191) — 11 new tests for Parquet readers, +359 lines, all passing, zero regressions. Submitted by [@BillionClaw](https://github.com/BillionClaw) without human intervention.
+
 ## System Architecture
 
 ```

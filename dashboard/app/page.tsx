@@ -108,16 +108,16 @@ export default function OverviewPage() {
                 </span>
                 <span>
                   <span className="text-muted-foreground">model:</span>{" "}
-                  Kimi K2.5
+                  Kimi K2.5 (Kimi Code)
                 </span>
                 <span>
                   <span className="text-muted-foreground">pricing:</span>{" "}
-                  $0.45/$2.20/M
+                  $0.60/$3.00/M
                 </span>
                 <span className="text-muted-foreground">|</span>
-                <span className="text-green-400">
-                  <span className="text-green-400/60">pii-sanitizer:</span>{" "}
-                  active
+                <span className="text-muted-foreground">
+                  <span className="text-muted-foreground/60">pii-sanitizer:</span>{" "}
+                  disabled
                 </span>
               </div>
             </CardContent>

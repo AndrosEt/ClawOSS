@@ -13,6 +13,7 @@ config/auth-profiles.json
 /workspace/4x-game-agent/
 /workspace/voicecrew/
 /workspace/task-repo/
+/workspace/mahout/
 
 # OpenClaw runtime data
 /workspace/.openclaw/

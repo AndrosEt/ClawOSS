@@ -14,7 +14,6 @@ interface GatewayStatusProps {
 const SKILLS = [
   "dashboard-reporter",
   "audit-logger",
-  "pii-sanitizer",
   "oss-discover",
   "oss-triage",
   "oss-implement",
@@ -98,7 +97,7 @@ export function GatewayStatus({
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Model</span>
-          <span className="text-cyan-400">kimi-k2.5</span>
+          <span className="text-cyan-400">kimi-coding/k2p5</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Auth</span>

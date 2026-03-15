@@ -26,19 +26,19 @@ export function Header({ title }: HeaderProps) {
           <TooltipTrigger>
             <Badge
               variant="outline"
-              className="text-[10px] h-5 px-2 text-green-400 border-green-400/30 cursor-default"
+              className="text-[10px] h-5 px-2 text-muted-foreground border-muted-foreground/30 cursor-default"
             >
-              PII sanitizer active
+              PII sanitizer disabled
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <div className="text-xs space-y-1 max-w-[220px]">
               <p className="font-medium">PII Sanitizer Plugin</p>
               <p>
-                Strips emails, phones, IPs from tool results.
-                Content showing ＠ or [REDACTED_EMAIL] is sanitized.
+                Disabled. Using Kimi Code direct API which has no
+                content filter restrictions on @ symbols.
               </p>
-              <p className="text-green-400">Zero 403 content filter errors.</p>
+              <p className="text-muted-foreground">No sanitization needed.</p>
             </div>
           </TooltipContent>
         </Tooltip>
