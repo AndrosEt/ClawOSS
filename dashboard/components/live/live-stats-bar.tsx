@@ -88,6 +88,15 @@ export function LiveStatsBar({
       }
     }
 
+    // Count PII-sanitized messages (fullwidth @ or [REDACTED_*])
+    const sanitizedCount = messages.filter(
+      (m) =>
+        m.content?.includes("\uFF20") ||
+        m.content?.includes("[REDACTED_EMAIL]") ||
+        m.content?.includes("[REDACTED_PHONE]") ||
+        m.content?.includes("[REDACTED_IP]")
+    ).length;
+
     return {
       totalMessages,
       assistantMsgs,
@@ -100,6 +109,7 @@ export function LiveStatsBar({
       estimatedCost,
       msgsPerMin,
       tokenBurnRate,
+      sanitizedCount,
     };
   }, [messages]);
 
@@ -226,6 +236,14 @@ export function LiveStatsBar({
         <span className="text-muted-foreground">sessions:</span>{" "}
         {stats.sessions}
       </span>
+
+      {/* PII sanitization */}
+      {stats.sanitizedCount > 0 && (
+        <span className="text-green-400">
+          <span className="text-green-400/60">pii:</span>{" "}
+          {stats.sanitizedCount} filtered
+        </span>
+      )}
     </div>
   );
 }

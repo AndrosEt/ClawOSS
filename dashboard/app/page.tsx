@@ -114,6 +114,11 @@ export default function OverviewPage() {
                   <span className="text-muted-foreground">pricing:</span>{" "}
                   $0.45/$2.20/M
                 </span>
+                <span className="text-muted-foreground">|</span>
+                <span className="text-green-400">
+                  <span className="text-green-400/60">pii-sanitizer:</span>{" "}
+                  active
+                </span>
               </div>
             </CardContent>
           </Card>
