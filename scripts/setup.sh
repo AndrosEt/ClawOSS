@@ -80,7 +80,7 @@ else
     echo "Registering agent 'clawoss'..."
     openclaw agents add clawoss \
         --workspace "$PROJECT_DIR/workspace" \
-        --model "openrouter/minimax/minimax-m2.5" \
+        --model "openrouter/moonshotai/kimi-k2.5" \
         --non-interactive
     echo "Agent 'clawoss' registered"
 fi

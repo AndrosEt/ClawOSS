@@ -1,9 +1,9 @@
 const DASHBOARD_URL = "https://clawoss-dashboard.vercel.app";
 const AGENT_ID = "clawoss";
 const GITHUB_USERNAME = "BillionClaw";
-// Minimax M2.5 pricing: $0.25/M input, $1.20/M output
-const INPUT_COST_PER_TOKEN = 0.25 / 1_000_000;
-const OUTPUT_COST_PER_TOKEN = 1.2 / 1_000_000;
+// Kimi K2.5 pricing: $0.45/M input, $2.20/M output
+const INPUT_COST_PER_TOKEN = 0.45 / 1_000_000;
+const OUTPUT_COST_PER_TOKEN = 2.2 / 1_000_000;
 
 let accumulatedInputTokens = 0;
 let accumulatedOutputTokens = 0;
@@ -241,7 +241,7 @@ const handler = async (event: {
           metadata: {
             session_key: sessionId,
             tool_calls: toolCallCount,
-            model: "minimax/MiniMax-M1-80k",
+            model: "moonshotai/kimi-k2.5",
           },
         },
         apiKey
@@ -260,7 +260,7 @@ const handler = async (event: {
               {
                 channel: "agent",
                 provider: "openrouter",
-                model: "minimax/MiniMax-M1-80k",
+                model: "moonshotai/kimi-k2.5",
                 inputTokens: accumulatedInputTokens,
                 outputTokens: accumulatedOutputTokens,
                 costUsd: Math.round(costUsd * 1_000_000) / 1_000_000,

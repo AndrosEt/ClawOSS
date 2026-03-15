@@ -1,0 +1,63 @@
+/**
+ * Cost models for different LLM providers.
+ * Prices are in USD per token.
+ */
+export interface CostModel {
+  name: string;
+  provider: string;
+  inputCostPerToken: number;
+  outputCostPerToken: number;
+}
+
+export const COST_MODELS: Record<string, CostModel> = {
+  "moonshotai/kimi-k2.5": {
+    name: "Kimi K2.5",
+    provider: "openrouter",
+    inputCostPerToken: 0.45 / 1_000_000,
+    outputCostPerToken: 2.2 / 1_000_000,
+  },
+  "minimax/MiniMax-M1-80k": {
+    name: "MiniMax M2.5 (legacy)",
+    provider: "openrouter",
+    inputCostPerToken: 0.25 / 1_000_000,
+    outputCostPerToken: 1.2 / 1_000_000,
+  },
+  "minimax/MiniMax-M1": {
+    name: "MiniMax M1",
+    provider: "openrouter",
+    inputCostPerToken: 0.25 / 1_000_000,
+    outputCostPerToken: 1.2 / 1_000_000,
+  },
+  "anthropic/claude-sonnet-4-20250514": {
+    name: "Claude Sonnet 4",
+    provider: "openrouter",
+    inputCostPerToken: 3.0 / 1_000_000,
+    outputCostPerToken: 15.0 / 1_000_000,
+  },
+  "openai/gpt-4o": {
+    name: "GPT-4o",
+    provider: "openrouter",
+    inputCostPerToken: 2.5 / 1_000_000,
+    outputCostPerToken: 10.0 / 1_000_000,
+  },
+};
+
+// Default model for the ClawOSS agent
+export const DEFAULT_MODEL = "moonshotai/kimi-k2.5";
+export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL];
+
+/**
+ * Compute the cost for a given token usage.
+ * Falls back to the default Kimi K2.5 pricing if model is unknown.
+ */
+export function computeTokenCost(
+  inputTokens: number,
+  outputTokens: number,
+  model?: string
+): number {
+  const costModel = (model && COST_MODELS[model]) || DEFAULT_COST_MODEL;
+  return (
+    inputTokens * costModel.inputCostPerToken +
+    outputTokens * costModel.outputCostPerToken
+  );
+}

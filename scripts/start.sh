@@ -21,7 +21,7 @@ else
     echo "Registering agent '$AGENT_ID'..."
     openclaw agents add "$AGENT_ID" \
         --workspace "$WORKSPACE_DIR" \
-        --model "openrouter/minimax/minimax-m2.5" \
+        --model "openrouter/moonshotai/kimi-k2.5" \
         --non-interactive
     echo "Agent '$AGENT_ID' registered"
 fi

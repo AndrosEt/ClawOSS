@@ -13,7 +13,7 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 │                        OpenClaw Gateway                           │
 │                                                                   │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (Minimax M2.5)    │ │
+│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (Kimi K2.5)       │ │
 │  │  (10min)     │  │  (5 jobs)    │  │  via OpenRouter           │ │
 │  │  lightCtx    │  │              │  │  10 Custom Skills        │ │
 │  └──────┬───────┘  └──────┬───────┘  │  9-Gate Quality System   │ │
@@ -72,7 +72,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 
 ## Features
 
-- **Minimax M2.5 via OpenRouter** — Frontier-tier coding (80.2% SWE-bench) at 11-16x cheaper than Claude
+- **Kimi K2.5 via OpenRouter** — Frontier-tier coding at competitive pricing ($0.45/MTok input, $2.20/MTok output)
 - **Orchestrator + Sub-Agent Architecture** — Main session orchestrates, sub-agents implement in fresh contexts
 - **10 Custom Skills** — Purpose-built for the OSS contribution pipeline
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
@@ -108,7 +108,7 @@ ClawOSS/
 │   │   └── audit-logger/       # Logs all actions to dashboard audit trail
 │   └── memory/                 # Persistent agent memory
 ├── config/
-│   ├── openclaw.json           # Gateway configuration (M2.5 via OpenRouter)
+│   ├── openclaw.json           # Gateway configuration (Kimi K2.5 via OpenRouter)
 │   └── cron-jobs.json          # Scheduled job definitions (5 jobs)
 ├── dashboard/                  # Next.js 15 Vercel monitoring app (Turso DB)
 ├── issues/                     # Known issues and limitations tracker
@@ -218,10 +218,10 @@ Key settings in `config/openclaw.json`:
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| Primary model | `openrouter/minimax/minimax-m2.5` | Frontier coding (80.2% SWE-bench) at 11x cheaper than Claude |
+| Primary model | `openrouter/moonshotai/kimi-k2.5` | Frontier coding via OpenRouter ($0.45/MTok in, $2.20/MTok out) |
 | Fallback models | `[]` (none) | Prevents silent fallback to expensive Anthropic models |
 | Heartbeat interval | 10 minutes | Fast autonomous loop cycling; cheap with lightContext |
-| Heartbeat model | `openrouter/minimax/minimax-m2.5` | Same model, already very cheap ($0.27/MTok input) |
+| Heartbeat model | `openrouter/moonshotai/kimi-k2.5` | Same model for consistency ($0.45/MTok input) |
 | Heartbeat lightContext | `true` | Minimal context load; HEARTBEAT.md embeds safety rules |
 | Compaction mode | `safeguard` | Triggers compaction at context capacity |
 | Compaction memory flush | Enabled at 150K tokens | Pre-compaction state preservation |
@@ -308,7 +308,7 @@ ClawOSS is honest about what autonomous AI contribution can achieve today. The p
 | Steady state | Month 2+ | 5-10 merged PRs/day, >70% acceptance rate |
 | Aspirational | Month 3+ | 10-15 merged PRs/day with multi-repo pipelining |
 
-### Cost Projections (M2.5 via OpenRouter)
+### Cost Projections (Kimi K2.5 via OpenRouter)
 
 | Scenario | Daily Cost | Monthly Cost |
 |----------|-----------|--------------|
@@ -361,12 +361,12 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 001 | OpenRouter content filter causes 403 loops with PII content | **Mitigated** (safety rules) |
 | 002 | Stale agent processes hold session locks | Open |
 | 003 | Symlinked skills get "outside root" warnings | Open |
-| 004 | Sessions can exceed M2.5's 196K context window | Open (mitigated) |
+| 004 | Sessions can exceed model context window (262K for K2.5) | Open (mitigated) |
 | 005 | Model fallback to expensive Anthropic APIs | **Fixed** (`fallbacks: []`) |
 | 006 | Sub-agent attachments disabled by default | **Fixed** (`tools.sessions_spawn.attachments.enabled`) |
 | 007 | Git email triggers content filter | **Fixed** (noreply format) |
 | 008 | Cron jobs need isolated sessions | **Fixed** (session targeting) |
-| 009 | Heartbeat cost optimization | **Fixed** (lightContext + M2.5 + 10min) |
+| 009 | Heartbeat cost optimization | **Fixed** (lightContext + K2.5 + 10min) |
 | 010 | Throughput expectations reframed | Acknowledged |
 | 011 | oss-review referenced Haiku/Sonnet for review | **Fixed** (model-agnostic wording) |
 | 012 | safety-checker referenced "Sonnet subagent" | **Fixed** (model-agnostic wording) |
