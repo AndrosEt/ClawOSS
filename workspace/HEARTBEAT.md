@@ -50,15 +50,13 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If rate-limited by GitHub API, back off and wait
 - Never get stuck in retry loops -- fail fast and move forward
 
-## 0. Context Check & Circuit Breakers
+## 0a. Context Health
+Call session_status. If percentUsed > 70%, flush state to memory files and run /compact before proceeding.
+- percentUsed > 70%: STOP. Write wake-state, pipeline-state, and any in-flight task context to memory files. Run /compact. After compaction, re-read memory/wake-state.md and memory/pipeline-state.md to restore state. Then continue to 0b.
+- percentUsed > 50%: Proceed with this cycle, but compact before next cycle.
+- percentUsed <= 50%: Proceed normally.
 
-### Context Check
-Run session_status tool. Check percentUsed:
-- If context > 70%: STOP. Write critical state to memory files, then compact. After compaction, re-read memory/wake-state.md and memory/pipeline-state.md to restore state. Then continue.
-- If context > 50%: Note it. Complete this cycle, then compact before next cycle.
-- If context < 50%: Proceed normally.
-
-### Circuit Breakers
+## 0b. Circuit Breakers
 Read memory/wake-state.md. Reply HEARTBEAT_OK if:
 - consecutive_wakes >= 8 (mandatory cooldown)
 - errors_this_hour >= 2
@@ -89,12 +87,17 @@ Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit
 Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
   task: "Fix <repo>#<issue>: <title>.
     Read the attached repo-conventions.md and issue-details.md.
+    Follow the REPRODUCE-FIRST workflow (oss-implement skill):
     1. Clone repo, create branch clawoss/<type>/<desc>.
-    2. Implement fix (max 200 lines, max 5 files).
-    3. Run safety checks: diff size, secrets scan, branch naming.
-    4. Self-review: 5-question check. 3+ NO = abandon.
-    5. Run local tests (related tests, 3-min timeout). 2 fix attempts max.
-    6. Commit, push, create PR with clear description.
+    2. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
+       Record the failure output as evidence.
+    3. IMPLEMENT: Write the MINIMAL fix to make the failing test pass.
+    4. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
+       Record the passing output as evidence.
+    5. REVIEW: Self-check diff (scope, style, secrets, size, commit msg).
+       3+ failures = abandon.
+    6. SUBMIT: Commit, push, create PR with reproduction evidence
+       (before/after test output in PR description).
     7. Do NOT wait for remote CI. Submit and report result."
   label: "<repo>#<issue>"
   runTimeoutSeconds: 600

@@ -54,8 +54,30 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 5. Dependency updates (minor/patch only, never major)
 6. Small refactors that improve code quality
 
+## Implementation Workflow (Reproduce-First)
+Every code contribution follows this TDD-style workflow. No exceptions.
+1. **Understand** — Read issue, explore relevant source code
+2. **REPRODUCE** — Run existing tests, find the failure. Write a FAILING test that demonstrates the bug. Record failure output as evidence.
+3. **IMPLEMENT** — Write the MINIMAL fix to make the failing test pass. No over-engineering.
+4. **VERIFY** — Run tests again. Failing test must now pass. No regressions. Record passing output.
+5. **REVIEW** — Self-check diff for scope, style, secrets, size. Use systematic-debugging if stuck.
+6. **SUBMIT** — Create PR with evidence (before/after test output in description).
+
+If you cannot reproduce the issue within 10 minutes, abandon with a note.
+If tests fail after 2 fix attempts, abandon.
+Use the oss-implement skill for the full process.
+
+## Superpowers Skills
+The following skills from obra/superpowers are installed and should be used:
+- **systematic-debugging** — Use for ANY bug, test failure, or unexpected behavior. Root cause first, fix second.
+- **test-driven-development** — Red-Green-Refactor cycle. Write failing test BEFORE implementation.
+- **verification-before-completion** — NEVER claim work is done without fresh test evidence.
+- **brainstorming** — Use for complex design decisions before implementation.
+- **requesting-code-review** — Dispatch code reviewer subagent after completing major features.
+
 ## Quality Standards
 - Every PR must pass the target repo's CI
+- Every PR must include REPRODUCTION EVIDENCE (failing test before fix, passing test after)
 - Every code change must include relevant tests
 - Every PR description must explain the "why" not just the "what"
 - Commit messages follow Conventional Commits: type(scope): description
