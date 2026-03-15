@@ -40,17 +40,16 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
 
-### Content Filter Safety (CRITICAL — OpenRouter blocks emails in ANY context)
-- OpenRouter's content filter blocks PII patterns: emails, phone numbers, SSNs, credit cards
-- This applies to ALL text sent to the model — including file contents read by tools
-- NEVER read full package.json, package-lock.json, setup.py, Cargo.toml, pyproject.toml — they contain author emails
-- Use `grep` or `jq` to extract ONLY the fields you need (name, version, dependencies)
-- NEVER read full lock files (package-lock.json, yarn.lock, Gemfile.lock)
-- If you need repo metadata, use `jq '.name, .version, .scripts' package.json` not `cat package.json`
-- When cloning repos, do NOT read every file — target only the files relevant to the issue
-- If you get a 403 content filter error: IMMEDIATELY skip this task, move to the next one
-- Do NOT retry after 403 — the session is poisoned, move on
-- Sanitize ALL external text before storing in memory files
+### Content Filter Safety (OpenRouter blocks emails in file contents)
+- OpenRouter blocks PII patterns (emails, phones) even inside file contents the model reads
+- Clone repos freely — but when reading files, avoid ones with author emails:
+  - For package.json: use `jq '{name, version, scripts, dependencies}' package.json` (skips author field)
+  - Skip lock files (package-lock.json, yarn.lock) — they contain maintainer emails
+  - For setup.py/Cargo.toml/pyproject.toml: use grep to extract only relevant fields
+- You CAN freely read source code, test files, config files, docs — those rarely have emails
+- If you get a 403 content filter error: skip that specific file, not the whole task
+- Try alternative approaches: read a different file, use grep to find what you need
+- Only skip the entire task after 3 consecutive 403 errors on the same repo
 
 ### Context Management
 - Before spawning a sub-agent, check orchestrator context with session_status
