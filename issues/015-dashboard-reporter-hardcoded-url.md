@@ -1,33 +1,24 @@
 # 015: Dashboard Reporter Uses Hardcoded URL Fallback
 
-**Status:** Open
+**Status:** Fixed
 **Severity:** Low
 **Component:** workspace/skills/dashboard-reporter/SKILL.md
 
 ## Description
 
-The `dashboard-reporter` skill references `$DASHBOARD_URL` with a fallback to `https://clawoss-dashboard.vercel.app`, but the actual deployed dashboard is at `https://dashboard-plum-one-37.vercel.app`. The custom domain `clawoss-dashboard.vercel.app` is pending configuration.
+The `dashboard-reporter` skill and hooks referenced `$DASHBOARD_URL` with a fallback URL. The custom domain `clawoss-dashboard.vercel.app` has been configured and all references updated.
 
-If `$DASHBOARD_URL` is not set in the environment (which is likely since it's in `.env` but `.env` is only loaded by `setup.sh`), the agent will send telemetry to the wrong URL.
+## Resolution
 
-## Root Cause
-
-The `.env.example` shows `DASHBOARD_URL=https://clawoss-dashboard.vercel.app` as the default, which is the intended custom domain but not the current actual URL. The actual Vercel deployment got an auto-assigned URL.
-
-## Impact
-
-- Dashboard telemetry (heartbeats, metrics, logs) may fail silently
-- Agent continues operating but monitoring is blind
-- The "never block work for telemetry" instruction in the skill means failures go unnoticed
-
-## Recommended Fix
-
-1. Update `.env.example` to use the actual deployed URL: `https://dashboard-plum-one-37.vercel.app`
-2. Update the skill's fallback URL to match
-3. Once custom domain is configured, update both
+- Dashboard deployed to `clawoss-dashboard.vercel.app`
+- All hooks (`audit-logger`, `dashboard-reporter`) hardcode `https://clawoss-dashboard.vercel.app`
+- Skill SKILL.md references the correct URL
+- `.env.example` uses the correct `DASHBOARD_URL`
+- README.md and CHANGELOG.md updated to reference the correct URL
 
 ## Related Files
 
+- `workspace/hooks/dashboard-reporter/handler.ts`
+- `workspace/hooks/audit-logger/handler.ts`
 - `workspace/skills/dashboard-reporter/SKILL.md`
-- `.env.example` (DASHBOARD_URL)
-- `.env` (actual environment)
+- `.env.example`

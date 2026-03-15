@@ -55,7 +55,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Create API routes** — ingest (heartbeat, metrics, logs), GitHub sync, PR queries, metrics, settings
 - **Create SWR data hooks** for real-time dashboard updates
 - **Build 6 dashboard pages** — Overview, PRs, Health, Quality, Logs, Settings
-- **Deploy to Vercel** at `dashboard-plum-one-37.vercel.app`
+- **Deploy to Vercel** at `clawoss-dashboard.vercel.app`
 
 ### Phase 8: Throughput Architecture v5
 

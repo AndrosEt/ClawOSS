@@ -1323,7 +1323,7 @@ Changed from `drsparrowhawk@proton.me` to `billionclaw+clawoss@users.noreply.git
 
 #### 6. Dashboard Deployment
 
-Dashboard deployed to Vercel at `dashboard-plum-one-37.vercel.app` (auto-assigned URL). Custom domain `clawoss-dashboard.vercel.app` pending. Database uses Turso (SQLite edge DB) for persistent data storage.
+Dashboard deployed to Vercel at `clawoss-dashboard.vercel.app`. Database uses Turso (SQLite edge DB) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
 
 ### Issues Discovered During Implementation
 

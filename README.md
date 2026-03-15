@@ -78,7 +78,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
 - **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
 - **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
-- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://dashboard-plum-one-37.vercel.app))
+- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://clawoss-dashboard.vercel.app))
 - **5 Cron Jobs** — Issue discovery (2h), PR follow-up (30min), daily report, weekly retrospective, memory cleanup
 - **Memory System** — Learns repo conventions, maintainer preferences, and strategies over time
 - **Safety-First** — Never force-push, never push to main, never commit secrets, content filter protections
@@ -239,7 +239,7 @@ Key settings in `config/openclaw.json`:
 
 ## Dashboard
 
-**Live:** [dashboard-plum-one-37.vercel.app](https://dashboard-plum-one-37.vercel.app)
+**Live:** [clawoss-dashboard.vercel.app](https://clawoss-dashboard.vercel.app)
 
 The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database:
 
@@ -248,6 +248,7 @@ The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso 
 - **Health** — Token usage, cost tracking, heartbeat status, error rates
 - **Quality** — Quality score trends, by-repo breakdown, rejection analysis
 - **Logs** — Filterable log stream with infinite scroll
+- **Live Feed** — Real-time conversation stream with session picker and auto-scroll
 - **Settings** — Target repos, quality thresholds, notification config
 
 Tech stack: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
@@ -356,6 +357,8 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 013 | TOOLS.md had 500 LOC limit vs 200 everywhere else | **Fixed** (standardized to 200) |
 | 014 | start.sh ignores sessionTarget from cron config | Open |
 | 015 | Dashboard reporter uses wrong fallback URL | Open |
+| 016 | Dashboard Live Feed page not documented | Open (documented now) |
+| 017 | Dashboard cost model uses wrong model ID key | Open |
 
 ## Contributing
 
