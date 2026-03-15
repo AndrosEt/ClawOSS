@@ -1,32 +1,65 @@
 [
   {
-    "id": "daily-discovery",
-    "schedule": "0 8 * * *",
-    "session": "isolated",
-    "payload": "Run oss-discover skill: search for new issues across target repos. Prioritize by impact and feasibility. Write findings to memory."
+    "id": "work-queue-refill",
+    "name": "Discover and curate issues",
+    "schedule": { "kind": "cron", "expr": "0 */2 * * *" },
+    "sessionTarget": "isolated",
+    "wakeMode": "next-heartbeat",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run oss-discover in batch mode. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for anti-AI-PR policies and skip those repos.",
+      "lightContext": true
+    },
+    "delivery": { "mode": "none" }
   },
   {
-    "id": "pr-followup-check",
-    "schedule": "0 */4 * * *",
-    "session": "isolated",
-    "payload": "Check all open PRs for review comments, CI status, and merge readiness. Respond to any outstanding reviews."
+    "id": "pr-followup-scan",
+    "name": "Scan PRs for reviews and CI status",
+    "schedule": { "kind": "cron", "expr": "*/30 * * * *" },
+    "sessionTarget": "main",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "systemEvent",
+      "text": "PR follow-up scan: run gh pr list --author @me --state open --json number,reviewDecision,statusCheckRollup,updatedAt. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent."
+    }
   },
   {
     "id": "daily-report",
-    "schedule": "0 23 * * *",
-    "session": "isolated",
-    "payload": "Compile daily report: PRs submitted, PRs merged, PRs rejected, issues triaged, total lines changed, repos contributed to. Send to dashboard-reporter skill."
+    "name": "Daily summary report",
+    "schedule": { "kind": "cron", "expr": "0 23 * * *" },
+    "sessionTarget": "isolated",
+    "wakeMode": "next-heartbeat",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Compile daily report: PRs submitted vs merged vs rejected. Acceptance rate. Cost estimate. Repos contributed to. Update memory/pipeline-state.md stats. Send to dashboard-reporter skill. Calculate cost-per-merged-PR metric.",
+      "lightContext": true
+    },
+    "delivery": { "mode": "none" }
   },
   {
     "id": "weekly-retrospective",
-    "schedule": "0 9 * * 1",
-    "session": "isolated",
-    "payload": "Analyze the past week: which contributions were accepted vs rejected, what patterns emerge, what repos were most receptive. Update MEMORY.md with learned preferences and strategies."
+    "name": "Weekly strategy review",
+    "schedule": { "kind": "cron", "expr": "0 9 * * 1" },
+    "sessionTarget": "isolated",
+    "wakeMode": "next-heartbeat",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Weekly retrospective: acceptance rate per repo, rejection reasons, average cycle time. Update solvability scores in memory/repos/. Adjust issue selection strategy based on what worked. Prune stale work-queue items. Update MEMORY.md with learned patterns.",
+      "lightContext": true
+    },
+    "delivery": { "mode": "none" }
   },
   {
     "id": "memory-cleanup",
-    "schedule": "0 3 * * 0",
-    "session": "isolated",
-    "payload": "Review memory files older than 14 days. Summarize and archive important patterns to MEMORY.md. Remove stale daily logs."
+    "name": "Memory hygiene",
+    "schedule": { "kind": "cron", "expr": "0 3 * * 0" },
+    "sessionTarget": "isolated",
+    "wakeMode": "next-heartbeat",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Review memory files older than 14 days. Archive important patterns to MEMORY.md. Remove stale daily logs and expired work queue items. Prune closed PRs from pipeline-state.md.",
+      "lightContext": true
+    },
+    "delivery": { "mode": "none" }
   }
 ]
