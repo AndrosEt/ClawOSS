@@ -13,9 +13,9 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 │                        OpenClaw Gateway                           │
 │                                                                   │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (claude-sonnet)   │ │
-│  │  (60min)     │  │  (5 jobs)    │  │                          │ │
-│  │  Haiku model │  │              │  │  10 Custom Skills        │ │
+│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (Minimax M2.5)    │ │
+│  │  (10min)     │  │  (5 jobs)    │  │  via OpenRouter           │ │
+│  │  lightCtx    │  │              │  │  10 Custom Skills        │ │
 │  └──────┬───────┘  └──────┬───────┘  │  9-Gate Quality System   │ │
 │         │                 │          │  Memory Persistence      │ │
 │         └────────┬────────┘          └────────────┬─────────────┘ │
@@ -24,7 +24,7 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
                    │                                │
           ┌────────▼────────┐              ┌────────▼────────┐
           │    GitHub API    │              │  Vercel Dashboard │
-          │                  │              │                   │
+          │                  │              │  (Turso DB)       │
           │  - Fork repos    │              │  - Agent status   │
           │  - Create PRs    │              │  - PR tracker     │
           │  - Respond to    │              │  - Quality metrics│
@@ -35,7 +35,9 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 
 ## How It Works
 
-ClawOSS operates through a continuous 9-phase loop driven by OpenClaw's heartbeat and cron system:
+ClawOSS uses a **v5 orchestrator + sub-agent architecture**: a persistent main session handles orchestration (heartbeat loop, work queue, PR follow-ups), while implementation tasks are delegated to fresh sub-agent sessions via `sessions_spawn` for zero cross-task context pollution.
+
+The contribution pipeline follows a 9-phase loop driven by a 10-minute heartbeat cycle:
 
 ```
 ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
@@ -70,14 +72,17 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 
 ## Features
 
+- **Minimax M2.5 via OpenRouter** — Frontier-tier coding (80.2% SWE-bench) at 11-16x cheaper than Claude
+- **Orchestrator + Sub-Agent Architecture** — Main session orchestrates, sub-agents implement in fresh contexts
 - **10 Custom Skills** — Purpose-built for the OSS contribution pipeline
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
 - **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
 - **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
-- **Vercel Dashboard** — Real-time monitoring of agent status, PRs, quality metrics, costs
-- **5 Cron Jobs** — Daily discovery, PR follow-up, daily report, weekly retrospective, memory cleanup
+- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://dashboard-plum-one-37.vercel.app))
+- **5 Cron Jobs** — Issue discovery (2h), PR follow-up (30min), daily report, weekly retrospective, memory cleanup
 - **Memory System** — Learns repo conventions, maintainer preferences, and strategies over time
-- **Safety-First** — Never force-push, never push to main, never commit secrets, sandboxed execution
+- **Safety-First** — Never force-push, never push to main, never commit secrets, content filter protections
+- **Verified Autonomous Loop** — Heartbeat + cron + sub-agent pipeline tested end-to-end
 
 ## Architecture
 
@@ -100,9 +105,11 @@ ClawOSS/
 │   │   └── safety-checker/     # Final pre-submit gate
 │   └── memory/                 # Persistent agent memory
 ├── config/
-│   ├── openclaw.json           # Gateway configuration
-│   └── cron-jobs.json          # Scheduled job definitions
-├── dashboard/                  # Next.js 15 Vercel monitoring app
+│   ├── openclaw.json           # Gateway configuration (M2.5 via OpenRouter)
+│   └── cron-jobs.json          # Scheduled job definitions (5 jobs)
+├── dashboard/                  # Next.js 15 Vercel monitoring app (Turso DB)
+├── issues/                     # Known issues and limitations tracker
+├── research/                   # Architecture research and analysis docs
 ├── templates/                  # PR, commit, and issue templates
 └── scripts/                    # Operational scripts
 ```
@@ -114,11 +121,11 @@ ClawOSS operates under a dedicated GitHub account:
 | Field | Value |
 |-------|-------|
 | **Account** | [@BillionClaw](https://github.com/BillionClaw) |
-| **Email** | drsparrowhawk@proton.me |
+| **Email** | billionclaw+clawoss@users.noreply.github.com |
 | **Token Scope** | `public_repo` (least privilege) |
 | **Purpose** | Exclusively reserved for ClawOSS autonomous operations |
 
-All PRs, commits, and issue interactions use this identity. The account is authenticated interactively via `gh auth login` during setup — no tokens are stored in files.
+All PRs, commits, and issue interactions use this identity. The noreply email format avoids triggering OpenRouter's content filter (see `issues/007`). The account is authenticated interactively via `gh auth login` during setup — no tokens are stored in files.
 
 ## Quick Start
 
@@ -197,14 +204,15 @@ Key settings in `config/openclaw.json`:
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| Primary model | `claude-sonnet-4-6` | Best cost-to-quality ratio for routine work |
-| Fallback model | `claude-haiku-4-5` | Rate limit fallback |
-| Heartbeat interval | 60 minutes | Balance responsiveness with cost |
-| Heartbeat model | `claude-haiku-4-5` | Cheap routine checks |
-| Compaction target | 500K tokens | Preserve context across long sessions |
+| Primary model | `openrouter/minimax/minimax-m2.5` | Frontier coding (80.2% SWE-bench) at 11x cheaper than Claude |
+| Fallback models | `[]` (none) | Prevents silent fallback to expensive Anthropic models |
+| Heartbeat interval | 10 minutes | Fast autonomous loop cycling; cheap with lightContext |
+| Heartbeat model | `openrouter/minimax/minimax-m2.5` | Same model, already very cheap ($0.27/MTok input) |
+| Heartbeat lightContext | `true` | Minimal context load; HEARTBEAT.md embeds safety rules |
+| Compaction mode | `safeguard` | Triggers compaction at context capacity |
 | Tool profile | `coding` | Full filesystem + runtime access |
-| Sandbox | Enabled | Protect host from arbitrary repo code |
-| Session reset | Daily at 4am | Fresh context each day |
+| Sub-agent concurrency | 1 | Serialized execution, one implementation at a time |
+| sessions_spawn attachments | `enabled` | Required for passing context to sub-agents |
 
 ### Workspace Files
 
@@ -215,23 +223,25 @@ Key settings in `config/openclaw.json`:
 | `USER.md` | Operator profile and BillionClaw GitHub identity |
 | `IDENTITY.md` | Agent name, role, GitHub account |
 | `TOOLS.md` | Tool conventions and safety rules for git, gh, node |
-| `HEARTBEAT.md` | 5-step periodic checklist: check PRs, CI, discover work, report, maintain memory |
+| `HEARTBEAT.md` | 6-step autonomous work loop: circuit breakers, PR follow-ups, queue management, triage, sub-agent spawn, reporting |
 | `BOOTSTRAP.md` | First-run initialization sequence (deleted after completion) |
 | `MEMORY.md` | Long-term memory: repo conventions, maintainer prefs, strategies |
 
 ### Cron Jobs
 
-| Job | Schedule | Model | Purpose |
-|-----|----------|-------|---------|
-| daily-discovery | 8am daily | Sonnet | Comprehensive issue search |
-| pr-followup-check | Every 4h | Main session | Check review comments and CI |
-| daily-report | 11pm daily | Haiku | Compile daily metrics |
-| weekly-retrospective | Monday 9am | Opus | Analyze patterns, update strategy |
-| memory-cleanup | Sunday 3am | Haiku | Archive old memory files |
+| Job | Schedule | Session | Purpose |
+|-----|----------|---------|---------|
+| work-queue-refill | Every 2h | Isolated | Discover and score candidate issues, write to staging file |
+| pr-followup-scan | Every 30min | Main | Check open PRs for review comments and CI status |
+| daily-report | 11pm daily | Isolated | Compile daily metrics and cost-per-merged-PR |
+| weekly-retrospective | Monday 9am | Isolated | Analyze acceptance rates, adjust strategy |
+| memory-cleanup | Sunday 3am | Isolated | Archive stale memory, prune expired queue items |
 
 ## Dashboard
 
-The Vercel dashboard provides real-time monitoring:
+**Live:** [dashboard-plum-one-37.vercel.app](https://dashboard-plum-one-37.vercel.app)
+
+The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database:
 
 - **Overview** — Agent status, key metrics, activity timeline, current task
 - **PR Tracker** — All submitted PRs with status, quality scores, review state
@@ -239,6 +249,8 @@ The Vercel dashboard provides real-time monitoring:
 - **Quality** — Quality score trends, by-repo breakdown, rejection analysis
 - **Logs** — Filterable log stream with infinite scroll
 - **Settings** — Target repos, quality thresholds, notification config
+
+Tech stack: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
 
 Deploy to Vercel:
 
@@ -249,7 +261,7 @@ npx vercel --prod
 
 Required environment variables (set in Vercel dashboard):
 
-- `TURSO_DATABASE_URL` — Turso SQLite database URL
+- `TURSO_DATABASE_URL` — Turso SQLite edge database URL
 - `TURSO_AUTH_TOKEN` — Turso auth token
 - `GITHUB_TOKEN` — GitHub PAT for PR sync
 - `CLAW_AGENT_USERNAME` — Agent's GitHub username (BillionClaw)
@@ -268,13 +280,24 @@ Required environment variables (set in Vercel dashboard):
 
 ## Realistic Expectations
 
-ClawOSS is honest about what autonomous AI contribution can achieve today.
+ClawOSS is honest about what autonomous AI contribution can achieve today. The primary metric is **merged PRs per day with >70% acceptance rate and <$2/merged PR** — not commits per hour (see `issues/010`).
 
 ### Expected Throughput
 
-- **5-15 merged PRs per month** in steady state
-- **$200-500/month** in API costs
-- **20-30% overall merge rate** (higher for docs, lower for code changes)
+| Phase | Timeline | Target |
+|-------|----------|--------|
+| Calibration | Week 1-2 | 1-2 merged PRs/day, tuning acceptance rate |
+| Ramp | Week 3-4 | 3-5 merged PRs/day on curated repos |
+| Steady state | Month 2+ | 5-10 merged PRs/day, >70% acceptance rate |
+| Aspirational | Month 3+ | 10-15 merged PRs/day with multi-repo pipelining |
+
+### Cost Projections (M2.5 via OpenRouter)
+
+| Scenario | Daily Cost | Monthly Cost |
+|----------|-----------|--------------|
+| Moderate (2-3 PRs/day) | $2-5 | $60-150 |
+| High (5+ PRs/day) | $5-15 | $150-450 |
+| With retries/failures (2x) | $10-25 | $300-750 |
 
 ### Merge Rates by Task Type
 
@@ -299,6 +322,7 @@ ClawOSS is honest about what autonomous AI contribution can achieve today.
 - Not "autonomous development" — it's autonomous **contribution** to specific task types
 - Not a replacement for developers — it augments maintainer capacity for mechanical tasks
 - Not self-improving without feedback — human review of quality trends is essential
+- Not optimized for volume — quality and merge rate over commit count
 
 ## Safety & Ethics
 
@@ -310,6 +334,23 @@ ClawOSS is designed to be a **good citizen** of the open-source ecosystem:
 - **Graceful** — Closes PRs politely on rejection, never argues with maintainers
 - **Least Privilege** — Uses `public_repo` token scope, sandboxed execution
 - **Transparent** — All agent actions are logged and visible on the dashboard
+
+## Known Issues
+
+See the [`issues/`](issues/) directory for detailed tracking. Summary:
+
+| # | Issue | Status |
+|---|-------|--------|
+| 001 | OpenRouter content filter poisons sessions with `[EMAIL]`/`[PHONE]` | Open |
+| 002 | Stale agent processes hold session locks | Open |
+| 003 | Symlinked skills get "outside root" warnings | Open |
+| 004 | Sessions can exceed M2.5's 196K context window | Open (mitigated) |
+| 005 | Model fallback to expensive Anthropic APIs | **Fixed** (`fallbacks: []`) |
+| 006 | Sub-agent attachments disabled by default | **Fixed** (`tools.sessions_spawn.attachments.enabled`) |
+| 007 | Git email triggers content filter | **Fixed** (noreply format) |
+| 008 | Cron jobs need isolated sessions | **Fixed** (session targeting) |
+| 009 | Heartbeat cost optimization | **Fixed** (lightContext + M2.5 + 10min) |
+| 010 | Throughput expectations reframed | Acknowledged |
 
 ## Contributing
 
