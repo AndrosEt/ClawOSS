@@ -1,0 +1,33 @@
+---
+name: oss-discover
+description: "Discover open-source work: search GitHub for issues labeled good-first-issue, help-wanted, or bug across target repositories. Score and rank candidates by feasibility, impact, and prior success rate."
+user-invocable: true
+---
+
+# OSS Work Discovery
+
+Search GitHub for actionable open-source contribution opportunities.
+
+## Process
+1. Query GitHub Issues API via `gh` CLI for target labels
+2. Filter by: unassigned, no prior failed attempts (check memory), repo not blocklisted
+3. Score candidates: complexity (prefer small), repo activity, prior success rate, impact
+4. Return ranked list with top 5 candidates
+5. Write full candidate list to memory/today.md
+
+## Commands
+```
+gh search issues --label="good-first-issue" --state=open --sort=updated --limit=20
+gh search issues --label="help-wanted" --state=open --sort=updated --limit=20
+gh search issues --label="bug" --state=open --sort=updated --limit=20
+```
+
+## Scoring Criteria
+- Estimated complexity (prefer small, well-defined tasks)
+- Repo activity level (prefer active repos with responsive maintainers)
+- Prior success rate with this repo (check memory)
+- Potential impact (bug fixes > docs > refactors)
+
+## Anti-Spam
+Check memory for today's submission count before selecting work.
+If at daily PR limit (10), switch to triage-only mode.
