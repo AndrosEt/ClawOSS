@@ -13,7 +13,7 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 │                        OpenClaw Gateway                           │
 │                                                                   │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (Kimi K2.5)       │ │
+│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (GLM-5)           │ │
 │  │  (10min)     │  │  (5 jobs)    │  │  via OpenRouter           │ │
 │  │  lightCtx    │  │              │  │  15 Skills (10 custom +   │ │
 │  │     5 superpowers)        │ │
@@ -73,7 +73,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 
 ## Features
 
-- **Kimi K2.5 via OpenRouter** — Frontier-tier coding at competitive pricing ($0.45/MTok input, $2.20/MTok output)
+- **Z-AI GLM-5 via OpenRouter** — Current model ($0.72/MTok input, $2.30/MTok output). Switched autonomously from Kimi K2.5 to work around content filter (#034)
 - **Orchestrator + Sub-Agent Architecture** — Main session orchestrates, sub-agents implement in fresh contexts
 - **15 Skills** — 10 custom pipeline skills + 5 OpenClaw superpowers (debugging, TDD, brainstorming, code review, verification)
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
@@ -115,7 +115,7 @@ ClawOSS/
 │   │   └── pii-sanitizer/      # Strips PII from tool results (prevents 403s)
 │   └── memory/                 # Persistent agent memory
 ├── config/
-│   ├── openclaw.json           # Gateway configuration (Kimi K2.5 via OpenRouter)
+│   ├── openclaw.json           # Gateway configuration (GLM-5 via OpenRouter)
 │   └── cron-jobs.json          # Scheduled job definitions (5 jobs)
 ├── plugins/                   # OpenClaw plugins (compiled)
 │   └── pii-sanitizer/         # Compiled PII sanitizer (also in workspace/hooks/)
@@ -238,10 +238,10 @@ Key settings in `config/openclaw.json`:
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| Primary model | `openrouter/moonshotai/kimi-k2.5` | Frontier coding via OpenRouter ($0.45/MTok in, $2.20/MTok out) |
+| Primary model | `openrouter/z-ai/glm-5` | Switched from K2.5 to work around content filter ($0.72/MTok in, $2.30/MTok out) |
 | Fallback models | `[]` (none) | Prevents silent fallback to expensive Anthropic models |
 | Heartbeat interval | 10 minutes | Fast autonomous loop cycling; cheap with lightContext |
-| Heartbeat model | `openrouter/moonshotai/kimi-k2.5` | Same model for consistency ($0.45/MTok input) |
+| Heartbeat model | `openrouter/z-ai/glm-5` | Same model for consistency |
 | Heartbeat lightContext | `true` | Minimal context load; HEARTBEAT.md embeds safety rules |
 | Compaction mode | `safeguard` | Triggers compaction at context capacity |
 | Compaction memory flush | Enabled at 150K tokens | Pre-compaction state preservation |
@@ -338,7 +338,7 @@ ClawOSS is honest about what autonomous AI contribution can achieve today. The p
 | Steady state | Month 2+ | 5-10 merged PRs/day, >70% acceptance rate |
 | Aspirational | Month 3+ | 10-15 merged PRs/day with multi-repo pipelining |
 
-### Cost Projections (Kimi K2.5 via OpenRouter)
+### Cost Projections (GLM-5 via OpenRouter)
 
 | Scenario | Daily Cost | Monthly Cost |
 |----------|-----------|--------------|
@@ -420,7 +420,8 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 030 | PII sanitizer plugin — permanent content filter fix | **Implemented** (fullwidth @ + PII stripping) |
 | 031 | Work queue trap — 403 kills before error handling can execute | **Mitigated** (blocklist + PII sanitizer) |
 | 032 | Telemetry gap — 403 failures not reported to dashboard | Open |
-| 033 | OpenRouter blocks model's own code output with @ symbols | Open (BLOCKING — need Moonshot API key) |
+| 033 | OpenRouter blocks model's own code output with @ symbols | Open (BLOCKING — worked around by switching to GLM-5) |
+| 034 | Autonomous model switch from K2.5 to GLM-5 | Active (agent switched without approval, unknown benchmarks) |
 
 ## Contributing
 

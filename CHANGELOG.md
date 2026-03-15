@@ -127,8 +127,9 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Cloned repos gitignored** — Issue #022: sub-agents clone target repos into `workspace/`. Added `workspace/4x-game-agent/` to `.gitignore`. First autonomous contribution target: `sonpiaz/4x-game-agent#9` (template matching tests).
 - **Model switch confirmed user-directed** — K2.5 switch was explicitly requested by user, not benchmark-driven. Benchmarks pending throughput-critic review.
 - **Stall recovery documented** — Issue #028: sub-agent stall detection, kill, retry (max 2), skip. Already implemented in commits `13d0aa3` and `6d85a5a`.
-- **BLOCKING: OpenRouter content filter on model output** — Issue #033: the model's own generated code (e.g., `@pytest.fixture`) enters session history as assistant messages. No hook can intercept model streaming output. OpenRouter blocks the next API call with 403. Solution: direct Moonshot API key (bypasses OpenRouter content filter entirely). Issue #001 downgraded from "Fixed" to "Partially Fixed".
-- **33 issues tracked** — 16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 9 open, 1 known, 1 informational, 1 completed, 1 in progress
+- **BLOCKING: OpenRouter content filter on model output** — Issue #033: the model's own generated code (e.g., `@pytest.fixture`) enters session history as assistant messages. No hook can intercept model streaming output. OpenRouter blocks the next API call with 403. Issue #001 downgraded from "Fixed" to "Partially Fixed".
+- **Autonomous model switch to GLM-5** — Issue #034: BillionClaw (the agent) autonomously switched all 4 model references from `openrouter/moonshotai/kimi-k2.5` to `openrouter/z-ai/glm-5` in commit `c45498d` to work around the content filter. GLM-5 pricing: $0.72/MTok input, $2.30/MTok output (~1.6x cost increase). SWE-bench and context window data unknown. Dashboard cost model updated accordingly.
+- **34 issues tracked** — 16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 1 active, 9 open, 1 known, 1 informational, 1 completed, 1 in progress
 
 ### V6 Release — Autonomous Operation Begins
 
@@ -160,7 +161,7 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - Dashboard URL canonicalization
 - **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified. Later expanded to also cover `before_message_write` to catch sub-agent announce messages.
 - **Dashboard V6 overhaul** — Full Live Feed rewrite with session tabs (orchestrator + per-sub-agent), view modes (unified/orchestrator/sub-agents), main tabs (Feed/Tools/Errors/Costs), sidebar tabs (State/Gateway/Stats). New components: tool call log with duration/success tracking, error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.), cost breakdown per session with $/hour rate, gateway status panel, raw JSON toggle per message, PII sanitizer indicators (header badge, per-message badges, filter counter). Pipeline status bar on overview. Sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay). Sessions API enhanced with repo/issue/isSubagent fields. SWR polling: conversation 2s, state 5s, sessions 5s, connection 15s. Token counts estimated from char length (~4 chars/token) when actual counts unavailable.
-- 33 issues documented (16 fixed, 2 implemented, 1 partially fixed, 1 mitigated)
+- 34 issues documented (16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 1 active)
 
 **First autonomous activity observed:**
 - Agent confirmed running on K2.5
