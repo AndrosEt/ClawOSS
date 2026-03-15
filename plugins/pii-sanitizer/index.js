@@ -17,6 +17,12 @@ function sanitize(text) {
   // Replace ALL @ with fullwidth ＠ — catches emails, decorators, annotations
   text = text.replace(/@/g, '\uFF20');
 
+  // Phone numbers (various international formats)
+  text = text.replace(
+    /(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/g,
+    '[REDACTED_PHONE]'
+  );
+
   // IPv4 addresses (valid ranges only, preserves version numbers)
   text = text.replace(
     /\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b/g,
@@ -27,6 +33,12 @@ function sanitize(text) {
       return match;
     }
   );
+
+  // SSN patterns (XXX-XX-XXXX)
+  text = text.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_SSN]');
+
+  // Credit card patterns (XXXX-XXXX-XXXX-XXXX or XXXX XXXX XXXX XXXX)
+  text = text.replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, '[REDACTED_CC]');
 
   return text;
 }
