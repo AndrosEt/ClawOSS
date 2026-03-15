@@ -46,3 +46,5 @@ config/auth-profiles.json
 /workspace/servicewow-mcp/
 /workspace/mahout/
 /workspace/task-repo/
+/workspace/claude-agent-station/
+/workspace/cleanlab/
