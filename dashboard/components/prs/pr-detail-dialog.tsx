@@ -9,7 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatRelativeTime } from "@/lib/utils";
+import { Timestamp } from "@/components/ui/timestamp";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { PullRequest } from "@/lib/types";
 import { PRBuildLogs } from "./pr-build-logs";
 
@@ -26,17 +27,33 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg">
-            #{pr.number} {pr.title}
+          <DialogTitle className="text-lg flex items-center gap-2">
+            <CopyButton value={`${pr.repo}#${pr.number}`}>
+              <span>#{pr.number}</span>
+            </CopyButton>{" "}
+            {pr.title}
+            <a
+              href={`https://github.com/${pr.repo}/pull/${pr.number}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gh-link ml-auto text-xs font-normal text-muted-foreground"
+              title="Open on GitHub"
+            >
+              <span className="font-mono">View on GitHub</span>
+              <span className="text-[10px]">&rarr;</span>
+            </a>
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex items-center gap-3 mb-3">
           <Badge className={pr.status === "merged" ? "badge-glow-green" : pr.status === "closed" ? "badge-glow-red" : ""}>{pr.status}</Badge>
-          <span className="text-sm text-muted-foreground font-mono">{pr.repo}</span>
-          <span className="text-[11px] text-muted-foreground/60 font-mono">
-            {formatRelativeTime(pr.createdAt)}
-          </span>
+          <CopyButton value={pr.repo}>
+            <span className="text-sm text-muted-foreground font-mono">{pr.repo}</span>
+          </CopyButton>
+          <Timestamp
+            date={pr.createdAt}
+            className="text-[11px] text-muted-foreground/60 font-mono"
+          />
           {pr.qualityScore != null && (
             <span className={`quality-ring ml-auto ${pr.qualityScore >= 80 ? "q-high" : pr.qualityScore >= 60 ? "q-mid" : "q-low"}`}>
               {pr.qualityScore.toFixed(0)}

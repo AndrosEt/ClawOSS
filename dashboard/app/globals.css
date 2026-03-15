@@ -365,3 +365,106 @@
 .msg-accent-purple { border-left-color: oklch(0.6 0.2 295 / 40%); }
 .msg-accent-red { border-left-color: oklch(0.6 0.2 25 / 40%); }
 .msg-accent-orange { border-left-color: oklch(0.7 0.15 55 / 40%); }
+
+/* ---- Click-to-copy feedback ---- */
+@keyframes copy-flash {
+  0% { background-color: oklch(0.7 0.15 150 / 20%); }
+  100% { background-color: transparent; }
+}
+.copy-flash {
+  animation: copy-flash 0.6s ease-out;
+}
+
+/* ---- Floating action button (jump to bottom, etc.) ---- */
+.fab-float {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 10;
+  align-self: center;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fab-float:hover {
+  transform: translateY(-2px);
+}
+
+/* ---- Sortable table header ---- */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.sortable-header:hover {
+  color: var(--foreground);
+}
+.sort-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.6rem;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+.sortable-header:hover .sort-indicator,
+.sort-indicator.active {
+  opacity: 1;
+}
+
+/* ---- New message badge ---- */
+@keyframes badge-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.new-msg-badge {
+  animation: badge-bounce 0.3s ease;
+}
+
+/* ---- Tooltip for absolute timestamps ---- */
+.ts-tooltip {
+  position: relative;
+  cursor: default;
+}
+.ts-tooltip::after {
+  content: attr(data-abs-time);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  background: oklch(0.2 0 0 / 90%);
+  color: oklch(0.9 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+.dark .ts-tooltip::after {
+  background: oklch(0.3 0 0 / 95%);
+}
+.ts-tooltip:hover::after {
+  opacity: 1;
+}
+
+/* ---- GitHub link icon ---- */
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.gh-link:hover {
+  color: oklch(0.7 0.15 255);
+}
+.gh-link-icon {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.gh-link:hover .gh-link-icon,
+.group:hover .gh-link-icon {
+  opacity: 0.6;
+}

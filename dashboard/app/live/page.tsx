@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import { ConversationFeed } from "@/components/live/conversation-feed";
 import { SessionPicker } from "@/components/live/session-picker";
@@ -96,6 +96,43 @@ export default function LivePage() {
     }
     return msgs;
   }, [allMessages, viewMode, roleFilter, searchQuery]);
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Ctrl+J or Cmd+J: toggle auto-scroll
+      if ((e.ctrlKey || e.metaKey) && e.key === "j") {
+        e.preventDefault();
+        setAutoScroll((prev) => !prev);
+      }
+      // Ctrl+Shift+R or Cmd+Shift+R: toggle raw JSON
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "R") {
+        e.preventDefault();
+        setShowRawJson((prev) => !prev);
+      }
+      // 1-4: switch main tabs when not focused on input
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+        const tabMap: Record<string, MainTab> = {
+          "1": "feed",
+          "2": "tools",
+          "3": "errors",
+          "4": "costs",
+        };
+        if (tabMap[e.key]) {
+          e.preventDefault();
+          setMainTab(tabMap[e.key]);
+        }
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   const subagentCount = sessions.filter((s) => s.isSubagent).length;
 
@@ -193,9 +230,14 @@ export default function LivePage() {
           size="sm"
           className="text-[10px] h-5 px-2"
           onClick={() => setAutoScroll(!autoScroll)}
+          title="Toggle auto-scroll (Ctrl+J)"
         >
           {autoScroll ? "scroll:on" : "scroll:off"}
         </Button>
+
+        <div className="ml-auto text-[9px] text-muted-foreground/30 font-mono hidden md:block">
+          1-4:tabs | Ctrl+J:scroll | Ctrl+Shift+R:json
+        </div>
       </div>
 
       {mainTab === "feed" && (

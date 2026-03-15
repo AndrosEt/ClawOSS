@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatRelativeTime } from "@/lib/utils";
+import { Timestamp } from "@/components/ui/timestamp";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { PullRequestSummary } from "@/lib/types";
 
 interface RecentPRsListProps {
@@ -61,20 +62,37 @@ export function RecentPRsList({ prs, limit = 5 }: RecentPRsListProps) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate group-hover:text-foreground transition-colors">
-                    <span className="text-muted-foreground">#{pr.number}</span> {pr.title}
+                    <CopyButton value={`${pr.repo}#${pr.number}`} className="inline">
+                      <span className="text-muted-foreground">#{pr.number}</span>
+                    </CopyButton>{" "}
+                    {pr.title}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-muted-foreground/60 font-mono">
-                      {pr.repo}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/40 font-mono">
-                      {formatRelativeTime(pr.createdAt)}
-                    </span>
+                    <CopyButton value={pr.repo}>
+                      <span className="text-[10px] text-muted-foreground/60 font-mono">
+                        {pr.repo}
+                      </span>
+                    </CopyButton>
+                    <Timestamp
+                      date={pr.createdAt}
+                      className="text-[10px] text-muted-foreground/40 font-mono"
+                    />
                   </div>
                 </div>
-                <Badge variant={statusVariant[pr.status] || "outline"} className="text-[10px] shrink-0">
-                  {pr.status}
-                </Badge>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant={statusVariant[pr.status] || "outline"} className="text-[10px]">
+                    {pr.status}
+                  </Badge>
+                  <a
+                    href={`https://github.com/${pr.repo}/pull/${pr.number}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gh-link"
+                    title={`Open ${pr.repo}#${pr.number} on GitHub`}
+                  >
+                    <span className="gh-link-icon text-[9px] font-mono">GH</span>
+                  </a>
+                </div>
               </div>
             ))}
           </div>

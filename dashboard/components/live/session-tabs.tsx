@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { ConversationSession } from "@/lib/types";
 
 interface SessionTabsProps {
@@ -90,6 +91,13 @@ export function SessionTabs({
           </Button>
         );
       })}
+
+      {/* Total session count */}
+      {sessions.length > 0 && (
+        <span className="text-[9px] text-muted-foreground/30 font-mono ml-auto shrink-0 pr-1">
+          {sessions.length} session{sessions.length !== 1 ? "s" : ""}
+        </span>
+      )}
 
       {sessions.length === 0 && (
         <span className="text-[10px] text-muted-foreground/50 px-2">

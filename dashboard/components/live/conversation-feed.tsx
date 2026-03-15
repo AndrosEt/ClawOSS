@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { RawJsonToggle } from "./raw-json-toggle";
 import type { ConversationMessage } from "@/lib/types";
 
@@ -61,12 +63,20 @@ const roleConfig: Record<
 
 const MAX_COLLAPSED_LINES = 12;
 
-function MessageContent({ content }: { content: string }) {
+function MessageContent({
+  content,
+  forceExpanded,
+}: {
+  content: string;
+  forceExpanded?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const lines = content.split("\n");
   const isTruncatable = lines.length > MAX_COLLAPSED_LINES;
 
-  const displayContent = expanded
+  const isExpanded = forceExpanded || expanded;
+
+  const displayContent = isExpanded
     ? content
     : isTruncatable
     ? lines.slice(0, MAX_COLLAPSED_LINES).join("\n")
@@ -77,7 +87,7 @@ function MessageContent({ content }: { content: string }) {
       <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed">
         {displayContent}
       </pre>
-      {isTruncatable && (
+      {isTruncatable && !forceExpanded && (
         <button
           onClick={() => setExpanded(!expanded)}
           className="text-[10px] text-blue-400 hover:text-blue-300 mt-1 font-mono"
@@ -99,15 +109,54 @@ export function ConversationFeed({
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [expandAll, setExpandAll] = useState(false);
+  const [newMsgCount, setNewMsgCount] = useState(0);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const prevMsgCountRef = useRef(messages.length);
 
+  // Track new messages when paused
+  useEffect(() => {
+    if (isPaused && messages.length > prevMsgCountRef.current) {
+      setNewMsgCount((c) => c + (messages.length - prevMsgCountRef.current));
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages.length, isPaused]);
+
+  // Auto-scroll to bottom
   useEffect(() => {
     if (autoScroll && !isPaused && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages.length, autoScroll, isPaused]);
 
+  // Track scroll position to show/hide jump-to-bottom
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const threshold = 100;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    setIsAtBottom(atBottom);
+  }, []);
+
   const handleMouseEnter = useCallback(() => setIsPaused(true), []);
-  const handleMouseLeave = useCallback(() => setIsPaused(false), []);
+  const handleMouseLeave = useCallback(() => {
+    setIsPaused(false);
+    setNewMsgCount(0);
+  }, []);
+
+  const jumpToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setNewMsgCount(0);
+    setIsPaused(false);
+  }, []);
+
+  // Count truncatable messages for expand/collapse toggle
+  const truncatableCount = useMemo(
+    () =>
+      messages.filter((m) => m.content?.split("\n").length > MAX_COLLAPSED_LINES)
+        .length,
+    [messages]
+  );
 
   if (messages.length === 0) {
     return (
@@ -129,15 +178,35 @@ export function ConversationFeed({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col gap-1 font-mono text-sm overflow-y-auto h-full smooth-scroll"
+      className="flex flex-col gap-1 font-mono text-sm overflow-y-auto h-full smooth-scroll relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onScroll={handleScroll}
     >
-      {isPaused && (
-        <div className="sticky top-0 z-10 bg-yellow-500/10 border border-yellow-500/20 rounded px-2 py-0.5 text-[10px] text-yellow-400 text-center">
-          Auto-scroll paused (hover)
-        </div>
-      )}
+      {/* Top bar: pause indicator + expand/collapse toggle */}
+      <div className="sticky top-0 z-10 flex items-center gap-2">
+        {isPaused && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded px-2 py-0.5 text-[10px] text-yellow-400 text-center flex-1">
+            Auto-scroll paused (hover)
+            {newMsgCount > 0 && (
+              <span className="ml-2 new-msg-badge inline-block bg-blue-500/20 border border-blue-500/40 rounded px-1.5 text-blue-400">
+                +{newMsgCount} new
+              </span>
+            )}
+          </div>
+        )}
+        {truncatableCount > 0 && (
+          <button
+            onClick={() => setExpandAll(!expandAll)}
+            className="bg-muted/50 border border-border rounded px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-auto"
+          >
+            {expandAll
+              ? `[ collapse all (${truncatableCount}) ]`
+              : `[ expand all (${truncatableCount}) ]`}
+          </button>
+        )}
+      </div>
+
       {messages.map((msg) => {
         const config = roleConfig[msg.role] || roleConfig.system;
         const ts =
@@ -152,6 +221,10 @@ export function ConversationFeed({
                 second: "2-digit",
                 hour12: false,
               })
+            : "";
+        const absTimeStr =
+          ts instanceof Date && !isNaN(ts.getTime())
+            ? ts.toISOString().replace("T", " ").slice(0, 19)
             : "";
 
         const isError =
@@ -233,19 +306,38 @@ export function ConversationFeed({
                 </span>
               )}
               {!!(msg.metadata as Record<string, unknown>)?.repo && (
-                <span className="text-[9px] text-cyan-400 font-mono">
-                  {String((msg.metadata as Record<string, unknown>).repo)}
-                  {(msg.metadata as Record<string, unknown>).issue
-                    ? String((msg.metadata as Record<string, unknown>).issue)
-                    : ""}
-                </span>
+                <CopyButton
+                  value={`${String(
+                    (msg.metadata as Record<string, unknown>).repo
+                  )}${
+                    (msg.metadata as Record<string, unknown>).issue
+                      ? String(
+                          (msg.metadata as Record<string, unknown>).issue
+                        )
+                      : ""
+                  }`}
+                >
+                  <span className="text-[9px] text-cyan-400 font-mono">
+                    {String((msg.metadata as Record<string, unknown>).repo)}
+                    {(msg.metadata as Record<string, unknown>).issue
+                      ? String(
+                          (msg.metadata as Record<string, unknown>).issue
+                        )
+                      : ""}
+                  </span>
+                </CopyButton>
               )}
               {msg.sessionId && (
-                <span className="text-[10px] text-muted-foreground/50 font-mono">
-                  {msg.sessionId.length > 12
-                    ? msg.sessionId.slice(0, 8) + ".."
-                    : msg.sessionId}
-                </span>
+                <CopyButton
+                  value={msg.sessionId}
+                  title={`Session: ${msg.sessionId}`}
+                >
+                  <span className="text-[10px] text-muted-foreground/50 font-mono">
+                    {msg.sessionId.length > 12
+                      ? msg.sessionId.slice(0, 8) + ".."
+                      : msg.sessionId}
+                  </span>
+                </CopyButton>
               )}
               {hasSanitized && (
                 <Badge
@@ -256,15 +348,36 @@ export function ConversationFeed({
                   PII
                 </Badge>
               )}
-              <span className="text-[10px] text-muted-foreground ml-auto">
+              <span
+                className="text-[10px] text-muted-foreground ml-auto ts-tooltip"
+                data-abs-time={absTimeStr}
+              >
                 {timeStr}
               </span>
             </div>
-            <MessageContent content={msg.content} />
+            <MessageContent
+              content={msg.content}
+              forceExpanded={expandAll}
+            />
             {showRawJson && <RawJsonToggle message={msg} />}
           </div>
         );
       })}
+
+      {/* Jump to bottom FAB */}
+      {(isPaused || !isAtBottom) && messages.length > 5 && (
+        <div className="sticky bottom-3 z-10 flex justify-center pointer-events-none">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="text-[10px] h-6 px-3 pointer-events-auto shadow-lg backdrop-blur-sm bg-background/80 border"
+            onClick={jumpToBottom}
+          >
+            {newMsgCount > 0 ? `Jump to bottom (+${newMsgCount})` : "Jump to bottom"}
+          </Button>
+        </div>
+      )}
+
       <div ref={bottomRef} />
     </div>
   );

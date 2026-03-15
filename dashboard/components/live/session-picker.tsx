@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { formatRelativeTime } from "@/lib/utils";
 import type { ConversationSession } from "@/lib/types";
 
@@ -41,8 +44,25 @@ export function SessionPicker({
   activeSessionId,
   onSelectSession,
 }: SessionPickerProps) {
-  const mainSessions = sessions.filter((s) => !s.isSubagent);
-  const subSessions = sessions.filter((s) => s.isSubagent);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const q = searchQuery.toLowerCase();
+    return sessions.filter((s) => {
+      const label = getSessionLabel(s);
+      return (
+        label.name.toLowerCase().includes(q) ||
+        s.sessionId.toLowerCase().includes(q) ||
+        s.repo?.toLowerCase().includes(q) ||
+        s.issue?.toLowerCase().includes(q) ||
+        s.label?.toLowerCase().includes(q)
+      );
+    });
+  }, [sessions, searchQuery]);
+
+  const mainSessions = filtered.filter((s) => !s.isSubagent);
+  const subSessions = filtered.filter((s) => s.isSubagent);
 
   return (
     <Card>
@@ -55,6 +75,16 @@ export function SessionPicker({
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-3 space-y-1">
+        {/* Search */}
+        {sessions.length > 2 && (
+          <Input
+            placeholder="Filter sessions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-6 text-[10px] mb-2 font-mono"
+          />
+        )}
+
         {/* Unified timeline button */}
         <Button
           variant={activeSessionId === undefined ? "default" : "ghost"}
@@ -97,6 +127,12 @@ export function SessionPicker({
               />
             ))}
           </div>
+        )}
+
+        {filtered.length === 0 && sessions.length > 0 && (
+          <p className="text-xs text-muted-foreground text-center py-2 font-mono">
+            No matching sessions
+          </p>
         )}
 
         {sessions.length === 0 && (
@@ -155,9 +191,11 @@ function SessionButton({
       </div>
       {label.detail && (
         <div className="w-full">
-          <span className="text-[9px] text-muted-foreground/50 font-mono truncate block">
-            {label.detail}
-          </span>
+          <CopyButton value={session.sessionId} className="block w-full text-left">
+            <span className="text-[9px] text-muted-foreground/50 font-mono truncate block">
+              {label.detail}
+            </span>
+          </CopyButton>
         </div>
       )}
       <div className="flex items-center gap-2 w-full text-muted-foreground">

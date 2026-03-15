@@ -8,7 +8,6 @@ import {
   Activity,
   BarChart3,
   ScrollText,
-  Settings,
   Radio,
 } from "lucide-react";
 import {
@@ -33,7 +32,6 @@ const navItems = [
   { title: "Health", href: "/health", icon: Activity },
   { title: "Quality", href: "/quality", icon: BarChart3 },
   { title: "Logs", href: "/logs", icon: ScrollText },
-  { title: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {

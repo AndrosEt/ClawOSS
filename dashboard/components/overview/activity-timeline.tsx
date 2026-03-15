@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatRelativeTime } from "@/lib/utils";
+import { Timestamp } from "@/components/ui/timestamp";
 import type { ActivityItem } from "@/lib/types";
 
 interface ActivityTimelineProps {
@@ -75,9 +75,10 @@ export function ActivityTimeline({
                     <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                       {typeLabels[item.type] || item.type}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
-                      {formatRelativeTime(item.timestamp)}
-                    </span>
+                    <Timestamp
+                      date={item.timestamp}
+                      className="text-[10px] text-muted-foreground/60 font-mono ml-auto"
+                    />
                   </div>
                   <p className="text-sm truncate mt-0.5 text-muted-foreground group-hover:text-foreground transition-colors">
                     {item.description}
