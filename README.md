@@ -6,33 +6,67 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 
 > **OpenClaw is the engine; ClawOSS is the race car.** We do not modify OpenClaw. We configure it — writing skills, workspace instructions, hooks, and monitoring — to produce the highest quality OSS contributions possible.
 
+## System Architecture
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                        OpenClaw Gateway                           │
+│                                                                   │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (claude-sonnet)   │ │
+│  │  (60min)     │  │  (5 jobs)    │  │                          │ │
+│  │  Haiku model │  │              │  │  10 Custom Skills        │ │
+│  └──────┬───────┘  └──────┬───────┘  │  9-Gate Quality System   │ │
+│         │                 │          │  Memory Persistence      │ │
+│         └────────┬────────┘          └────────────┬─────────────┘ │
+│                  │                                │               │
+└──────────────────┼────────────────────────────────┼───────────────┘
+                   │                                │
+          ┌────────▼────────┐              ┌────────▼────────┐
+          │    GitHub API    │              │  Vercel Dashboard │
+          │                  │              │                   │
+          │  - Fork repos    │              │  - Agent status   │
+          │  - Create PRs    │              │  - PR tracker     │
+          │  - Respond to    │              │  - Quality metrics│
+          │    reviews       │              │  - Token/cost     │
+          │  - Search issues │              │  - Activity logs  │
+          └──────────────────┘              └───────────────────┘
+```
+
 ## How It Works
 
+ClawOSS operates through a continuous 9-phase loop driven by OpenClaw's heartbeat and cron system:
+
 ```
-Heartbeat (every 60min)
-  |
-  v
-Check active PRs ──> Follow up on reviews
-  |
-  v
-Discover new work ──> Triage & prioritize
-  |
-  v
-Analyze repo ──> Implement fix ──> Self-review (7 gates)
-  |                                      |
-  v                                      v
-Safety check ──> Submit PR ──> Report to dashboard
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│ 1.       │──▶│ 2.       │──▶│ 3. Repo  │──▶│ 4.       │
+│ Discover │   │ Triage   │   │ Analyze  │   │Implement │
+└──────────┘   └──────────┘   └──────────┘   └────┬─────┘
+                                                   │
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌────▼─────┐
+│ 8.       │◀──│ 7.       │◀──│ 6. Safety│◀──│ 5. Self  │
+│ Follow-up│   │ Submit   │   │ Check    │   │ Review   │
+└──────────┘   └──────────┘   └──────────┘   └──────────┘
+     │
+┌────▼─────┐
+│ 9.Context│
+│ Manage   │
+└──────────┘
 ```
 
-ClawOSS operates through a continuous loop driven by OpenClaw's heartbeat system and cron jobs:
+| Phase | Skill | Description |
+|-------|-------|-------------|
+| 1. Discover | `oss-discover` | Search GitHub for `good-first-issue`, `help-wanted`, `bug` labels |
+| 2. Triage | `oss-triage` | Assess feasibility, complexity, success probability |
+| 3. Analyze | `repo-analyzer` | Clone repo, read CONTRIBUTING.md, detect tech stack and style |
+| 4. Implement | `oss-implement` | Create branch, write code matching repo style, add tests |
+| 5. Self-Review | `oss-review` | 7-gate quality check + isolated subagent independent review |
+| 6. Safety Check | `safety-checker` | Budget, diff size, secrets, spam limits, final independent review |
+| 7. Submit | `oss-submit` | Push to fork, create PR with AI disclosure |
+| 8. Follow Up | `oss-followup` | Respond to review feedback (max 3 rounds) |
+| 9. Context | `context-manager` | Flush state to memory, manage compaction, clean up between tasks |
 
-1. **Discover** — Search GitHub for `good-first-issue`, `help-wanted`, and `bug` labels
-2. **Analyze** — Clone repo, read CONTRIBUTING.md, detect tech stack and conventions
-3. **Implement** — Create branch, write code matching repo style, add tests
-4. **Self-Review** — 7-gate quality check with isolated subagent review
-5. **Submit** — Push to fork, create PR with AI disclosure
-6. **Follow Up** — Respond to review feedback (max 3 rounds)
-7. **Report** — Send metrics to the Vercel monitoring dashboard
+The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel dashboard on every heartbeat and after significant events.
 
 ## Features
 
@@ -72,6 +106,19 @@ ClawOSS/
 ├── templates/                  # PR, commit, and issue templates
 └── scripts/                    # Operational scripts
 ```
+
+## GitHub Identity
+
+ClawOSS operates under a dedicated GitHub account:
+
+| Field | Value |
+|-------|-------|
+| **Account** | [@BillionClaw](https://github.com/BillionClaw) |
+| **Email** | drsparrowhawk@proton.me |
+| **Token Scope** | `public_repo` (least privilege) |
+| **Purpose** | Exclusively reserved for ClawOSS autonomous operations |
+
+All PRs, commits, and issue interactions use this identity. The account is authenticated interactively via `gh auth login` during setup — no tokens are stored in files.
 
 ## Quick Start
 
@@ -159,6 +206,19 @@ Key settings in `config/openclaw.json`:
 | Sandbox | Enabled | Protect host from arbitrary repo code |
 | Session reset | Daily at 4am | Fresh context each day |
 
+### Workspace Files
+
+| File | Purpose |
+|------|---------|
+| `AGENTS.md` | Core behavioral contract: safety defaults, work discovery, quality standards, anti-spam |
+| `SOUL.md` | Persona: professional, humble, technical. Boundaries: stay in lane, disclose AI |
+| `USER.md` | Operator profile and BillionClaw GitHub identity |
+| `IDENTITY.md` | Agent name, role, GitHub account |
+| `TOOLS.md` | Tool conventions and safety rules for git, gh, node |
+| `HEARTBEAT.md` | 5-step periodic checklist: check PRs, CI, discover work, report, maintain memory |
+| `BOOTSTRAP.md` | First-run initialization sequence (deleted after completion) |
+| `MEMORY.md` | Long-term memory: repo conventions, maintainer prefs, strategies |
+
 ### Cron Jobs
 
 | Job | Schedule | Model | Purpose |
@@ -194,6 +254,17 @@ Required environment variables (set in Vercel dashboard):
 - `GITHUB_TOKEN` — GitHub PAT for PR sync
 - `CLAW_AGENT_USERNAME` — Agent's GitHub username (BillionClaw)
 - `CLAW_API_KEY` — Shared secret for agent-to-dashboard auth
+
+## Operational Scripts
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `setup.sh` | `npm run setup` | Configure git identity (BillionClaw), authenticate gh, link workspace, copy config |
+| `start.sh` | `npm run start` | Register all 5 cron jobs, start OpenClaw gateway in daemon mode |
+| `stop.sh` | `npm run stop` | Graceful gateway shutdown |
+| `health-check.sh` | `npm run health` | Verify gateway running, gh authenticated, workspace linked, cron registered |
+| `backup-workspace.sh` | — | Commit agent memory state to git |
+| `rotate-logs.sh` | — | Remove log files older than 14 days |
 
 ## Realistic Expectations
 
