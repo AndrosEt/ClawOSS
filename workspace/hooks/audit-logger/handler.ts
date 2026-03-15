@@ -1,4 +1,4 @@
-const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://clawoss-dashboard.vercel.app";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://dashboard-plum-one-37.vercel.app";
 const AGENT_ID = "clawoss";
 
 async function postLog(

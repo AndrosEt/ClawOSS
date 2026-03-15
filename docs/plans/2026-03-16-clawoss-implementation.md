@@ -1323,7 +1323,7 @@ Changed from `drsparrowhawk@proton.me` to `billionclaw+clawoss@users.noreply.git
 
 #### 6. Dashboard Deployment
 
-Dashboard deployed to Vercel at `clawoss-dashboard.vercel.app`. Database uses Turso (SQLite edge DB) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
+Dashboard deployed to Vercel at `dashboard-plum-one-37.vercel.app`. Database uses Turso (SQLite edge DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
 
 #### 7. Second Model Switch: Minimax M2.5 -> Kimi K2.5 via OpenRouter
 

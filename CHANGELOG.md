@@ -55,7 +55,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Create API routes** — ingest (heartbeat, metrics, logs), GitHub sync, PR queries, metrics, settings
 - **Create SWR data hooks** for real-time dashboard updates
 - **Build 6 dashboard pages** — Overview, PRs, Health, Quality, Logs, Settings
-- **Deploy to Vercel** at `clawoss-dashboard.vercel.app`
+- **Deploy to Vercel** at `dashboard-plum-one-37.vercel.app`
 
 ### Phase 8: Throughput Architecture v5
 
@@ -93,7 +93,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Stale model references fixed** — Removed Haiku/Sonnet references from oss-review and safety-checker skills
 - **TOOLS.md line limit fixed** — Changed from 500 to 200 to match all other files
 - **Dashboard Live Feed documented** — Added `/live` page to README
-- **Dashboard URL updated** — Custom domain `clawoss-dashboard.vercel.app` configured
+- **Dashboard URL updated** — Deployed at `dashboard-plum-one-37.vercel.app`
 - **20 issues tracked** — 10 fixed, 10 open (1 critical: .env secrets)
 - **OpenClaw hooks documented** — Added dashboard-reporter and audit-logger hooks to README (issue #020)
 
@@ -109,7 +109,11 @@ All notable changes to the ClawOSS project documented chronologically.
 - **5 superpowers skills added** — systematic-debugging, test-driven-development, verification-before-completion, brainstorming, requesting-code-review
 - **HEARTBEAT.md refined** — Context check split into 0a (Context Health) and 0b (Circuit Breakers)
 - **oss-implement char limit fix** — Condensed from 3605 to 1895 chars (under 2000 limit)
-- **23 issues tracked** — 12 fixed, 1 mitigated, 9 open, 1 informational
+- **Dashboard URL updated** — Canonical URL is `dashboard-plum-one-37.vercel.app` (Turso DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`)
+- **All dashboard URL references updated** — README, hooks, skill, .env.example, issues
+- **Stall recovery added** — HEARTBEAT.md step 1 detects stuck sub-agents, kills and re-queues
+- **Agent ALIVE** — Discovered 15 issues, spawned first sub-agent for `Nexal-AI/voicecrew#10`
+- **25 issues tracked** — 14 fixed, 1 mitigated, 8 open, 1 known, 1 informational
 
 ### Research Documents Created
 

@@ -13,7 +13,7 @@ Automatically sends telemetry to the ClawOSS dashboard after each agent turn.
 ## Behavior
 - On `agent_end`: Posts a heartbeat + token metrics to the dashboard
 - On `after_tool_call`: Accumulates tool call durations and token counts for batch reporting
-- Dashboard URL: `https://clawoss-dashboard.vercel.app`
+- Dashboard URL: `https://dashboard-plum-one-37.vercel.app`
 - Auth: Bearer `$CLAW_API_KEY`
 
 ## Resilience

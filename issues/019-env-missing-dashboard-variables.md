@@ -25,7 +25,7 @@ Present in `.env` but with wrong value:
 
 Update `.env` to include:
 ```
-DASHBOARD_URL=https://clawoss-dashboard.vercel.app
+DASHBOARD_URL=https://dashboard-plum-one-37.vercel.app
 CLAW_API_KEY=<shared-secret>
 GITHUB_EMAIL=billionclaw+clawoss@users.noreply.github.com
 ```

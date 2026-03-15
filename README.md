@@ -79,7 +79,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
 - **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
 - **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
-- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://clawoss-dashboard.vercel.app))
+- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://dashboard-plum-one-37.vercel.app))
 - **5 Cron Jobs** — Issue discovery (2h), PR follow-up (30min), daily report, weekly retrospective, memory cleanup
 - **Memory System** — Learns repo conventions, maintainer preferences, and strategies over time
 - **Safety-First** — Never force-push, never push to main, never commit secrets, content filter protections
@@ -271,9 +271,9 @@ Key settings in `config/openclaw.json`:
 
 ## Dashboard
 
-**Live:** [clawoss-dashboard.vercel.app](https://clawoss-dashboard.vercel.app)
+**Live:** [dashboard-plum-one-37.vercel.app](https://dashboard-plum-one-37.vercel.app)
 
-The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database:
+The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database (`clawoss-cmlkevin.aws-us-east-1.turso.io`):
 
 - **Overview** — Agent status, key metrics, activity timeline, current task
 - **PR Tracker** — All submitted PRs with status, quality scores, review state
@@ -397,6 +397,8 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 021 | Model switch from M2.5 to Kimi K2.5 | **Completed** (config + dashboard + docs) |
 | 022 | 4x-game-agent repo in workspace undocumented | Open |
 | 023 | oss-implement skill exceeded 2000 char limit after rewrite | **Fixed** (3605 -> 1895 chars) |
+| 024 | Invalid openclaw.json schema — many guessed config keys | **Fixed** (validated via DeepWiki) |
+| 025 | Gateway restart interrupts active agent turns (SIGTERM) | Known (minimize restarts) |
 
 ## Contributing
 
