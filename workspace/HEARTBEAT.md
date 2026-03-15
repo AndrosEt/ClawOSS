@@ -10,7 +10,7 @@ Only reply HEARTBEAT_OK if ALL of these are true:
 - oss-discover found zero new issues
 Otherwise: PICK WORK AND DO IT. Never be idle.
 
-Execute this checklist strictly. One task per cycle. Quality over speed.
+Execute this checklist. Spawn as many sub-agents as possible (up to 5 concurrent).
 
 ## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
 
@@ -100,12 +100,17 @@ Run: gh pr list --author @me --state open --json number,title,reviewDecision,sta
 - PR merged? --> Update memory/pipeline-state.md. Continue.
 - PR stale >7 days, no review? --> Close with polite comment. Remove from pipeline.
 
-## 3. Merge Staging Files & Pick Work
+## 3. Merge Staging Files & Pick Work (up to 5 concurrent tasks)
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
+Count active sub-agents via sessions_list (exclude main session and stale sessions >30min).
 Read memory/work-queue.md:
-- Urgent items (PR follow-ups) --> pick first urgent.
-- Normal items --> pick top item with score >= 5.
+- If active sub-agents >= 5: skip to step 6 (check results).
+- If active sub-agents < 5 AND work queue has items:
+  Pick the next task (urgent first, then top item with score >= 5).
+  Go to step 4 (triage) then step 5 (spawn).
+  After spawning, LOOP BACK here to pick another task.
+  Keep spawning until 5 sub-agents are active or queue is empty.
 - Queue empty AND queue has < 10 items --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit, skip to next item.
@@ -135,7 +140,7 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
     Use image to analyze any screenshots attached to the issue.
-    IMPORTANT: When finished, write results to /Users/kevinlin/clawOSS/workspace/memory/subagent-result.md:
+    IMPORTANT: When finished, write results to /Users/kevinlin/clawOSS/workspace/memory/subagent-result-<repo>-<issue>.md:
     - Status: success/failure
     - PR URL (if created)
     - Files changed
@@ -152,11 +157,11 @@ Do NOT implement in the main session.
 If web_search results were gathered during triage, include a summary in the attachments.
 
 ### Sub-Agent Discipline
-- Each sub-agent MUST write results to memory/subagent-result.md, then reply ANNOUNCE_SKIP
+- Each sub-agent MUST write results to memory/subagent-result-<repo>-<issue>.md, then reply ANNOUNCE_SKIP
+- Per-task result files allow multiple sub-agents to write concurrently without conflicts
 - ANNOUNCE_SKIP bypasses the announce model call — no content filter risk, faster completion
 - NO hard timeout — sub-agents take as long as they need to do quality work
 - maxConcurrent: 5 — up to 5 sub-agents can work in parallel on different tasks
-- If 5 are already active, wait for one to finish before spawning another
 - Result file must include: status, PR URL, files changed, test results, or error details
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 
@@ -166,13 +171,16 @@ If web_search results were gathered during triage, include a summary in the atta
 - Stale sessions are dead weight — they consumed context and produced nothing useful
 - Do NOT send messages to stale sessions — just move on and spawn fresh
 
-## 6. Handle Sub-Agent Result
-Read memory/subagent-result.md to get the sub-agent's outcome.
-If file doesn't exist or is empty, the sub-agent failed silently — increment errors_this_hour.
+## 6. Handle Sub-Agent Results
+Check ALL active sub-agents via sessions_list.
+List memory/subagent-result-*.md files to find completed results.
+For each result file:
+- Read it to get the sub-agent's outcome.
 - If Status: success and PR URL present: update memory/pipeline-state.md with new PR.
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
-Delete memory/subagent-result.md after processing to avoid stale reads next cycle.
+- Delete the result file after processing.
+For sub-agents still running (no result file yet): leave them running, check next cycle.
 
 ## 7. Report & Loop
 Run dashboard-reporter: log cycle outcome (submitted/abandoned/followup), cost, repo, issue.

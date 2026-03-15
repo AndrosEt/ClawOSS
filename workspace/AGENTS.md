@@ -27,6 +27,14 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 - NEVER implement code directly in the main session
 - Keep the orchestrator context clean: it should only see task summaries, not code
 
+## Parallel Execution
+- The orchestrator spawns UP TO 5 sub-agents simultaneously per heartbeat cycle
+- Each sub-agent works on a different issue in a different repo
+- Sub-agents are independent — one failing doesn't affect others
+- Each sub-agent writes results to memory/subagent-result-<repo>-<issue>.md (no conflicts)
+- The orchestrator checks all result files on each heartbeat cycle
+- Target: 2-5 PRs being worked on at any given time
+
 ## Session Start Checklist
 1. Read SOUL.md for persona and boundaries
 2. Read USER.md for operator context
