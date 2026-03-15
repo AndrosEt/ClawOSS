@@ -1,0 +1,122 @@
+{
+  "gateway": {
+    "port": 18789,
+    "mode": "headless"
+  },
+
+  "identity": {
+    "name": "ClawOSS",
+    "theme": "lobster"
+  },
+
+  "agents": {
+    "defaults": {
+      "workspace": "./workspace",
+      "model": {
+        "primary": "claude-sonnet-4-6",
+        "fallbacks": ["claude-haiku-4-5"]
+      },
+      "models": {
+        "allowlist": [
+          "claude-opus-4-6",
+          "claude-sonnet-4-6",
+          "claude-haiku-4-5"
+        ],
+        "aliases": {
+          "deep-think": "claude-opus-4-6",
+          "fast": "claude-haiku-4-5"
+        }
+      },
+      "heartbeat": {
+        "every": "30m",
+        "prompt": "Run the heartbeat checklist in HEARTBEAT.md"
+      },
+      "sandbox": {
+        "enabled": true,
+        "allowPaths": [
+          "/tmp/clawoss-workdir",
+          "~/.openclaw/workspace"
+        ]
+      },
+      "compaction": {
+        "memoryFlush": true
+      },
+      "imageMaxDimensionPx": 1024
+    },
+    "list": [
+      {
+        "id": "clawoss",
+        "model": {
+          "primary": "claude-sonnet-4-6"
+        },
+        "tools": {
+          "profile": "coding"
+        }
+      }
+    ]
+  },
+
+  "skills": {
+    "allowBundled": ["github", "gemini", "agent-tools"],
+    "load": {
+      "extraDirs": [],
+      "watch": true,
+      "watchDebounceMs": 500
+    },
+    "entries": {
+      "github": {
+        "enabled": true
+      }
+    }
+  },
+
+  "tools": {
+    "profile": "coding",
+    "allow": [
+      "exec",
+      "memory_search",
+      "memory_get",
+      "memory_write",
+      "web_fetch",
+      "web_search"
+    ],
+    "deny": [
+      "imsg",
+      "wacli",
+      "discord",
+      "spotify-player",
+      "openhue",
+      "sonos",
+      "camsnap",
+      "peekaboo"
+    ]
+  },
+
+  "logging": {
+    "level": "info",
+    "file": "/tmp/openclaw/clawoss-{date}.log",
+    "consoleLevel": "warn",
+    "consoleStyle": "compact",
+    "redactSensitive": true
+  },
+
+  "session": {
+    "scope": "agent",
+    "resetTriggers": {
+      "daily": "04:00"
+    },
+    "maintenance": {
+      "mode": "enforce",
+      "pruneAfter": "7d",
+      "maxEntries": 100
+    }
+  },
+
+  "diagnostics": {
+    "enabled": true,
+    "otel": {
+      "endpoint": "https://clawoss-dashboard.vercel.app/api/otel",
+      "logs": true
+    }
+  }
+}
