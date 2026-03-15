@@ -2,11 +2,12 @@
 
 import { useMemo } from "react";
 import { formatTokens } from "@/lib/utils";
+import { DEFAULT_COST_MODEL } from "@/lib/cost-models";
 import type { ConversationMessage } from "@/lib/types";
 
-// Minimax M2.5 pricing
-const INPUT_COST_PER_TOKEN = 0.25 / 1_000_000;
-const OUTPUT_COST_PER_TOKEN = 1.2 / 1_000_000;
+// Kimi K2.5 pricing (from centralized cost model)
+const INPUT_COST_PER_TOKEN = DEFAULT_COST_MODEL.inputCostPerToken;
+const OUTPUT_COST_PER_TOKEN = DEFAULT_COST_MODEL.outputCostPerToken;
 
 interface LiveStatsBarProps {
   messages: ConversationMessage[];

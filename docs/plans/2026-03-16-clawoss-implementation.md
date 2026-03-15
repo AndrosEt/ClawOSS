@@ -1323,7 +1323,7 @@ Changed from `drsparrowhawk@proton.me` to `billionclaw+clawoss@users.noreply.git
 
 #### 6. Dashboard Deployment
 
-Dashboard deployed to Vercel at `dashboard-plum-one-37.vercel.app`. Database uses Turso (SQLite edge DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
+Dashboard deployed to Vercel at `clawoss-dashboard.vercel.app`. Database uses Turso (SQLite edge DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
 
 #### 7. Second Model Switch: Minimax M2.5 -> Kimi K2.5 via OpenRouter
 
@@ -1336,9 +1336,10 @@ Post-build, the primary model was switched from Minimax M2.5 to Moonshot Kimi K2
 
 ### Issues Discovered During Implementation
 
-22 issues documented in `issues/` directory:
-- 12 open issues (content filter, session locks, skill paths, context overflow, start.sh, .env secrets, workspace docs)
-- 10 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost, stale model refs, dashboard cost model)
+27 issues documented in `issues/` directory:
+- 8 open issues (content filter, session locks, skill paths, context overflow, start.sh, .env secrets, workspace docs, maxConcurrent mismatch)
+- 15 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost, stale model refs, dashboard cost model, heartbeat prompt, oss-implement char limit, config validation)
+- 1 mitigated, 1 known, 1 completed, 1 informational
 
 ### Verification Status
 

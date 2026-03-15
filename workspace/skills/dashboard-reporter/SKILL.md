@@ -9,7 +9,7 @@ disable-model-invocation: false
 
 Send telemetry to the dashboard. Agent ID: "clawoss", user: "BillionClaw".
 Auth: `Authorization: Bearer $CLAW_API_KEY`. All curls use `-s --max-time 10`.
-URL base: `$DASHBOARD_URL` (default: `https://dashboard-plum-one-37.vercel.app`)
+URL base: `$DASHBOARD_URL` (default: `https://clawoss-dashboard.vercel.app`)
 
 ## Endpoints
 

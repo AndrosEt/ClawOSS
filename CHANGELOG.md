@@ -55,7 +55,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Create API routes** — ingest (heartbeat, metrics, logs), GitHub sync, PR queries, metrics, settings
 - **Create SWR data hooks** for real-time dashboard updates
 - **Build 6 dashboard pages** — Overview, PRs, Health, Quality, Logs, Settings
-- **Deploy to Vercel** at `dashboard-plum-one-37.vercel.app`
+- **Deploy to Vercel** at `clawoss-dashboard.vercel.app`
 
 ### Phase 8: Throughput Architecture v5
 
@@ -93,7 +93,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Stale model references fixed** — Removed Haiku/Sonnet references from oss-review and safety-checker skills
 - **TOOLS.md line limit fixed** — Changed from 500 to 200 to match all other files
 - **Dashboard Live Feed documented** — Added `/live` page to README
-- **Dashboard URL updated** — Deployed at `dashboard-plum-one-37.vercel.app`
+- **Dashboard URL updated** — Deployed at `clawoss-dashboard.vercel.app`
 - **20 issues tracked** — 10 fixed, 10 open (1 critical: .env secrets)
 - **OpenClaw hooks documented** — Added dashboard-reporter and audit-logger hooks to README (issue #020)
 
@@ -109,11 +109,24 @@ All notable changes to the ClawOSS project documented chronologically.
 - **5 superpowers skills added** — systematic-debugging, test-driven-development, verification-before-completion, brainstorming, requesting-code-review
 - **HEARTBEAT.md refined** — Context check split into 0a (Context Health) and 0b (Circuit Breakers)
 - **oss-implement char limit fix** — Condensed from 3605 to 1895 chars (under 2000 limit)
-- **Dashboard URL updated** — Canonical URL is `dashboard-plum-one-37.vercel.app` (Turso DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`)
+- **Dashboard URL updated** — Canonical URL is `clawoss-dashboard.vercel.app` (Turso DB at `clawoss-cmlkevin.aws-us-east-1.turso.io`)
 - **All dashboard URL references updated** — README, hooks, skill, .env.example, issues
 - **Stall recovery added** — HEARTBEAT.md step 1 detects stuck sub-agents, kills and re-queues
 - **Agent ALIVE** — Discovered 15 issues, spawned first sub-agent for `Nexal-AI/voicecrew#10`
 - **25 issues tracked** — 14 fixed, 1 mitigated, 8 open, 1 known, 1 informational
+
+### Phase 13: V6 Stabilization
+
+- **Sub-agent discipline restored** — Commits `4dfdb11`, `211bf5f`, `b310726`, `6763be3` iterated on maxConcurrent and timeout settings
+- **V6 feature release** — Commit `6d85a5a`: stability, expanded toolkit, stall recovery
+- **Heartbeat prompt fix** — Issue #026: agent stopped after diagnostics without picking work. Prompt rewritten 3 times to be maximally directive (commit `becee7a`)
+- **maxConcurrent mismatch found** — Issue #027: config says 5, HEARTBEAT.md says 1, AGENTS.md says 5. Needs resolution.
+- **Dashboard live-stats-bar centralized** — Cost model import moved from hardcoded M2.5 pricing to `DEFAULT_COST_MODEL` from `cost-models.ts`
+- **Dashboard canonical URL** — `clawoss-dashboard.vercel.app` is now the canonical domain (was `dashboard-plum-one-37.vercel.app`). All 12 file references updated.
+- **Cloned repos gitignored** — Issue #022: sub-agents clone target repos into `workspace/`. Added `workspace/4x-game-agent/` to `.gitignore`. First autonomous contribution target: `sonpiaz/4x-game-agent#9` (template matching tests).
+- **Model switch confirmed user-directed** — K2.5 switch was explicitly requested by user, not benchmark-driven. Benchmarks pending throughput-critic review.
+- **Stall recovery documented** — Issue #028: sub-agent stall detection, kill, retry (max 2), skip. Already implemented in commits `13d0aa3` and `6d85a5a`.
+- **28 issues tracked** — 16 fixed, 1 implemented, 1 mitigated, 7 open, 1 known, 1 informational, 1 completed
 
 ### Research Documents Created
 

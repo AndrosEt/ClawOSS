@@ -79,7 +79,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
 - **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
 - **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
-- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://dashboard-plum-one-37.vercel.app))
+- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://clawoss-dashboard.vercel.app))
 - **5 Cron Jobs** — Issue discovery (2h), PR follow-up (30min), daily report, weekly retrospective, memory cleanup
 - **Memory System** — Learns repo conventions, maintainer preferences, and strategies over time
 - **Safety-First** — Never force-push, never push to main, never commit secrets, content filter protections
@@ -271,7 +271,7 @@ Key settings in `config/openclaw.json`:
 
 ## Dashboard
 
-**Live:** [dashboard-plum-one-37.vercel.app](https://dashboard-plum-one-37.vercel.app)
+**Live:** [clawoss-dashboard.vercel.app](https://clawoss-dashboard.vercel.app)
 
 The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database (`clawoss-cmlkevin.aws-us-east-1.turso.io`):
 
@@ -388,17 +388,20 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 012 | safety-checker referenced "Sonnet subagent" | **Fixed** (model-agnostic wording) |
 | 013 | TOOLS.md had 500 LOC limit vs 200 everywhere else | **Fixed** (standardized to 200) |
 | 014 | start.sh ignores sessionTarget from cron config | Open |
-| 015 | Dashboard reporter uses hardcoded URL fallback | **Fixed** (now uses env var) |
+| 015 | Dashboard reporter uses hardcoded URL fallback | **Fixed** (env var + canonical domain) |
 | 016 | Dashboard Live Feed page not documented | Open (documented now) |
 | 017 | Dashboard cost model uses wrong model ID key | **Fixed** (updated to K2.5) |
 | 018 | .env contains real API keys | Open (CRITICAL) |
 | 019 | .env missing DASHBOARD_URL and CLAW_API_KEY | Open |
 | 020 | OpenClaw hooks not documented | Open (documented now) |
 | 021 | Model switch from M2.5 to Kimi K2.5 | **Completed** (config + dashboard + docs) |
-| 022 | 4x-game-agent repo in workspace undocumented | Open |
+| 022 | Cloned repos in workspace should be gitignored | **Fixed** (.gitignore updated) |
 | 023 | oss-implement skill exceeded 2000 char limit after rewrite | **Fixed** (3605 -> 1895 chars) |
 | 024 | Invalid openclaw.json schema — many guessed config keys | **Fixed** (validated via DeepWiki) |
 | 025 | Gateway restart interrupts active agent turns (SIGTERM) | Known (minimize restarts) |
+| 026 | Heartbeat stops after diagnostics — agent doesn't pick work | **Fixed** (prompt rewritten) |
+| 027 | maxConcurrent mismatch across config and docs (5 vs 1) | Open |
+| 028 | Sub-agent stall recovery | **Implemented** (detect, kill, retry, skip after 2) |
 
 ## Contributing
 
