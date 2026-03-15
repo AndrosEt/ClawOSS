@@ -4,6 +4,10 @@
       "compaction": {
         "mode": "safeguard"
       },
+      "model": {
+        "primary": "openrouter/minimax/minimax-m2.5",
+        "fallbacks": []
+      },
       "subagents": {
         "model": "openrouter/minimax/minimax-m2.5",
         "maxConcurrent": 1,

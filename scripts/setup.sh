@@ -85,6 +85,15 @@ else
     echo "Agent 'clawoss' registered"
 fi
 
+# Symlink ClawOSS skills into OpenClaw skills directory
+echo "Linking ClawOSS skills..."
+mkdir -p "$HOME/.openclaw/skills"
+for skill in "$PROJECT_DIR/workspace/skills"/*/; do
+    name=$(basename "$skill")
+    ln -sf "$skill" "$HOME/.openclaw/skills/$name"
+    echo "  Linked: $name"
+done
+
 # Create working directories
 mkdir -p /tmp/clawoss-workdir
 mkdir -p "$HOME/.openclaw/logs"
