@@ -484,11 +484,18 @@ The agent maintains persistent state across heartbeat cycles, compactions, and r
     │   Abandoned:   [...with reasons]
     │
     ├── pipeline-state.md ──────── TRACKING (all active PRs)
-    │   17 active PRs with repo, issue, status, date
+    │   20 active PRs with repo, issue, status, date
     │
     ├── pr-ledger.md ───────────── DEDUP GUARD (auto-synced)
     │   Never submit two PRs for the same issue.
-    │   Auto-updated via pr-ledger-sync.sh from GitHub API.
+    │   Auto-updated every 60s via launchd (pr-ledger-sync.sh).
+    │   30 entries across 22 repos (1 merged, 1 closed, 28 open).
+    │
+    ├── work-queue-staging.md ──── STAGING (race-condition safe)
+    │   Cron writes here; heartbeat merges into work-queue.md.
+    │
+    ├── followup-staging.md ────── STAGING (PR follow-ups)
+    │   pr-followup-scan writes here; heartbeat merges.
     │
     ├── repos/
     │   ├── apache-mahout.md ────── Learned conventions per repo
@@ -649,14 +656,27 @@ ClawOSS/
 │   └── memory/                   #   persistent agent state
 │       ├── wake-state.md         pipeline-state.md   work-queue.md
 │       ├── pr-ledger.md          repos/              subagent-inputs/
+│       ├── work-queue-staging.md followup-staging.md (cron writes here)
 │       └── subagent-result-*.md  (transient, per-task)
 ├── config/
 │   ├── openclaw.json             #   gateway + model + compaction config
-│   └── cron-jobs.json            #   5 scheduled jobs
+│   ├── cron-jobs.json            #   5 scheduled jobs
+│   └── com.clawoss.pr-ledger-sync.plist  #  launchd: sync ledger every 60s
 ├── plugins/
 │   └── pii-sanitizer/            #   compiled bidirectional sanitizer
 ├── dashboard/                    #   Next.js 15 + Turso monitoring
-├── scripts/                      #   setup, start, stop, restart, health
+├── scripts/                      #   11 operational scripts
+│   ├── setup.sh                 #     one-time workspace + identity setup
+│   ├── start.sh                 #     register cron, start gateway
+│   ├── stop.sh                  #     graceful shutdown
+│   ├── restart.sh               #     full restart (env, identity, config, clean, kick)
+│   ├── health-check.sh          #     verify gateway, gh, workspace, cron
+│   ├── validate-config.mjs      #     29-check config + skills validation
+│   ├── pr-ledger-sync.sh        #     sync pr-ledger.md from GitHub API
+│   ├── pr-ledger-sync-wrapper.sh#     wrapper for launchd (env setup)
+│   ├── dashboard-sync.sh        #     sync dashboard data
+│   ├── backup-workspace.sh      #     commit memory state to git
+│   └── rotate-logs.sh           #     remove logs >14 days
 ├── issues/                       #   34 tracked issues
 ├── research/                     #   8 architecture research docs
 └── templates/                    #   PR, commit, issue templates

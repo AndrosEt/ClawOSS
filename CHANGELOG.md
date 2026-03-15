@@ -134,12 +134,12 @@ All notable changes to the ClawOSS project documented chronologically.
 ### V6 Release — Autonomous Operation Begins
 
 **Date:** 2026-03-16
-**Status:** DEPLOYED — 17 PRs submitted on Day 1 across 11 repos
+**Status:** DEPLOYED — 30 PRs submitted across 22 repos (1 merged)
 
 V6 is the culmination of 13 build phases. After this release, ClawOSS runs without human intervention until it either submits its first merged PR or fails. We observe and learn.
 
 **What shipped in V6:**
-- Kimi K2.5 via OpenRouter (262K context, $0.45/$2.20 per MTok)
+- Kimi Code (k2p5) direct API — 262K context, bypasses OpenRouter content filter
 - v5 orchestrator + sub-agent architecture (maxConcurrent: 5, fresh contexts)
 - 9-step heartbeat loop (10min interval, lightContext mode)
 - Stall recovery with automatic retry (max 2 attempts per task, then skip)
@@ -162,6 +162,7 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified. Later expanded to also cover `before_message_write` to catch sub-agent announce messages.
 - **Dashboard V6 overhaul** — Full Live Feed rewrite with session tabs (orchestrator + per-sub-agent), view modes (unified/orchestrator/sub-agents), main tabs (Feed/Tools/Errors/Costs), sidebar tabs (State/Gateway/Stats). New components: tool call log with duration/success tracking, error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.), cost breakdown per session with $/hour rate, gateway status panel, raw JSON toggle per message, PII sanitizer indicators (header badge, per-message badges, filter counter). Pipeline status bar on overview. Sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay). Sessions API enhanced with repo/issue/isSubagent fields. SWR polling: conversation 2s, state 5s, sessions 5s, connection 15s. Token counts estimated from char length (~4 chars/token) when actual counts unavailable.
 - 34 issues documented (16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 1 active)
+- **PR ledger auto-sync** — `pr-ledger-sync.sh` runs every 60s via launchd (`com.clawoss.pr-ledger-sync.plist`), pulling all BillionClaw PRs from GitHub API into `memory/pr-ledger.md` (commit `6b27da8`)
 - **restart.sh** — Comprehensive restart script for full autonomous operation (commit `abd08db`)
 - **Disk cleanup** — Isolated sub-agent workdirs in `/tmp/clawoss-<issue>-<timestamp>/`, orchestrator sweeps stale dirs >60min (commit `d303cc4`)
 
