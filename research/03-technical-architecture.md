@@ -199,6 +199,16 @@ contributions, and submit well-crafted pull requests — all without human inter
 - Before compaction, flush important state to memory files
 - Keep active working set small: one repo, one issue, one PR at a time
 
+## Memory File Race Condition Prevention
+The `work-queue-refill` cron job (isolated session) and the heartbeat (main session) both
+need to write to `memory/work-queue.md`. To prevent concurrent write corruption:
+
+- **Cron jobs write to staging files only:** `memory/work-queue-staging.md` and `memory/followup-staging.md`
+- **Heartbeat merges staging into canonical:** At step 3, the heartbeat reads staging files,
+  appends new items to `memory/work-queue.md`, then clears the staging files
+- **Append-only from cron, merge-on-read from heartbeat** — no concurrent writes to the same file
+- This pattern is already implemented in HEARTBEAT.md step 3 ("Merge Staging Files & Pick Work")
+
 ## Failure Handling
 - If a contribution is rejected, log the reason in memory and adapt
 - If a repo's CI is broken (not our fault), skip and move to next
@@ -318,9 +328,10 @@ If nothing needs attention: HEARTBEAT_OK
     "list": [
       {
         "id": "clawoss",
-        "model": {
-          "primary": "claude-sonnet-4-6"
-        },
+        "default": true,                       // REQUIRED for main session routing + cron jobs
+        "name": "ClawOSS",
+        "model": "openrouter/moonshotai/kimi-k2.5",
+        "workspace": "/Users/kevinlin/clawOSS/workspace",
         "tools": {
           "profile": "coding"                  // Enable coding-focused tool set
         }
