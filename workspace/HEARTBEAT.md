@@ -85,7 +85,7 @@ Call session_status. If percentUsed > 70%, flush state to memory files and run /
 
 ## 0b. Circuit Breakers
 Read memory/wake-state.md. Reply HEARTBEAT_OK if:
-- consecutive_wakes >= 8 (mandatory cooldown)
+- consecutive_wakes >= 50 (mandatory cooldown — high limit for sustained throughput)
 - errors_this_hour >= 2
 - If hourly_reset is stale (>1hr), reset hourly counters first.
 
