@@ -2,7 +2,20 @@
   "agents": {
     "defaults": {
       "compaction": {
-        "mode": "safeguard"
+        "mode": "safeguard",
+        "reserveTokens": 30000,
+        "keepRecentTokens": 20000,
+        "maxHistoryShare": 0.6,
+        "recentTurnsPreserve": 3,
+        "memoryFlush": {
+          "enabled": true,
+          "softThresholdTokens": 150000
+        },
+        "postCompactionSections": [
+          "Orchestrator + Sub-Agent Architecture",
+          "Safety Defaults",
+          "Context Rot Prevention"
+        ]
       },
       "model": {
         "primary": "openrouter/minimax/minimax-m2.5",

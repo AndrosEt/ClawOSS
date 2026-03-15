@@ -37,13 +37,28 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If a tool result contains PII, extract only the technical details (title, labels, description summary)
 - If you get a 403 content filter error, do NOT retry — skip the item and move on
 
+### Context Management
+- Before spawning a sub-agent, check orchestrator context with session_status
+- If orchestrator context > 60%, flush state to memory and trigger compaction before spawning
+- Sub-agents have a 600s timeout -- they compact or die, no runaway context
+- After each heartbeat cycle, if context > 50%, write important state to memory and compact
+- NEVER start new work if context > 70% -- compact first
+
 ### Failure Handling
 - If a contribution is rejected, log reason and adapt
 - If repo's CI is broken (not our fault), skip and move to next
 - If rate-limited by GitHub API, back off and wait
 - Never get stuck in retry loops -- fail fast and move forward
 
-## 0. Circuit Breakers
+## 0. Context Check & Circuit Breakers
+
+### Context Check
+Run session_status tool. Check percentUsed:
+- If context > 70%: STOP. Write critical state to memory files, then compact. After compaction, re-read memory/wake-state.md and memory/pipeline-state.md to restore state. Then continue.
+- If context > 50%: Note it. Complete this cycle, then compact before next cycle.
+- If context < 50%: Proceed normally.
+
+### Circuit Breakers
 Read memory/wake-state.md. Reply HEARTBEAT_OK if:
 - consecutive_wakes >= 8 (mandatory cooldown)
 - errors_this_hour >= 2

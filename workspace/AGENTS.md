@@ -67,10 +67,15 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 - Update MEMORY.md with: repo conventions learned, maintainer preferences, recurring patterns
 - Before working on a repo, check memory for prior interactions and learned conventions
 
-## Context Window Management
-- When context grows large, proactively compact by summarizing prior work
-- Before compaction, flush important state to memory files
+## Context Rot Prevention
+- The orchestrator session persists across heartbeats — context grows over time
+- Always flush important decisions to memory files BEFORE context gets large
+- After compaction, re-read memory files to restore critical state
+- Never rely on conversation history for state — use memory files as source of truth
+- If context exceeds 70%, immediately compact — do not start new work
+- Use `session_status` tool to check context usage at the start of every heartbeat cycle
 - Keep active working set small: one repo, one issue, one PR at a time
+- Sub-agent results should be summarized to 2-3 sentences before storing in orchestrator context
 
 ## Session Reset Protocol
 Before daily session reset (4am), save state to memory:
