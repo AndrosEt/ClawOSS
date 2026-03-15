@@ -8,43 +8,33 @@ command -v openclaw >/dev/null 2>&1 || { echo "Error: openclaw CLI not found. In
 command -v gh >/dev/null 2>&1 || { echo "Error: gh CLI not found. Install from https://cli.github.com"; exit 1; }
 command -v node >/dev/null 2>&1 || { echo "Error: node not found"; exit 1; }
 
-# Load .env if it exists
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
-    echo "Loaded .env"
-else
-    echo "Warning: .env not found. Copy .env.example to .env and fill in values."
-    exit 1
-fi
 
 # Configure git identity for BillionClaw
-git config --global user.name "${GITHUB_USERNAME:-BillionClaw}"
-git config --global user.email "${GITHUB_EMAIL:-drsparrowhawk@proton.me}"
-echo "Git identity set to ${GITHUB_USERNAME:-BillionClaw} <${GITHUB_EMAIL:-drsparrowhawk@proton.me}>"
+git config --global user.name "BillionClaw"
+git config --global user.email "drsparrowhawk@proton.me"
+echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
 
-# Authenticate gh CLI with BillionClaw PAT
-if [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
-    echo "GitHub CLI authenticated with PAT"
+# Check gh auth — prompt interactive login if not authenticated
+if gh auth status 2>/dev/null; then
+    echo "GitHub CLI already authenticated"
+else
+    echo "GitHub CLI not authenticated. Starting interactive login..."
+    echo "Log in as BillionClaw (https://github.com/BillionClaw)"
+    gh auth login
 fi
 
-# Verify gh auth is BillionClaw
-if gh auth status 2>&1 | grep -qi "BillionClaw\|logged in"; then
-    echo "GitHub CLI authenticated as BillionClaw"
+# Verify gh auth
+if gh auth status 2>/dev/null; then
+    echo "GitHub CLI authenticated"
 else
-    echo "Warning: gh CLI authentication failed."
-    echo "Check your GITHUB_TOKEN in .env"
+    echo "Error: gh CLI authentication failed. Run 'gh auth login' manually."
     exit 1
 fi
 
 # Create workspace symlink
 WORKSPACE_DIR="$HOME/.openclaw/workspace"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 if [ -L "$WORKSPACE_DIR" ]; then
     echo "Workspace symlink already exists"
