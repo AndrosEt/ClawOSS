@@ -1,5 +1,15 @@
 # Heartbeat -- Autonomous Work Loop
 
+## CRITICAL: DO NOT JUST REPLY HEARTBEAT_OK
+You MUST execute ALL steps below. Reading this file is NOT enough.
+If the work queue has items, you MUST pick one and spawn a sub-agent.
+Only reply HEARTBEAT_OK if ALL of these are true:
+- Work queue is completely empty
+- No PRs need follow-up
+- No stalled sub-agents
+- oss-discover found zero new issues
+Otherwise: PICK WORK AND DO IT. Never be idle.
+
 Execute this checklist strictly. One task per cycle. Quality over speed.
 
 ## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
@@ -44,6 +54,13 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - After each heartbeat cycle, if context > 50%, write important state to memory and compact
 - NEVER start new work if context > 70% -- compact first
 
+### Available Tools
+- web_search: Use to research issues, find related fixes, check upstream discussions before implementing
+- web_fetch: Use to read documentation URLs, changelogs, or linked resources from issues
+- image: K2.5 has vision (MoonViT) -- use to analyze screenshots attached to issues
+- apply_patch: Use for multi-file structured patches instead of individual edits
+- loop-detection: Automatically guards against tool-call loops -- enabled globally
+
 ### Failure Handling
 - If a contribution is rejected, log reason and adapt
 - If repo's CI is broken (not our fault), skip and move to next
@@ -85,13 +102,15 @@ Merge any new items from memory/work-queue-staging.md and memory/followup-stagin
 Read memory/work-queue.md:
 - Urgent items (PR follow-ups) --> pick first urgent.
 - Normal items --> pick top item with score >= 5.
-- Queue empty --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
+- Queue empty AND queue has < 10 items --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
+- Queue has >= 10 items --> skip discovery, drain the queue first.
 Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit, skip to next item.
 
-## 4. Triage (in main session, < 2 min)
+## 4. Triage (in main session, < 3 min)
 1. oss-triage: Confirm open, unassigned, estimate complexity.
 2. If too complex or closed, remove from queue, go to step 3.
 3. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
+4. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent
 Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
@@ -108,7 +127,10 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
        3+ failures = abandon.
     6. SUBMIT: Commit, push, create PR with reproduction evidence
        (before/after test output in PR description).
-    7. Do NOT wait for remote CI. Submit and report result."
+    7. Do NOT wait for remote CI. Submit and report result.
+    Tools: You have web_search, web_fetch, image, and apply_patch available.
+    Use web_search to research error messages or find related upstream fixes.
+    Use image to analyze any screenshots attached to the issue."
   label: "<repo>#<issue>"
   runTimeoutSeconds: 600
   attachments: [repo-conventions.md, issue-details.md]
@@ -117,6 +139,7 @@ Read memory files for repo conventions and issue details BEFORE spawning.
 Pass them as attachments since sub-agents cannot access memory tools.
 The sub-agent runs in a FRESH context with zero pollution from prior tasks.
 Do NOT implement in the main session. Wait for the announce step.
+If web_search results were gathered during triage, include a summary in the attachments.
 
 ## 6. Handle Sub-Agent Result
 When the sub-agent announces back:

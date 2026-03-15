@@ -45,7 +45,7 @@
           "model": "openrouter/moonshotai/kimi-k2.5",
           "session": "main",
           "target": "none",
-          "prompt": "Read HEARTBEAT.md. Execute ALL steps 0 through 7 in order. Do NOT stop after checking PRs — you MUST check the work queue and spawn a sub-agent if work is available. Only reply HEARTBEAT_OK if the work queue is empty AND no PRs need attention.",
+          "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK. You MUST: check work queue, pick a task, spawn a sub-agent, and self-wake after completion. HEARTBEAT_OK is ONLY valid when there is literally zero work available. If work exists, DO IT.",
           "lightContext": true
         }
       }
@@ -67,6 +67,23 @@
       "attachments": {
         "enabled": true
       }
+    },
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "perplexity"
+      },
+      "fetch": {
+        "enabled": true
+      }
+    },
+    "exec": {
+      "applyPatch": {
+        "enabled": true
+      }
+    },
+    "loopDetection": {
+      "enabled": true
     }
   },
   "skills": {
