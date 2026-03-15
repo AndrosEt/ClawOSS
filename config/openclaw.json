@@ -18,11 +18,11 @@
         ]
       },
       "model": {
-        "primary": "openrouter/minimax/minimax-m2.5",
+        "primary": "openrouter/moonshotai/kimi-k2.5",
         "fallbacks": []
       },
       "subagents": {
-        "model": "openrouter/minimax/minimax-m2.5",
+        "model": "openrouter/moonshotai/kimi-k2.5",
         "maxConcurrent": 1,
         "runTimeoutSeconds": 600
       }
@@ -33,7 +33,7 @@
         "default": true,
         "name": "ClawOSS",
         "workspace": "/Users/kevinlin/clawOSS/workspace",
-        "model": "openrouter/minimax/minimax-m2.5",
+        "model": "openrouter/moonshotai/kimi-k2.5",
         "tools": {
           "profile": "coding"
         },
@@ -42,7 +42,7 @@
         },
         "heartbeat": {
           "every": "10m",
-          "model": "openrouter/minimax/minimax-m2.5",
+          "model": "openrouter/moonshotai/kimi-k2.5",
           "session": "main",
           "target": "none",
           "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",

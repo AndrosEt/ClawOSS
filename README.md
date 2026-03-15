@@ -103,6 +103,9 @@ ClawOSS/
 │   │   ├── context-manager/    # Manage context window
 │   │   ├── dashboard-reporter/ # Send metrics to dashboard
 │   │   └── safety-checker/     # Final pre-submit gate
+│   ├── hooks/                  # OpenClaw event hooks (automatic)
+│   │   ├── dashboard-reporter/ # Posts telemetry after each agent turn
+│   │   └── audit-logger/       # Logs all actions to dashboard audit trail
 │   └── memory/                 # Persistent agent memory
 ├── config/
 │   ├── openclaw.json           # Gateway configuration (M2.5 via OpenRouter)
@@ -180,6 +183,17 @@ npm run start
 | **dashboard-reporter** | Send heartbeat and event telemetry to Vercel dashboard |
 | **safety-checker** | Final gate: budget, diff size, secrets, spam limits, independent review |
 
+## Event Hooks
+
+Hooks run automatically on OpenClaw events (unlike skills, which are invoked by the agent):
+
+| Hook | Events | Description |
+|------|--------|-------------|
+| **dashboard-reporter** | `agent_end`, `after_tool_call` | Posts heartbeats, token metrics, and conversation messages to the dashboard after each agent turn |
+| **audit-logger** | `command:new`, `agent_end`, `after_tool_call` | Logs all agent actions to the dashboard audit trail for debugging |
+
+Both hooks are fire-and-forget with 10s timeouts — they never block agent work.
+
 ## Quality Gates
 
 Every PR passes 7 gates before submission (plus 2 safety gates):
@@ -210,6 +224,8 @@ Key settings in `config/openclaw.json`:
 | Heartbeat model | `openrouter/minimax/minimax-m2.5` | Same model, already very cheap ($0.27/MTok input) |
 | Heartbeat lightContext | `true` | Minimal context load; HEARTBEAT.md embeds safety rules |
 | Compaction mode | `safeguard` | Triggers compaction at context capacity |
+| Compaction memory flush | Enabled at 150K tokens | Pre-compaction state preservation |
+| Post-compaction sections | Architecture, Safety, Context Rot | Key sections preserved after compaction |
 | Tool profile | `coding` | Full filesystem + runtime access |
 | Sub-agent concurrency | 1 | Serialized execution, one implementation at a time |
 | sessions_spawn attachments | `enabled` | Required for passing context to sub-agents |
@@ -359,6 +375,9 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 015 | Dashboard reporter uses wrong fallback URL | Open |
 | 016 | Dashboard Live Feed page not documented | Open (documented now) |
 | 017 | Dashboard cost model uses wrong model ID key | Open |
+| 018 | .env contains real API keys | Open (CRITICAL) |
+| 019 | .env missing DASHBOARD_URL and CLAW_API_KEY | Open |
+| 020 | OpenClaw hooks not documented | Open (documented now) |
 
 ## Contributing
 
