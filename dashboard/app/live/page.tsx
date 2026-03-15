@@ -23,6 +23,7 @@ import {
 } from "@/lib/hooks/use-conversation";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
 import { useAgentState } from "@/lib/hooks/use-agent-state";
+import { SessionTabs } from "@/components/live/session-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -114,14 +115,25 @@ export default function LivePage() {
         errorsLastHour={errorsLastHour}
       />
 
+      {/* Session tabs - prominent horizontal tab bar */}
+      <SessionTabs
+        sessions={sessions}
+        activeSessionId={selectedSession}
+        onSelectSession={(sid) => {
+          setSelectedSession(sid);
+          // Auto-set view mode based on selection
+          if (!sid) setViewMode("combined");
+        }}
+      />
+
       {/* Controls bar */}
       <div className="flex items-center gap-1.5 px-4 py-1.5 border-b bg-muted/10 overflow-x-auto">
         {/* View mode */}
         {(
           [
-            { value: "combined", label: "All" },
-            { value: "orchestrator", label: "Orch" },
-            { value: "subagents", label: `Subs (${subagentCount})` },
+            { value: "combined", label: "Unified Timeline" },
+            { value: "orchestrator", label: "Orchestrator Only" },
+            { value: "subagents", label: `Sub-Agents (${subagentCount})` },
           ] as const
         ).map((mode) => (
           <Button
