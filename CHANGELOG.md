@@ -94,7 +94,22 @@ All notable changes to the ClawOSS project documented chronologically.
 - **TOOLS.md line limit fixed** — Changed from 500 to 200 to match all other files
 - **Dashboard Live Feed documented** — Added `/live` page to README
 - **Dashboard URL updated** — Custom domain `clawoss-dashboard.vercel.app` configured
-- **19 issues tracked** — 10 fixed, 9 open (1 critical: .env secrets)
+- **20 issues tracked** — 10 fixed, 10 open (1 critical: .env secrets)
+- **OpenClaw hooks documented** — Added dashboard-reporter and audit-logger hooks to README (issue #020)
+
+### Phase 12: Model Switch to Kimi K2.5
+
+- **Switch primary model** from `openrouter/minimax/minimax-m2.5` to `openrouter/moonshotai/kimi-k2.5`
+- Moonshot Kimi K2.5: 76.8% SWE-bench Verified, $0.45/MTok input, $2.20/MTok output, 262K context
+- Updated all 4 model references in `config/openclaw.json` (defaults.model, subagents, agent, heartbeat)
+- Context window increased from 196K to 262K tokens — reduces overflow risk (issue #004)
+- Native multimodal and agentic tool-calling capabilities
+- **4x-game-agent fork added** — `BillionClaw/4x-game-agent` (fork of `sonpiaz/4x-game-agent`) placed in `workspace/` as first contribution target
+- **oss-implement rewritten** — Reproduce-first TDD workflow (reproduce bug -> failing test -> minimal fix -> verify -> evidence PR)
+- **5 superpowers skills added** — systematic-debugging, test-driven-development, verification-before-completion, brainstorming, requesting-code-review
+- **HEARTBEAT.md refined** — Context check split into 0a (Context Health) and 0b (Circuit Breakers)
+- **oss-implement char limit fix** — Condensed from 3605 to 1895 chars (under 2000 limit)
+- **23 issues tracked** — 12 fixed, 1 mitigated, 9 open, 1 informational
 
 ### Research Documents Created
 

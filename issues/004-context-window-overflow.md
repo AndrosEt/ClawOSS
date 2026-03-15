@@ -1,12 +1,12 @@
 # 004: Context Window Overflow — Sessions Can Exceed Context Limit
 
-**Status:** Open
-**Severity:** High
-**Component:** Minimax M2.5 / OpenClaw Compaction
+**Status:** Open (reduced severity after model switch)
+**Severity:** Medium (was High with M2.5's 196K; now Medium with K2.5's 262K)
+**Component:** Kimi K2.5 / OpenClaw Compaction
 
 ## Description
 
-Minimax M2.5 has a 196K token context window (compared to Claude's 200K-1M). During complex multi-step operations (repo analysis + implementation + review + PR creation), the session context can grow past the model's context limit, reaching up to 113% of capacity in observed cases.
+The model's context window can be exceeded during complex multi-step operations (repo analysis + implementation + review + PR creation). Originally observed with Minimax M2.5 (196K context, sessions reaching 113% capacity). After switching to Kimi K2.5 (262K context), the risk is reduced but not eliminated.
 
 When this happens, the model receives truncated context, leading to incoherent responses, lost work state, and potential submission of incomplete PRs.
 
@@ -17,7 +17,7 @@ Multiple factors compound to fill the context window:
 - Repository file reads and grep results: 50-200K tokens per exploration
 - Tool call history grows ~10-20K tokens per round-trip
 - Git diff, test output, and lint output each add 5-50K tokens
-- M2.5's 196K context is smaller than Claude's 200K+ default
+- K2.5's 262K context is larger than M2.5's 196K but still finite
 
 OpenClaw's compaction mode is set to `safeguard` which triggers compaction at capacity, but by that point context may already be degraded.
 
@@ -31,7 +31,7 @@ OpenClaw's compaction mode is set to `safeguard` which triggers compaction at ca
 ## Workaround
 
 - The `context-manager` skill instructs the agent to proactively flush state to memory before hitting capacity
-- The v5 architecture delegates implementation to sub-agents which get fresh 196K contexts per task
+- The v5 architecture delegates implementation to sub-agents which get fresh 262K contexts per task
 - Keep tasks small (max 200 LOC, max 5 files) to reduce per-task context consumption
 - Use `lightContext: true` for heartbeat and cron jobs to minimize baseline context usage
 

@@ -2,7 +2,7 @@
 
 **Status:** Mitigated
 **Severity:** High (upgraded from Medium — causes 403 infinite loops)
-**Component:** OpenRouter Gateway / Minimax M2.5
+**Component:** OpenRouter Gateway / Kimi K2.5 (originally observed with Minimax M2.5)
 
 ## Description
 

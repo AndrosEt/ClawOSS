@@ -1325,16 +1325,24 @@ Changed from `drsparrowhawk@proton.me` to `billionclaw+clawoss@users.noreply.git
 
 Dashboard deployed to Vercel at `clawoss-dashboard.vercel.app`. Database uses Turso (SQLite edge DB) for persistent data storage. Live Feed page provides real-time conversation streaming from the agent.
 
+#### 7. Second Model Switch: Minimax M2.5 -> Kimi K2.5 via OpenRouter
+
+Post-build, the primary model was switched from Minimax M2.5 to Moonshot Kimi K2.5:
+- **76.8% SWE-bench Verified** (vs M2.5's 80.2% — slight regression)
+- **$0.45/MTok input, $2.20/MTok output** (vs M2.5's $0.27/$1.10 — more expensive)
+- **262K context window** (vs M2.5's 196K — significant improvement)
+- Native multimodal and agentic tool-calling capabilities
+- All config, dashboard code, hooks, and skills updated to new model ID (`openrouter/moonshotai/kimi-k2.5`)
+
 ### Issues Discovered During Implementation
 
-10 issues documented in `issues/` directory:
-- 4 open issues (content filter poisoning, session lock contention, skill path warnings, context window overflow)
-- 5 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost)
-- 1 informational (throughput expectations reframed)
+22 issues documented in `issues/` directory:
+- 12 open issues (content filter, session locks, skill paths, context overflow, start.sh, .env secrets, workspace docs)
+- 10 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost, stale model refs, dashboard cost model)
 
 ### Verification Status
 
-- Config validation (`node scripts/validate-config.mjs`): PASSED
+- Config validation (`node scripts/validate-config.mjs`): PASSED (29/29)
 - Dashboard build: PASSED (deployed to Vercel)
 - Autonomous loop: VERIFIED (heartbeat + cron + sub-agent pipeline confirmed working)
 - All 10 skills: created and validated (under 2000 char limit)

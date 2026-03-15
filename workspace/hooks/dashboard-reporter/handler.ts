@@ -1,4 +1,4 @@
-const DASHBOARD_URL = "https://clawoss-dashboard.vercel.app";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://clawoss-dashboard.vercel.app";
 const AGENT_ID = "clawoss";
 const GITHUB_USERNAME = "BillionClaw";
 // Kimi K2.5 pricing: $0.45/M input, $2.20/M output

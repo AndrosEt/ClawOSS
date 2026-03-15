@@ -15,7 +15,8 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
 │  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (Kimi K2.5)       │ │
 │  │  (10min)     │  │  (5 jobs)    │  │  via OpenRouter           │ │
-│  │  lightCtx    │  │              │  │  10 Custom Skills        │ │
+│  │  lightCtx    │  │              │  │  15 Skills (10 custom +   │ │
+│  │     5 superpowers)        │ │
 │  └──────┬───────┘  └──────┬───────┘  │  9-Gate Quality System   │ │
 │         │                 │          │  Memory Persistence      │ │
 │         └────────┬────────┘          └────────────┬─────────────┘ │
@@ -61,7 +62,7 @@ The contribution pipeline follows a 9-phase loop driven by a 10-minute heartbeat
 | 1. Discover | `oss-discover` | Search GitHub for `good-first-issue`, `help-wanted`, `bug` labels |
 | 2. Triage | `oss-triage` | Assess feasibility, complexity, success probability |
 | 3. Analyze | `repo-analyzer` | Clone repo, read CONTRIBUTING.md, detect tech stack and style |
-| 4. Implement | `oss-implement` | Create branch, write code matching repo style, add tests |
+| 4. Implement | `oss-implement` | Reproduce-first: failing test, minimal fix, verify, evidence-based PR |
 | 5. Self-Review | `oss-review` | 7-gate quality check + isolated subagent independent review |
 | 6. Safety Check | `safety-checker` | Budget, diff size, secrets, spam limits, final independent review |
 | 7. Submit | `oss-submit` | Push to fork, create PR with AI disclosure |
@@ -74,7 +75,7 @@ The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel da
 
 - **Kimi K2.5 via OpenRouter** — Frontier-tier coding at competitive pricing ($0.45/MTok input, $2.20/MTok output)
 - **Orchestrator + Sub-Agent Architecture** — Main session orchestrates, sub-agents implement in fresh contexts
-- **10 Custom Skills** — Purpose-built for the OSS contribution pipeline
+- **15 Skills** — 10 custom pipeline skills + 5 OpenClaw superpowers (debugging, TDD, brainstorming, code review, verification)
 - **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
 - **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
 - **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
@@ -102,7 +103,12 @@ ClawOSS/
 │   │   ├── repo-analyzer/      # Understand repo conventions
 │   │   ├── context-manager/    # Manage context window
 │   │   ├── dashboard-reporter/ # Send metrics to dashboard
-│   │   └── safety-checker/     # Final pre-submit gate
+│   │   ├── safety-checker/     # Final pre-submit gate
+│   │   ├── systematic-debugging/     # (superpowers) Root cause analysis
+│   │   ├── test-driven-development/  # (superpowers) Red-Green-Refactor
+│   │   ├── verification-before-completion/ # (superpowers) Final checks
+│   │   ├── brainstorming/            # (superpowers) Design exploration
+│   │   └── requesting-code-review/   # (superpowers) Code review workflow
 │   ├── hooks/                  # OpenClaw event hooks (automatic)
 │   │   ├── dashboard-reporter/ # Posts telemetry after each agent turn
 │   │   └── audit-logger/       # Logs all actions to dashboard audit trail
@@ -173,7 +179,7 @@ npm run start
 | Skill | Description |
 |-------|-------------|
 | **oss-discover** | Search GitHub for contribution opportunities, score and rank candidates |
-| **oss-implement** | Implement changes: branch, code, tests, lint — matching repo style |
+| **oss-implement** | Reproduce-first workflow: failing test, minimal fix, verify, evidence-based PR |
 | **oss-review** | 7-gate quality check with isolated subagent for independent review |
 | **oss-submit** | Submit PRs via fork with AI disclosure notice |
 | **oss-followup** | Respond to review feedback (max 3 revision rounds) |
@@ -182,6 +188,16 @@ npm run start
 | **context-manager** | Manage context window, flush state before compaction |
 | **dashboard-reporter** | Send heartbeat and event telemetry to Vercel dashboard |
 | **safety-checker** | Final gate: budget, diff size, secrets, spam limits, independent review |
+
+### Superpowers Skills (OpenClaw built-in)
+
+| Skill | Description |
+|-------|-------------|
+| **systematic-debugging** | Structured root cause analysis before proposing fixes |
+| **test-driven-development** | Red-Green-Refactor cycle for implementation |
+| **verification-before-completion** | Final checks before claiming work is done |
+| **brainstorming** | Collaborative design exploration before implementation |
+| **requesting-code-review** | Structured approach to requesting and incorporating reviews |
 
 ## Event Hooks
 
@@ -239,7 +255,7 @@ Key settings in `config/openclaw.json`:
 | `USER.md` | Operator profile and BillionClaw GitHub identity |
 | `IDENTITY.md` | Agent name, role, GitHub account |
 | `TOOLS.md` | Tool conventions and safety rules for git, gh, node |
-| `HEARTBEAT.md` | 6-step autonomous work loop: circuit breakers, PR follow-ups, queue management, triage, sub-agent spawn, reporting |
+| `HEARTBEAT.md` | 9-step autonomous work loop: context health, circuit breakers, stall recovery, PR follow-ups, queue management, triage, sub-agent spawn, result handling, reporting |
 | `BOOTSTRAP.md` | First-run initialization sequence (deleted after completion) |
 | `MEMORY.md` | Long-term memory: repo conventions, maintainer prefs, strategies |
 
@@ -372,12 +388,15 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 012 | safety-checker referenced "Sonnet subagent" | **Fixed** (model-agnostic wording) |
 | 013 | TOOLS.md had 500 LOC limit vs 200 everywhere else | **Fixed** (standardized to 200) |
 | 014 | start.sh ignores sessionTarget from cron config | Open |
-| 015 | Dashboard reporter uses wrong fallback URL | Open |
+| 015 | Dashboard reporter uses hardcoded URL fallback | **Fixed** (now uses env var) |
 | 016 | Dashboard Live Feed page not documented | Open (documented now) |
-| 017 | Dashboard cost model uses wrong model ID key | Open |
+| 017 | Dashboard cost model uses wrong model ID key | **Fixed** (updated to K2.5) |
 | 018 | .env contains real API keys | Open (CRITICAL) |
 | 019 | .env missing DASHBOARD_URL and CLAW_API_KEY | Open |
 | 020 | OpenClaw hooks not documented | Open (documented now) |
+| 021 | Model switch from M2.5 to Kimi K2.5 | **Completed** (config + dashboard + docs) |
+| 022 | 4x-game-agent repo in workspace undocumented | Open |
+| 023 | oss-implement skill exceeded 2000 char limit after rewrite | **Fixed** (3605 -> 1895 chars) |
 
 ## Contributing
 
