@@ -49,6 +49,13 @@
       "cap": 10
     }
   },
+  "tools": {
+    "sessions_spawn": {
+      "attachments": {
+        "enabled": true
+      }
+    }
+  },
   "skills": {
     "load": {
       "watch": true
