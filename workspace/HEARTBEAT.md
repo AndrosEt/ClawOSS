@@ -104,12 +104,14 @@ Run: gh pr list --author @me --state open --json number,title,reviewDecision,sta
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
 Count active sub-agents via sessions_list (exclude main session and stale sessions >30min).
-Read memory/work-queue.md and memory/wake-state.md prs_today_by_repo.
+Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr-ledger.md.
 - If active sub-agents >= 5: skip to step 6 (check results).
 - If active sub-agents < 5 AND work queue has items:
   Pick the next task (urgent first, then top item with score >= 5).
-  BEFORE spawning, check per-repo limit: if repo already has 3 PRs today, skip to next item.
-  Also ensure different repos across concurrent sub-agents when possible.
+  BEFORE spawning, apply these filters:
+  a. SKIP if issue already appears in memory/pr-ledger.md (never submit two PRs for same issue)
+  b. SKIP if repo already has 3 PRs today (per-repo daily limit)
+  c. Prefer different repos across concurrent sub-agents when possible
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
@@ -119,8 +121,15 @@ Read memory/work-queue.md and memory/wake-state.md prs_today_by_repo.
 ## 4. Triage (in main session, < 3 min)
 1. oss-triage: Confirm open, unassigned, estimate complexity.
 2. If too complex or closed, remove from queue, go to step 3.
-3. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
-4. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
+3. Quality gate — SKIP issues that fail any of these:
+   - Must have clear reproduction steps or acceptance criteria
+   - Must be well-scoped (not vague "improve X" without specifics)
+   - Must NOT be labeled "wontfix", "duplicate", "invalid"
+   - Prefer issues with maintainer engagement (comments from repo owners)
+   - Skip issues older than 6 months with no recent activity
+   - Skip issues in repos with < 10 stars (low impact)
+4. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
+5. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent
 Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
@@ -177,7 +186,10 @@ Check ALL active sub-agents via sessions_list.
 List memory/subagent-result-*.md files to find completed results.
 For each result file:
 - Read it to get the sub-agent's outcome.
-- If Status: success and PR URL present: update memory/pipeline-state.md with new PR.
+- If Status: success and PR URL present:
+  - Update memory/pipeline-state.md with new PR.
+  - Append the new PR to memory/pr-ledger.md (repo, issue, pr_url, status, date).
+  - Remove the issue from memory/work-queue.md.
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 - Delete the result file after processing.
