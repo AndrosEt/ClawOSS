@@ -51,7 +51,7 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 ### Context Management
 - Before spawning a sub-agent, check orchestrator context with session_status
 - If orchestrator context > 60%, flush state to memory and trigger compaction before spawning
-- Sub-agents take as long as they need -- no hard timeout, quality over speed
+- Sub-agents have a 600s timeout -- config: runTimeoutSeconds: 600. They complete or die, no runaway context
 - After each heartbeat cycle, if context > 50%, write important state to memory and compact
 - NEVER start new work if context > 70% -- compact first
 
