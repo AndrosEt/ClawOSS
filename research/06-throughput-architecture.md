@@ -262,7 +262,7 @@ Main Session (orchestrator):
 
 ### Configuration Requirements
 
-**Critical:** The clawoss agent needs `"default": true` in the agent list config. Without this flag, cron jobs and heartbeats targeting the main session will be rejected by OpenClaw.
+**Critical:** The clawoss agent needs `"default": true` in the agent list config. Without this flag, cron jobs and heartbeats targeting the main session will be rejected by OpenClaw. (Confirmed via DeepWiki: `resolveDefaultAgentId` checks for `default: true`; `sessionTarget: "main"` cron jobs require the agent to be explicitly the default agent.)
 
 ```json5
 "list": [
@@ -280,17 +280,101 @@ Sub-agent configuration in defaults:
 "subagents": {
   "model": "openrouter/minimax/minimax-m2.5",
   "maxConcurrent": 1,                  // Serialized: one implementation at a time
-  "runTimeoutSeconds": 600             // 10 min per task (was 120 for review-only; now full implementation)
+  "runTimeoutSeconds": 600             // 10 min per task (full implementation cycle)
 }
+```
+
+### Sub-Agent Capabilities and Constraints (from DeepWiki Research)
+
+Understanding what sub-agents can and cannot do is critical for the architecture:
+
+**What sub-agents GET:**
+- `AGENTS.md` and `TOOLS.md` from bootstrap files (but NOT SOUL.md, IDENTITY.md, USER.md, HEARTBEAT.md)
+- Full coding tool access: `exec`, `read`, `write`, `edit`, `apply_patch`
+- Web tools: `web_search`, `web_fetch`
+- Shared parent workspace -- file changes and git operations are immediately visible to the parent
+- Attachments: inline files passed via `sessions_spawn` (materialized at `.openclaw/attachments/<uuid>/`)
+- A minimal system prompt with "Subagent Context" section (role, rules, output format)
+
+**What sub-agents are DENIED (by default):**
+- `memory_search`, `memory_get` -- cannot read memory files via memory tools
+- `sessions_spawn` -- cannot spawn further sub-agents (at default `maxSpawnDepth: 1`)
+- `sessions_send`, `sessions_list`, `sessions_history` -- no session management
+- `gateway`, `agents_list`, `cron` -- no system-level tools
+
+**Implications for our architecture:**
+
+1. **Sub-agents can't read `memory/repos/*.md` via memory tools.** The orchestrator must read the memory file and pass repo conventions as an attachment to `sessions_spawn`.
+
+2. **Sub-agents share the workspace.** Git operations (branch, commit, push) by the sub-agent are real and persistent. The orchestrator can see the resulting branch/PR after the sub-agent announces.
+
+3. **Sub-agents DO get AGENTS.md.** Safety rules in AGENTS.md ARE visible to sub-agents. However, the current AGENTS.md says "NEVER spawn subagents for routine work" -- **this must be updated** to reflect the new orchestrator/sub-agent architecture.
+
+4. **Attachments are the context bridge.** The orchestrator prepares context (issue description, repo conventions, prior interaction notes) and passes it as attachments to the sub-agent. This replaces memory tool access.
+
+5. **The announce step provides structured results.** The announce message includes Status (`success`/`error`/`timeout`), the assistant's final reply as Result, and runtime/token stats. The orchestrator parses this to update pipeline state.
+
+### Updated `sessions_spawn` Call Pattern
+
+The orchestrator reads memory files and prepares attachments before spawning:
+
+```
+# Orchestrator reads memory files (it has memory tool access)
+repo_conventions = memory_get("repos/expressjs-express.md")
+issue_details = gh_api_result  # from oss-triage step
+
+sessions_spawn(
+  task: "Fix expressjs/express#8901: Fix typo in middleware docs.
+    Read the attached repo-conventions.md and issue-details.md.
+    1. Create branch clawoss/docs/middleware-typo
+    2. Implement the fix (max 200 lines, max 5 files)
+    3. Run safety checks: diff size, secrets scan, branch naming
+    4. Self-review: does the change match the issue? Is it minimal?
+    5. Run local tests (3-min timeout). 2 fix attempts max.
+    6. Commit, push, create PR with clear description.
+    7. Do NOT wait for remote CI. Report PR URL in your final message.",
+  label: "express#8901",
+  runTimeoutSeconds: 600,
+  attachments: [
+    { name: "repo-conventions.md", content: "<repo conventions>" },
+    { name: "issue-details.md", content: "<issue title, body, labels>" }
+  ]
+)
 ```
 
 ### Fallback: What If Sub-Agent Fails?
 
 If the sub-agent times out or errors:
-- The announce step reports the failure to the main session
+- The announce step reports the failure to the main session (Status: `error` or `timeout`, with runtime/token stats)
 - The main session logs the failure in `memory/wake-state.md` (increment `errors_this_hour`)
 - The issue is marked as failed in `memory/work-queue.md` with the error reason
 - The main session continues to the next task via self-wake
+
+### Self-Wake and System Event Behavior (from DeepWiki Research)
+
+System events with `--mode now` do NOT interrupt a running agent turn. They wait for the current turn to finish, then trigger the next heartbeat. This means:
+- If the orchestrator is still processing the announce result when a self-wake event fires, the event is queued safely
+- Consecutive identical system events are deduplicated (only newest 20 kept per session)
+- Self-wake is safe to call at the end of every cycle -- no race conditions with in-flight turns
+
+### AGENTS.md Update Required
+
+The current AGENTS.md contains:
+```
+## Single Session Architecture
+- NEVER spawn subagents or isolated sessions for routine work
+```
+
+This must be updated to:
+```
+## Orchestrator + Sub-Agent Architecture
+You operate as ONE agent with ONE persistent main session for orchestration.
+- Implementation tasks are delegated to sub-agents via sessions_spawn
+- Sub-agents run in fresh isolated contexts for each task
+- The main session handles: heartbeat loop, work queue, PR follow-ups, dashboard reporting
+- Sub-agents handle: coding, testing, committing, PR creation
+- maxConcurrent: 1 -- only one sub-agent at a time (serialized execution)
+```
 
 ### Additional Safeguards
 
@@ -298,6 +382,7 @@ If the sub-agent times out or errors:
 - **Memory-based state** -- all persistent state lives in memory files, not session history
 - **Sub-agent auto-archive** -- sub-agent sessions are archived after 60 minutes (default `archiveAfterMinutes`), preventing disk bloat
 - **Circuit breakers** -- still enforced at the orchestrator level (main session)
+- **Attachment cleanup** -- sub-agent sessions use default `cleanup: "keep"` but attachments are auto-cleaned per retention policy
 
 ---
 
@@ -494,158 +579,63 @@ Otherwise: HEARTBEAT_OK
 
 ## 8. Updated openclaw.json
 
-```json5
+> **v6 CORRECTION:** The config below has been validated against DeepWiki's schema docs. Key fixes from v5: `gateway.mode` must be `"local"` (not `"headless"`); `heartbeat.session` replaces `isolatedSession`; removed unvalidated keys (`identity`, `models`, `tools` at top level, `session`, `diagnostics`); `model` can be a plain string.
+
+```json
 {
-  "gateway": {
-    "port": 18789,
-    "mode": "headless"
-  },
-
-  "identity": {
-    "name": "ClawOSS",
-    "theme": "lobster",
-    "github": "BillionClaw",
-    "email": "drsparrowhawk@proton.me"
-  },
-
   "agents": {
     "defaults": {
-      "workspace": "./workspace",
-      "model": {
-        "primary": "openrouter/minimax/minimax-m2.5",
-        "fallbacks": ["openrouter/minimax/minimax-m2.5"]
-      },
-      "models": {
-        "allowlist": [
-          "openrouter/minimax/minimax-m2.5"
-        ],
-        "aliases": {
-          "default": "openrouter/minimax/minimax-m2.5"
-        }
-      },
-
-      // === THROUGHPUT-CRITICAL SETTINGS ===
-
-      "heartbeat": {
-        "every": "10m",                        // Was 60m. 10m base; self-wake makes it near-continuous.
-        "model": "openrouter/minimax/minimax-m2.5",
-        "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",
-        "lightContext": true,                  // Only inject HEARTBEAT.md. Saves tokens + reduces context pollution.
-        "isolatedSession": false,              // Main session for self-wake chain continuity.
-        "target": "none"                       // Internal work only; no external delivery.
-      },
-
-      "humanDelay": {
-        "mode": "off"                          // Was default (natural). Zero artificial delay. Saves 800-2500ms/block.
-      },
-
-      // === END THROUGHPUT SETTINGS ===
-
-      "sandbox": {
-        "enabled": true,
-        "allowPaths": [
-          "/tmp/clawoss-workdir",
-          "~/.openclaw/workspace"
-        ]
-      },
       "compaction": {
-        "mode": "auto",
-        "targetTokens": 500000,
-        "model": "openrouter/minimax/minimax-m2.5",
-        "keepRecentTokens": 50000,
-        "memoryFlush": true                    // Flush to memory before compacting.
+        "mode": "safeguard"
       },
       "subagents": {
         "model": "openrouter/minimax/minimax-m2.5",
-        "maxConcurrent": 1,                    // Serialized: one implementation sub-agent at a time.
-        "runTimeoutSeconds": 600               // 10 min per task. Full implementation cycle, not just review.
-      },
-      "imageMaxDimensionPx": 1024
+        "maxConcurrent": 1,
+        "runTimeoutSeconds": 600
+      }
     },
     "list": [
       {
         "id": "clawoss",
-        "default": true,                       // REQUIRED: routes heartbeats + cron to main session.
-        "model": {
-          "primary": "openrouter/minimax/minimax-m2.5"
-        },
+        "default": true,
+        "name": "ClawOSS",
+        "workspace": "/Users/kevinlin/clawOSS/workspace",
+        "model": "openrouter/minimax/minimax-m2.5",
         "tools": {
           "profile": "coding"
+        },
+        "humanDelay": {
+          "mode": "off"
+        },
+        "heartbeat": {
+          "every": "10m",
+          "model": "openrouter/minimax/minimax-m2.5",
+          "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",
+          "lightContext": true,
+          "session": "main",
+          "target": "none"
         }
       }
     ]
   },
-
-  "skills": {
-    "allowBundled": ["github", "agent-tools"],
-    "load": {
-      "extraDirs": [],
-      "watch": true,
-      "watchDebounceMs": 500
-    },
-    "entries": {
-      "github": {
-        "enabled": true
-      }
-    }
+  "gateway": {
+    "port": 18789,
+    "mode": "local"
   },
-
-  "tools": {
-    "profile": "coding",
-    "allow": [
-      "exec",
-      "memory_search",
-      "memory_get",
-      "memory_write",
-      "web_fetch",
-      "web_search"
-    ],
-    "deny": [
-      "imsg",
-      "wacli",
-      "discord",
-      "spotify-player",
-      "openhue",
-      "sonos",
-      "camsnap",
-      "peekaboo"
-    ]
-  },
-
   "messages": {
     "queue": {
-      "mode": "collect",                       // Batch system events; don't interrupt active work.
-      "debounceMs": 500,                       // Short debounce for fast self-wake reaction.
+      "mode": "collect",
+      "debounceMs": 500,
       "cap": 10
     }
   },
-
+  "skills": {
+    "load": {
+      "watch": true
+    }
+  },
   "logging": {
-    "level": "info",
-    "file": "/tmp/openclaw/clawoss-{date}.log",
-    "consoleLevel": "warn",
-    "consoleStyle": "compact",
-    "redactSensitive": true
-  },
-
-  "session": {
-    "scope": "agent",
-    "resetTriggers": {
-      "daily": "04:00"
-    },
-    "maintenance": {
-      "mode": "enforce",
-      "pruneAfter": "7d",
-      "maxEntries": 100
-    }
-  },
-
-  "diagnostics": {
-    "enabled": true,
-    "otel": {
-      "endpoint": "https://clawoss-dashboard.vercel.app/api/otel",
-      "logs": true
-    }
+    "level": "info"
   }
 }
 ```
@@ -654,14 +644,16 @@ Otherwise: HEARTBEAT_OK
 
 | Setting | Before | After | Why |
 |---------|--------|-------|-----|
-| `heartbeat.every` | `"60m"` | `"10m"` | 6x faster base cycle; self-wake makes continuous |
+| `heartbeat.every` | `"15m"` | `"10m"` | Faster base cycle; self-wake makes continuous |
 | `heartbeat.lightContext` | not set | `true` | Saves ~5-10K tokens/heartbeat + reduces context pollution |
+| `heartbeat.session` | not set | `"main"` | Heartbeat runs in main session for self-wake chain continuity |
 | `heartbeat.target` | not set | `"none"` | No external delivery; internal work only |
 | `humanDelay.mode` | default | `"off"` | Eliminates 800-2500ms delay per response block |
-| `agents.list[].default` | not set | `true` | **Required** for heartbeat/cron routing to main session |
-| `subagents.runTimeoutSeconds` | `300` | `600` | Full implementation cycle per sub-agent (was 120 for review-only) |
-| `subagents.maxConcurrent` | `1` | `1` (unchanged) | Serialized execution; one task at a time |
+| `agents.list[].default` | already set | `true` | Required for heartbeat/cron routing to main session |
+| `subagents.runTimeoutSeconds` | not set | `600` | Full implementation cycle per sub-agent (10 min) |
+| `subagents.maxConcurrent` | not set | `1` | Serialized execution; one task at a time |
 | `messages.queue` | not set | `collect`, 500ms debounce | Fast reaction to self-wake events |
+| `gateway.mode` | `"local"` | `"local"` (unchanged) | Only `"local"` and `"remote"` are valid (not `"headless"`) |
 
 ---
 
@@ -692,7 +684,7 @@ The cron system shifts from "do the work" to "prepare the work queue and scan fo
     "wakeMode": "now",
     "payload": {
       "kind": "systemEvent",
-      "message": "PR follow-up scan: run gh pr list --author @me --state open --json number,reviewDecision,statusCheckRollup,updatedAt. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent. (Staging file -- heartbeat merges into work-queue.md to avoid race conditions.)"
+      "text": "PR follow-up scan: run gh pr list --author @me --state open --json number,reviewDecision,statusCheckRollup,updatedAt. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent. (Staging file -- heartbeat merges into work-queue.md to avoid race conditions.)"
     }
   },
   {
@@ -1122,6 +1114,11 @@ openclaw gateway start --config ./config/openclaw.json
 | lightContext safety | lightContext off (full bootstrap) | lightContext on + **full AGENTS.md rules replicated in HEARTBEAT.md** | Critic v3: lightContext strips AGENTS.md; all safety rules must be embedded in HEARTBEAT.md or they're invisible during autonomous operation |
 | Memory file concurrency | Single work-queue.md for all writers | **Staging file pattern** (cron writes to staging, heartbeat merges) | Critic v3: race condition between isolated cron sessions and main session writing same file |
 | Throughput projections | 14-27 merged PRs/day | **5-12 merged PRs/day** (steady state) | Critic v3: pipeline lag (1-7 day review), blended success rate 30-45% not 50-65% |
+| Sub-agent context passing | Sub-agent reads memory files directly | **Attachments via sessions_spawn** | DeepWiki: sub-agents are denied `memory_search`/`memory_get` by default; orchestrator must read and pass as attachments |
+| AGENTS.md update | "NEVER spawn subagents" | "Implementation via sub-agents, orchestration in main session" | DeepWiki: sub-agents DO receive AGENTS.md; current text conflicts with new architecture |
+| System event safety | Concern about self-wake interrupting active turns | **Safe: events queue, don't interrupt** | DeepWiki: system events wait for current turn to finish; consecutive duplicates are deduplicated |
+| Config schema validation (v6) | Guessed schema from docs | **DeepWiki-validated schema** | `gateway.mode` only accepts `"local"`/`"remote"` (not `"headless"`); `heartbeat.session` replaces `isolatedSession`; `systemEvent` payload uses `"text"` not `"message"`; removed unvalidated top-level keys |
+| Config minimalism (v6) | Full aspirational config | **Minimal validated config** | Only include keys confirmed by DeepWiki Zod schema; prevents gateway startup failures from unknown keys |
 
 ---
 
