@@ -1,0 +1,37 @@
+# 003: Skill Path Resolution — Symlinked Skills Get "Outside Root" Warnings
+
+**Status:** Open
+**Severity:** Low
+**Component:** OpenClaw Skill Loader / Setup Script
+
+## Description
+
+When ClawOSS skills are symlinked from the project workspace into `~/.openclaw/skills/`, the OpenClaw skill loader may emit "outside root" warnings because the resolved symlink path falls outside the expected skill directory hierarchy.
+
+The skills still load and function correctly, but the warnings clutter gateway logs.
+
+## Root Cause
+
+The `setup.sh` script creates symlinks from `~/.openclaw/skills/<skill-name>` pointing to `/path/to/clawOSS/workspace/skills/<skill-name>/`. OpenClaw's skill loader resolves symlinks and checks that the resolved path is within the expected root. Since the resolved path is in the ClawOSS project directory (not `~/.openclaw/`), warnings are emitted.
+
+## Impact
+
+- Log noise from repeated "outside root" warnings on every skill load
+- No functional impact — skills load and execute correctly
+- May obscure real errors in gateway logs
+
+## Workaround
+
+- Ignore the warnings (they are non-fatal)
+- Alternatively, copy skills instead of symlinking (loses live-reload during development)
+- The `skills.load.watch: true` config enables hot-reload for development
+
+## Fix Applied
+
+None — cosmetic issue. Could be addressed by OpenClaw adding symlink-aware path resolution, or by changing the setup script to copy instead of symlink for production use.
+
+## Related Files
+
+- `scripts/setup.sh` (creates skill symlinks, lines 89-95)
+- `config/openclaw.json` (`skills.load.watch` setting)
+- `workspace/skills/` (all 10 skill directories)

@@ -17,7 +17,7 @@ Records all significant agent actions to the ClawOSS dashboard audit log.
 - Errors and failures
 
 ## Dashboard Integration
-- Endpoint: `POST https://dashboard-plum-one-37.vercel.app/api/ingest/logs`
+- Endpoint: `POST https://clawoss-dashboard.vercel.app/api/ingest/logs`
 - Auth: Bearer `$CLAW_API_KEY`
 
 ## Resilience

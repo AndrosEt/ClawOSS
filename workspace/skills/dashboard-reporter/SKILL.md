@@ -7,20 +7,20 @@ disable-model-invocation: false
 
 # Dashboard Reporter
 
-Send telemetry data to the ClawOSS monitoring dashboard at https://dashboard-plum-one-37.vercel.app.
+Send telemetry data to the ClawOSS monitoring dashboard at https://clawoss-dashboard.vercel.app.
 
 ## Identity
 All payloads identify as agent_id "clawoss", GitHub username "BillionClaw".
 
 ## Configuration
-- Dashboard URL: `https://dashboard-plum-one-37.vercel.app`
+- Dashboard URL: `https://clawoss-dashboard.vercel.app`
 - Auth: Bearer token via `$CLAW_API_KEY` environment variable
 
 ## Endpoints & Curl Commands
 
 ### 1. Heartbeat (every 60min or on status change)
 ```bash
-curl -s -X POST "https://dashboard-plum-one-37.vercel.app/api/ingest/heartbeat" \
+curl -s -X POST "https://clawoss-dashboard.vercel.app/api/ingest/heartbeat" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $CLAW_API_KEY" \
   -d '{
@@ -40,7 +40,7 @@ curl -s -X POST "https://dashboard-plum-one-37.vercel.app/api/ingest/heartbeat" 
 
 ### 2. Token/Cost Metrics (after each agent run or tool call batch)
 ```bash
-curl -s -X POST "https://dashboard-plum-one-37.vercel.app/api/ingest/metrics" \
+curl -s -X POST "https://clawoss-dashboard.vercel.app/api/ingest/metrics" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $CLAW_API_KEY" \
   -d '{
@@ -64,7 +64,7 @@ curl -s -X POST "https://dashboard-plum-one-37.vercel.app/api/ingest/metrics" \
 
 ### 3. Log Entries (on any significant event)
 ```bash
-curl -s -X POST "https://dashboard-plum-one-37.vercel.app/api/ingest/logs" \
+curl -s -X POST "https://clawoss-dashboard.vercel.app/api/ingest/logs" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $CLAW_API_KEY" \
   -d '{

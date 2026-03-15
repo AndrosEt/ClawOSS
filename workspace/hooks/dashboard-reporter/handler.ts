@@ -1,4 +1,4 @@
-const DASHBOARD_URL = "https://dashboard-plum-one-37.vercel.app";
+const DASHBOARD_URL = "https://clawoss-dashboard.vercel.app";
 const AGENT_ID = "clawoss";
 const GITHUB_USERNAME = "BillionClaw";
 // Minimax M2.5 pricing: $0.25/M input, $1.20/M output
@@ -11,7 +11,7 @@ let accumulatedDurationMs = 0;
 let toolCallCount = 0;
 let startTime = Date.now();
 
-async function postWithRetry(
+async function postNonBlocking(
   path: string,
   body: Record<string, unknown>,
   apiKey: string
@@ -48,8 +48,33 @@ async function postWithRetry(
     }
 
     if (attempt === 0) {
-      await new Promise((r) => setTimeout(r, 5_000));
+      await new Promise((r) => setTimeout(r, 3_000));
     }
+  }
+}
+
+// Fire-and-forget conversation message — no retry, short timeout
+async function postConversation(
+  body: Record<string, unknown>,
+  apiKey: string
+): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+
+    await fetch(`${DASHBOARD_URL}/api/ingest/conversation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+  } catch {
+    // Silently ignore — conversation logs are supplementary
   }
 }
 
@@ -61,10 +86,13 @@ const handler = async (event: {
   messages: string[];
   toolName?: string;
   params?: Record<string, unknown>;
+  result?: unknown;
   durationMs?: number;
   runId?: string;
   toolCallId?: string;
   error?: string;
+  assistantMessage?: string;
+  userMessage?: string;
 }) => {
   const apiKey = process.env.CLAW_API_KEY;
   if (!apiKey) {
@@ -72,30 +100,137 @@ const handler = async (event: {
     return;
   }
 
+  const sessionId = event.sessionKey || event.runId || "main";
+  const ts = event.timestamp?.toISOString() || new Date().toISOString();
+
   try {
-    // After a tool call: accumulate metrics
+    // After a tool call: accumulate metrics + stream tool call to conversation feed
     if (event.type === "after_tool_call" || event.action === "after_tool_call") {
       toolCallCount++;
       if (event.durationMs) {
         accumulatedDurationMs += event.durationMs;
       }
-      // Estimate tokens from params if available
+
       const params = event.params || {};
       if (typeof params === "object") {
         const paramStr = JSON.stringify(params);
-        // Rough estimate: ~4 chars per token
         accumulatedInputTokens += Math.ceil(paramStr.length / 4);
         accumulatedOutputTokens += Math.ceil(paramStr.length / 8);
       }
+
+      // Stream tool call to live conversation feed
+      const toolName = event.toolName || "unknown";
+      const paramsSummary = params
+        ? JSON.stringify(params, null, 2).slice(0, 2000)
+        : "";
+
+      const messages: Record<string, unknown>[] = [
+        {
+          sessionId,
+          role: "tool_call",
+          content: paramsSummary || `(no params)`,
+          toolName,
+          toolCallId: event.toolCallId || null,
+          durationMs: event.durationMs || null,
+          timestamp: ts,
+          metadata: { agent_id: AGENT_ID },
+        },
+      ];
+
+      // Include tool result if available
+      const resultStr = event.result
+        ? typeof event.result === "string"
+          ? event.result.slice(0, 3000)
+          : JSON.stringify(event.result, null, 2).slice(0, 3000)
+        : null;
+
+      if (resultStr) {
+        messages.push({
+          sessionId,
+          role: "tool_result",
+          content: resultStr,
+          toolName,
+          toolCallId: event.toolCallId || null,
+          durationMs: event.durationMs || null,
+          timestamp: ts,
+          metadata: { agent_id: AGENT_ID },
+        });
+      }
+
+      // If there was an error from the tool call
+      if (event.error) {
+        messages.push({
+          sessionId,
+          role: "tool_result",
+          content: `ERROR: ${event.error}`,
+          toolName,
+          toolCallId: event.toolCallId || null,
+          timestamp: ts,
+          metadata: { agent_id: AGENT_ID, error: true },
+        });
+      }
+
+      await postConversation({ messages }, apiKey);
       return;
     }
 
-    // On agent_end: flush accumulated metrics
+    // On agent_end: flush accumulated metrics + stream completion to conversation
     if (event.type === "agent_end" || event.action === "agent_end") {
       const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
 
+      // Stream the last assistant message and any conversation messages
+      const convMessages: Record<string, unknown>[] = [];
+
+      // If we have the assistant's final message, send it
+      if (event.assistantMessage) {
+        convMessages.push({
+          sessionId,
+          role: "assistant",
+          content: event.assistantMessage.slice(0, 5000),
+          timestamp: ts,
+          tokenCount: accumulatedOutputTokens || null,
+          metadata: { agent_id: AGENT_ID, event: "agent_end" },
+        });
+      }
+
+      // Send any messages array content as conversation turns
+      if (event.messages && Array.isArray(event.messages)) {
+        for (const msg of event.messages.slice(-10)) {
+          if (typeof msg === "string" && msg.trim()) {
+            convMessages.push({
+              sessionId,
+              role: "assistant",
+              content: msg.slice(0, 5000),
+              timestamp: ts,
+              metadata: { agent_id: AGENT_ID, source: "messages_array" },
+            });
+          }
+        }
+      }
+
+      // Stream a system message about the run completion
+      convMessages.push({
+        sessionId,
+        role: "system",
+        content: event.error
+          ? `Run ended with error: ${event.error} (${toolCallCount} tool calls, ${uptimeSeconds}s)`
+          : `Run completed: ${toolCallCount} tool calls, ${uptimeSeconds}s, ~${accumulatedInputTokens + accumulatedOutputTokens} tokens`,
+        timestamp: ts,
+        metadata: {
+          agent_id: AGENT_ID,
+          event: "agent_end",
+          tool_calls: toolCallCount,
+          uptime_seconds: uptimeSeconds,
+          had_error: !!event.error,
+        },
+      });
+
+      if (convMessages.length > 0) {
+        await postConversation({ messages: convMessages }, apiKey);
+      }
+
       // Send heartbeat
-      await postWithRetry(
+      await postNonBlocking(
         "/api/ingest/heartbeat",
         {
           agent_id: AGENT_ID,
@@ -104,7 +239,7 @@ const handler = async (event: {
           currentTask: null,
           uptimeSeconds,
           metadata: {
-            session_key: event.sessionKey || "unknown",
+            session_key: sessionId,
             tool_calls: toolCallCount,
             model: "minimax/MiniMax-M1-80k",
           },
@@ -118,7 +253,7 @@ const handler = async (event: {
           accumulatedInputTokens * INPUT_COST_PER_TOKEN +
           accumulatedOutputTokens * OUTPUT_COST_PER_TOKEN;
 
-        await postWithRetry(
+        await postNonBlocking(
           "/api/ingest/metrics",
           {
             metrics: [
@@ -145,7 +280,7 @@ const handler = async (event: {
       }
 
       // Log agent completion
-      await postWithRetry(
+      await postNonBlocking(
         "/api/ingest/logs",
         {
           entries: [
@@ -155,11 +290,11 @@ const handler = async (event: {
               message: event.error
                 ? `Agent run ended with error: ${event.error}`
                 : `Agent run completed (${toolCallCount} tool calls, ${uptimeSeconds}s)`,
-              timestamp: event.timestamp.toISOString(),
+              timestamp: ts,
               metadata: {
                 event: "agent_end",
                 agent_id: AGENT_ID,
-                session_key: event.sessionKey || "unknown",
+                session_key: sessionId,
                 run_id: event.runId || null,
               },
             },
