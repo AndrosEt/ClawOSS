@@ -3,10 +3,11 @@
 | priority | repo | issue | title | score | notes |
 |----------|------|-------|-------|-------|-------|
 | 1 | sonpiaz/4x-game-agent | 8 | Add iOS device interface | 6 | enhancement - LAST TRY |
-| 2 | apache/mahout | 1183 | Improve PyTorch reader coverage | 7 | similar to #1184 |
-| 3 | apache/mahout | 1180 | Add tests for streaming amplitude encoder | 7 | similar to #1184 |
-| 4 | apache/mahout | 1181 | Add tests for streaming angle encoder | 7 | similar to #1184 |
-| 5 | windoze95/servicewow-mcp | 30 | Security: Update hono dependency | 8 | security fix |
+| 2 | apache/mahout | 1183 | Improve PyTorch reader coverage | 7 | IN PROGRESS |
+| 3 | apache/mahout | 1180 | Add tests for streaming amplitude encoder | 7 | IN PROGRESS |
+| 4 | apache/mahout | 1181 | Add tests for streaming angle encoder | 7 | IN PROGRESS |
+| 5 | windoze95/servicewow-mcp | 30 | Security: Update hono dependency | 8 | IN PROGRESS |
+| 6 | windoze95/nullfeed-backend | 33 | Performance: Inefficient Table Scan | 8 | simple fix |
 
 ## Completed
 | repo | issue | pr | completed |
