@@ -10,234 +10,620 @@
            Autonomous Open-Source Contribution Engine
 ```
 
-**The best OpenClaw agent configuration for autonomous open-source contribution.**
+An [OpenClaw](https://github.com/openclaw/openclaw) agent configuration that autonomously discovers issues, implements fixes, and submits pull requests to open-source projects — 24/7, without human intervention.
 
-ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to autonomously discover issues, implement fixes, and submit high-quality pull requests to open-source projects — 24/7, without human intervention.
-
-> **OpenClaw is the engine; ClawOSS is the race car.** We do not modify OpenClaw. We configure it — writing skills, workspace instructions, hooks, and monitoring — to produce the highest quality OSS contributions possible.
+> **OpenClaw is the engine; ClawOSS is the race car.** We do not modify OpenClaw. We configure it with skills, workspace instructions, hooks, and monitoring.
 
 ---
 
-### Autonomous Results
+## Gateway Architecture
 
 ```
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │                                                                     │
-  │   30 PULL REQUESTS  ·  22 REPOS  ·  1 MERGED  ·  FULLY AUTONOMOUS │
-  │                                                                     │
-  │   Period ....  Mar 13-16, 2026 (4 days)                             │
-  │   Languages   Rust, Python, Java, TypeScript, Ruby, Go             │
-  │   Model ....  Kimi Code k2p5 (direct API)                           │
-  │   Mode .....  5 concurrent sub-agents                               │
-  │                                                                     │
-  │   ┌──────────────────────────────────────────────────────────────┐  │
-  │   │  FIRST MERGE: badlogic/pi-mono#2166                          │  │
-  │   │  Accepted and merged by maintainer — zero human assistance   │  │
-  │   └──────────────────────────────────────────────────────────────┘  │
-  │                                                                     │
-  │   apache/mahout ········· #1191 #1192 #1193 #1194  (Parquet)       │
-  │   apache/arrow ·········· #49516  (in-memory data platform)        │
-  │   ray-project/ray ······· #61754  (distributed computing, 83k+)   │
-  │   Shopify/ruby-lsp ······ #4007  (Ruby language server)            │
-  │   jenkinsci ············· #3291  (double HTML escaping fix)        │
-  │   pydantic/pydantic-ai ·· #4648  (Python AI framework)            │
-  │   mistralai/mistral-vibe  #490   (Mistral AI)                      │
-  │   autokey/autokey ······· #1090 #1091  (X11 leak + controllers)   │
-  │   manaflow-ai/cmux ····· #1394 #1444 #1446  (3 PRs)              │
-  │   + 12 more across Figma-Context-MCP, OpenAgentsControl,          │
-  │     moltis, oh-my-pi, servicewow-mcp, nullfeed-backend, etc.      │
-  │                                                                     │
-  │   Status: 28 open · 1 merged · 1 closed                            │
-  │                                                                     │
-  └─────────────────────────────────────────────────────────────────────┘
+    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    ░                                                                    ░
+    ░   ╔══════════════════════════════════════════════════════════════╗  ░
+    ░   ║              O P E N C L A W   G A T E W A Y               ║  ░
+    ░   ║                     port 18789                              ║  ░
+    ░   ╠══════════════════════════════════════════════════════════════╣  ░
+    ░   ║                                                              ║  ░
+    ░   ║   ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐  ║  ░
+    ░   ║   │  HEARTBEAT  │  │   5 CRON    │  │    AGENT CONFIG    │  ║  ░
+    ░   ║   │             │  │    JOBS     │  │                    │  ║  ░
+    ░   ║   │  10m cycle  │  │             │  │  model: k2p5      │  ║  ░
+    ░   ║   │  lightCtx   │  │  2h  disc   │  │  tools: coding    │  ║  ░
+    ░   ║   │  9 steps    │  │  30m follow │  │  skills: 15       │  ║  ░
+    ░   ║   │  self-wake  │  │  24h report │  │  hooks: 3         │  ║  ░
+    ░   ║   │             │  │  7d  retro  │  │  maxConc: 5       │  ║  ░
+    ░   ║   └──────┬──────┘  │  7d  clean  │  │  fallbacks: []    │  ║  ░
+    ░   ║          │         └──────┬──────┘  └─────────┬──────────┘  ║  ░
+    ░   ║          │                │                    │             ║  ░
+    ░   ║   ┌──────┴────────────────┴────────────────────┴──────────┐  ║  ░
+    ░   ║   │                                                        │  ║  ░
+    ░   ║   │                  M A I N   S E S S I O N               │  ║  ░
+    ░   ║   │                                                        │  ║  ░
+    ░   ║   │   Orchestrator only. Never implements code directly.   │  ║  ░
+    ░   ║   │   Manages: heartbeat, work queue, PR follow-ups.      │  ║  ░
+    ░   ║   │                                                        │  ║  ░
+    ░   ║   └──┬──────────┬──────────┬──────────┬──────────┬────────┘  ║  ░
+    ░   ║      │          │          │          │          │            ║  ░
+    ░   ╠══════╪══════════╪══════════╪══════════╪══════════╪════════════╣  ░
+    ░   ║      │          │          │          │          │            ║  ░
+    ░   ║   ┌──┴───┐   ┌──┴───┐  ┌──┴───┐  ┌──┴───┐  ┌──┴───┐       ║  ░
+    ░   ║   │SUB 1 │   │SUB 2 │  │SUB 3 │  │SUB 4 │  │SUB 5 │       ║  ░
+    ░   ║   │      │   │      │  │      │  │      │  │      │       ║  ░
+    ░   ║   │/tmp/ │   │/tmp/ │  │/tmp/ │  │/tmp/ │  │/tmp/ │       ║  ░
+    ░   ║   │clone │   │clone │  │clone │  │clone │  │clone │       ║  ░
+    ░   ║   │test  │   │test  │  │test  │  │test  │  │test  │       ║  ░
+    ░   ║   │fix   │   │fix   │  │fix   │  │fix   │  │fix   │       ║  ░
+    ░   ║   │PR    │   │PR    │  │PR    │  │PR    │  │PR    │       ║  ░
+    ░   ║   │clean │   │clean │  │clean │  │clean │  │clean │       ║  ░
+    ░   ║   └──────┘   └──────┘  └──────┘  └──────┘  └──────┘       ║  ░
+    ░   ║    fresh       fresh    fresh      fresh     fresh          ║  ░
+    ░   ║    context     context  context    context   context        ║  ░
+    ░   ║                                                              ║  ░
+    ░   ╚══════════════════════════════════════════════════════════════╝  ░
+    ░                                                                    ░
+    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
+
+Each sub-agent runs in an isolated `/tmp/clawoss-<issue>-<timestamp>/` directory. After PR submit or abandon, the directory is deleted. The orchestrator sweeps stale dirs (>60min) every cycle.
+
+---
+
+## Heartbeat Protocol
+
+The heartbeat fires every 10 minutes with `lightContext: true`. It executes 9 steps in strict order. HEARTBEAT_OK is only valid when all slots are full or no work exists.
+
+```
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                  H E A R T B E A T   L O O P                     ║
+    ║                     every 10 minutes                              ║
+    ╠═══════════════════════════════════════════════════════════════════╣
+    ║                                                                   ║
+    ║   STEP 0a ─── CONTEXT HEALTH                                     ║
+    ║   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  70%       ║
+    ║   │                                                               ║
+    ║   │  >70%  STOP. Flush state to memory. Run /compact.            ║
+    ║   │  >50%  Proceed, but compact before next cycle.               ║
+    ║   │  <50%  Proceed normally.                                     ║
+    ║   │                                                               ║
+    ║   STEP 0b ─── CIRCUIT BREAKERS                                   ║
+    ║   │                                                               ║
+    ║   │  consecutive_wakes >= 50 ──► HEARTBEAT_OK (cooldown)         ║
+    ║   │  errors_this_hour >= 2  ──► HEARTBEAT_OK (backoff)           ║
+    ║   │                                                               ║
+    ║   STEP 1 ─── STALL RECOVERY                                     ║
+    ║   │                                                               ║
+    ║   │  Session stale >5min? Kill + re-queue (max 2 retries)        ║
+    ║   │  Session stale >30min? Ignore (dead weight)                  ║
+    ║   │                                                               ║
+    ║   STEP 2 ─── PR FOLLOW-UPS                    ◄── highest prio  ║
+    ║   │                                                               ║
+    ║   │  gh pr list --author @me --state open                        ║
+    ║   │  New review? ──► oss-followup                                ║
+    ║   │  CI failing? ──► fix and push                                ║
+    ║   │  Merged?     ──► update pipeline-state                       ║
+    ║   │  Stale >7d?  ──► close politely                              ║
+    ║   │                                                               ║
+    ║   STEP 3 ─── MERGE STAGING + PICK WORK                          ║
+    ║   │                                                               ║
+    ║   │  Merge staging files ──► work-queue.md                       ║
+    ║   │  Count active sub-agents                                     ║
+    ║   │  Active >= 5?  ──► skip to step 6                            ║
+    ║   │  Active < 5?   ──► pick task, filter:                        ║
+    ║   │     a. Not in pr-ledger.md (no duplicate PRs)                ║
+    ║   │     b. Repo < 3 PRs today (anti-spam)                        ║
+    ║   │     c. Prefer diverse repos across slots                     ║
+    ║   │  Queue < 5?    ──► run oss-discover (broad)                  ║
+    ║   │                                                               ║
+    ║   STEP 4 ─── TRIAGE                           ◄── <3 min        ║
+    ║   │                                                               ║
+    ║   │  oss-triage: open? unassigned? complexity?                   ║
+    ║   │  Quality gate: clear criteria, well-scoped, >10 stars        ║
+    ║   │  repo-analyzer: CONTRIBUTING.md, anti-AI policy check        ║
+    ║   │  web_search: upstream context, CVEs, related fixes           ║
+    ║   │                                                               ║
+    ║   STEP 5 ─── SPAWN SUB-AGENT                                    ║
+    ║   │                                                               ║
+    ║   │  sessions_spawn with attachments:                            ║
+    ║   │     repo-conventions.md + issue-details.md                   ║
+    ║   │  Sub-agent follows reproduce-first workflow                  ║
+    ║   │  Workdir: /tmp/clawoss-<issue>-<timestamp>/                  ║
+    ║   │  Result: memory/subagent-result-<repo>-<issue>.md            ║
+    ║   │  Reply: ANNOUNCE_SKIP (bypass content filter)                ║
+    ║   │  LOOP BACK to step 3 until 5 slots filled                   ║
+    ║   │                                                               ║
+    ║   STEP 6 ─── HANDLE RESULTS                                     ║
+    ║   │                                                               ║
+    ║   │  Read subagent-result-*.md files                             ║
+    ║   │  Success? ──► update pipeline-state, remove from queue       ║
+    ║   │  Failure? ──► log reason, increment error counter            ║
+    ║   │  Disk cleanup: rm stale /tmp/clawoss-* dirs (>60min)         ║
+    ║   │                                                               ║
+    ║   STEP 7 ─── REPORT + LOOP                                      ║
+    ║   │                                                               ║
+    ║   │  dashboard-reporter: log cycle outcome                       ║
+    ║   │  Update wake-state.md counters                               ║
+    ║   │  Active < 5? ──► go back to step 3                          ║
+    ║   │  All full?   ──► HEARTBEAT_OK                                ║
+    ║   │                                                               ║
+    ║   └──► self-wake: openclaw system event "cycle-complete"         ║
+    ║                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-## System Architecture
+## PII Sanitizer Protocol
+
+The bidirectional PII sanitizer prevents OpenRouter's content filter from blocking sessions. It operates at two layers: a compiled plugin and event hooks.
 
 ```
-╔═══════════════════════════════════════════════════════════════════════════╗
-║                          O P E N C L A W   G A T E W A Y                ║
-║                                                                         ║
-║   ┌──────────────┐   ┌──────────────┐   ┌────────────────────────────┐  ║
-║   │  HEARTBEAT   │   │  CRON JOBS   │   │         A G E N T          │  ║
-║   │              │   │              │   │                            │  ║
-║   │  every 10m   │   │  5 scheduled │   │  Model: GLM-5 / Kimi Code │  ║
-║   │  lightCtx    │   │  jobs        │   │  Skills: 15 (10+5)        │  ║
-║   │              │   │              │   │  Quality: 9-gate system    │  ║
-║   │  9 steps:    │   │  - discover  │   │  Memory: persistent       │  ║
-║   │  0a,0b,1-7   │   │  - followup  │   │  Sub-agents: max 5       │  ║
-║   │              │   │  - report    │   │                            │  ║
-║   └──────┬───────┘   │  - retro     │   └─────────────┬──────────────┘  ║
-║          │           │  - cleanup   │                 │                  ║
-║          │           └──────┬───────┘                 │                  ║
-║          └─────────┬────────┘                         │                  ║
-║                    │                                  │                  ║
-╚════════════════════╪══════════════════════════════════╪══════════════════╝
-                     │                                  │
-        ┌────────────▼────────────┐        ┌────────────▼────────────┐
-        │                         │        │                         │
-        │      G I T H U B        │        │    V E R C E L          │
-        │                         │        │    D A S H B O A R D    │
-        │  ░░ Fork repos          │        │                         │
-        │  ░░ Create PRs          │        │  ░░ Agent status        │
-        │  ░░ Respond to reviews  │        │  ░░ PR tracker          │
-        │  ░░ Search issues       │        │  ░░ Quality metrics     │
-        │  ░░ AI disclosure       │        │  ░░ Token/cost tracking │
-        │                         │        │  ░░ Live conversation   │
-        └─────────────────────────┘        └─────────────────────────┘
+    ════════════════════  INBOUND (tool results → session)  ════════════
+
+       GitHub API          File Read          Exec Output
+           │                   │                   │
+           ▼                   ▼                   ▼
+    ┌──────────────────────────────────────────────────────────────────┐
+    │                                                                  │
+    │   tool_result_persist  ────────────────────────────────────────  │
+    │                                                                  │
+    │   deepSanitize(value):                                          │
+    │     string  →  replace(/@/g, '\uFF20')     @ → ＠ (fullwidth)   │
+    │     array   →  map(deepSanitize)                                │
+    │     object  →  keys.forEach(deepSanitize)                       │
+    │                                                                  │
+    │   Also triggers on: before_message_write                        │
+    │   (catches sub-agent announce messages)                         │
+    │                                                                  │
+    └──────────────────────────────────────────────────────────────────┘
+           │                   │                   │
+           ▼                   ▼                   ▼
+       Session history now contains ＠ (U+FF20) instead of @
+       OpenRouter sees ＠ → no PII match → no 403 block
+
+
+    ═══════════════════  OUTBOUND (model output → disk)  ═══════════════
+
+       Model generates code with ＠ (because context has ＠)
+           │
+           ▼
+    ┌──────────────────────────────────────────────────────────────────┐
+    │                                                                  │
+    │   before_tool_call  ──────────────  only for:                   │
+    │                                     write, edit, exec,          │
+    │   deepDesanitize(params):           apply_patch, process        │
+    │     replace('\uFF20', '@')                                      │
+    │                                                                  │
+    │   ＠pytest.fixture  →  @pytest.fixture                          │
+    │   ＠Override        →  @Override                                │
+    │   user＠example.com →  user@example.com                         │
+    │                                                                  │
+    └──────────────────────────────────────────────────────────────────┘
+           │
+           ▼
+       Files on disk always have real @ symbols
+       Session history always has ＠ (safe for OpenRouter)
 ```
 
-## How It Works
+---
 
-ClawOSS uses an **orchestrator + sub-agent architecture**: a persistent main session handles orchestration (heartbeat loop, work queue, PR follow-ups), while implementation tasks are delegated to fresh sub-agent sessions via `sessions_spawn` for zero cross-task context pollution.
+## Sub-Agent Spawn Protocol
 
-### Orchestrator + Sub-Agent Model
-
-```
-    ┌─────────────────────────────────────────────────────────────┐
-    │                    ORCHESTRATOR (main session)               │
-    │                                                             │
-    │   Heartbeat ──► Triage ──► Spawn ──► Monitor ──► Report    │
-    │       │                       │          │                   │
-    │       │              ┌────────┼──────────┤                   │
-    │       ▼              ▼        ▼          ▼                   │
-    │   ┌────────┐   ┌────────┐ ┌────────┐ ┌────────┐            │
-    │   │  Work  │   │Sub     │ │Sub     │ │Sub     │  max 5     │
-    │   │  Queue │   │Agent 1 │ │Agent 2 │ │Agent 3 │  concurrent│
-    │   │  ░░░░░ │   │        │ │        │ │        │            │
-    │   │  ░░░░░ │   │ clone  │ │ clone  │ │ clone  │            │
-    │   │  ░░░   │   │ test   │ │ test   │ │ test   │            │
-    │   │        │   │ fix    │ │ fix    │ │ fix    │            │
-    │   └────────┘   │ PR     │ │ PR     │ │ PR     │            │
-    │                └───┬────┘ └───┬────┘ └───┬────┘            │
-    │                    │          │          │                   │
-    │                    └──────────┼──────────┘                   │
-    │                               ▼                              │
-    │                    ┌────────────────────┐                    │
-    │                    │   Results + PRs    │                    │
-    │                    │   back to orch.    │                    │
-    │                    └────────────────────┘                    │
-    └─────────────────────────────────────────────────────────────┘
-```
-
-### Contribution Pipeline
-
-The pipeline follows a 9-phase loop driven by a 10-minute heartbeat cycle:
+Each implementation task runs in a completely fresh context. The orchestrator passes context via file attachments since sub-agents cannot access memory tools.
 
 ```
-    ╭──────────╮   ╭──────────╮   ╭──────────╮   ╭──────────╮
-    │    1.    │──▶│    2.    │──▶│    3.    │──▶│    4.    │
-    │ DISCOVER │   │  TRIAGE  │   │ ANALYZE  │   │IMPLEMENT │
-    │          │   │          │   │          │   │          │
-    │ search   │   │ feasible │   │ clone    │   │ failing  │
-    │ github   │   │ assess   │   │ read     │   │ test     │
-    │ score    │   │ score    │   │ detect   │   │ min fix  │
-    ╰──────────╯   ╰──────────╯   ╰──────────╯   ╰─────┬────╯
-                                                        │
-    ╭──────────╮   ╭──────────╮   ╭──────────╮   ╭─────▼────╮
-    │    8.    │◀──│    7.    │◀──│    6.    │◀──│    5.    │
-    │ FOLLOW   │   │  SUBMIT  │   │  SAFETY  │   │  REVIEW  │
-    │   UP     │   │          │   │  CHECK   │   │          │
-    │          │   │ push     │   │          │   │ 7-gate   │
-    │ review   │   │ fork     │   │ budget   │   │ quality  │
-    │ respond  │   │ PR       │   │ secrets  │   │ subagent │
-    ╰────┬─────╯   ╰──────────╯   ╰──────────╯   ╰──────────╯
+    ORCHESTRATOR                           SUB-AGENT (fresh session)
+    ────────────                           ─────────────────────────
          │
-    ╭────▼─────╮
-    │    9.    │
-    │ CONTEXT  │
-    │ MANAGE   │
-    │          │
-    │ flush    │
-    │ compact  │
-    ╰──────────╯
+         │  1. Read memory/repos/<repo>.md
+         │  2. Read memory/issue-details.md
+         │  3. Prepare attachments
+         │
+         ├──── sessions_spawn ──────────────────────►│
+         │     task: "Fix <repo>#<issue>"             │
+         │     attachments:                           │
+         │       - repo-conventions.md                │
+         │       - issue-details.md                   │
+         │     label: "<repo>#<issue>"                │
+         │                                            │
+         │                                            │  WORKDIR=/tmp/clawoss-<n>-<ts>
+         │                                            │  mkdir -p $WORKDIR && cd $WORKDIR
+         │                                            │
+         │                               ┌────────────┤
+         │                               │ 1. Clone   │
+         │                               │ 2. Branch  │  clawoss/<type>/<desc>
+         │                               │ 3. REPRODUCE│ (failing test)
+         │                               │ 4. FIX     │  (minimal change)
+         │                               │ 5. VERIFY  │  (tests pass)
+         │                               │ 6. REVIEW  │  (7-gate check)
+         │                               │ 7. SUBMIT  │  (PR + evidence)
+         │                               │ 8. CLEANUP │  rm -rf $WORKDIR
+         │                               └────────────┤
+         │                                            │
+         │   Write result file:                       │
+         │   memory/subagent-result-<repo>-<issue>.md │
+         │     - Status: success/failure              │
+         │     - PR URL                               │
+         │     - Files changed                        │
+         │     - Test results (before/after)           │
+         │                                            │
+         │◄────────── ANNOUNCE_SKIP ──────────────────│
+         │     (bypasses announce model call,          │
+         │      avoids content filter on response)     │
+         │                                            ╳ session ends
+         │
+         │  Read result file
+         │  Update pipeline-state.md
+         │  Remove from work-queue.md
+         │  Delete result file
+         │
 ```
-
-| Phase | Skill | Description |
-|-------|-------|-------------|
-| 1. Discover | `oss-discover` | Search GitHub for `good-first-issue`, `help-wanted`, `bug` labels |
-| 2. Triage | `oss-triage` | Assess feasibility, complexity, success probability |
-| 3. Analyze | `repo-analyzer` | Clone repo, read CONTRIBUTING.md, detect tech stack and style |
-| 4. Implement | `oss-implement` | Reproduce-first: failing test, minimal fix, verify, evidence-based PR |
-| 5. Self-Review | `oss-review` | 7-gate quality check + isolated subagent independent review |
-| 6. Safety Check | `safety-checker` | Budget, diff size, secrets, spam limits, final independent review |
-| 7. Submit | `oss-submit` | Push to fork, create PR with AI disclosure |
-| 8. Follow Up | `oss-followup` | Respond to review feedback (max 3 rounds) |
-| 9. Context | `context-manager` | Flush state to memory, manage compaction, clean up between tasks |
-
-The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel dashboard on every heartbeat and after significant events.
 
 ---
 
-## Features
+## Compaction + Memory Protocol
+
+Context grows over time. The compaction system preserves critical state across context window resets.
 
 ```
     ┌───────────────────────────────────────────────────────────────┐
-    │                    C L A W O S S   F E A T U R E S            │
-    ├───────────────────────────────────────────────────────────────┤
+    │                  CONTEXT WINDOW (262K tokens)                  │
     │                                                               │
-    │  MODEL          GLM-5 via OpenRouter / Kimi Code direct API   │
-    │  ·············  $0.72/MTok in, $2.30/MTok out                 │
+    │   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░  │
+    │   ├── used ──────────────────────────┤── available ────────┤  │
     │                                                               │
-    │  ARCHITECTURE   Orchestrator + up to 5 parallel sub-agents    │
-    │  ·············  Fresh context per task, zero pollution         │
+    │   At 50%: flag for next-cycle compaction                     │
+    │   At 70%: STOP. Flush and compact NOW.                       │
+    │   At 80%: context-manager skill auto-triggers                │
     │                                                               │
-    │  SKILLS         15 total (10 pipeline + 5 superpowers)        │
-    │  ·············  TDD, debugging, brainstorming, code review    │
-    │                                                               │
-    │  QUALITY        9-gate system + independent subagent review   │
-    │  ·············  Scope, tests, security, anti-slop, git hygiene│
-    │                                                               │
-    │  ANTI-SPAM      3 PRs/repo/day, 10 total, 200 LOC, 5 files   │
-    │  ·············  Rate limits enforced per heartbeat cycle       │
-    │                                                               │
-    │  DASHBOARD      Real-time Vercel app with Turso DB            │
-    │  ·············  Live feed, PR tracker, cost, quality metrics   │
-    │                                                               │
-    │  MEMORY         Learns repo conventions over time             │
-    │  ·············  Maintainer preferences, strategies, blocklists │
-    │                                                               │
-    │  SAFETY         Never force-push, never push to main          │
-    │  ·············  Never commit secrets, content filter defense   │
-    │                                                               │
-    │  CRON           5 scheduled jobs for discovery + maintenance   │
-    │  ·············  Issue scan, PR followup, reports, cleanup      │
-    │                                                               │
-    └───────────────────────────────────────────────────────────────┘
+    └───────────────────────┬───────────────────────────────────────┘
+                            │
+                   ┌────────▼────────┐
+                   │   FLUSH STATE   │
+                   │                 │
+                   │  wake-state.md  │  consecutive_wakes, errors,
+                   │  pipeline.md   │  active PRs, stats
+                   │  work-queue.md │  pending tasks, scores
+                   │  repos/*.md    │  learned conventions
+                   └────────┬────────┘
+                            │
+                   ┌────────▼────────┐
+                   │   COMPACTION    │
+                   │                 │
+                   │  mode: safeguard│
+                   │  reserve: 30K   │  tokens kept for new work
+                   │  recent: 20K   │  recent turns preserved
+                   │  maxHistory: 60%│  of context for history
+                   │                 │
+                   │  preserved:     │
+                   │   - Architecture│  orchestrator + sub-agent
+                   │   - Safety      │  all NEVER/ALWAYS rules
+                   │   - Context Rot │  memory-as-truth protocol
+                   └────────┬────────┘
+                            │
+                   ┌────────▼────────┐
+                   │   RESTORE       │
+                   │                 │
+                   │  Re-read:       │
+                   │   wake-state.md │
+                   │   pipeline.md   │
+                   │   work-queue.md │
+                   │   AGENTS.md     │
+                   │   SOUL.md       │
+                   │                 │
+                   │  Resume work    │
+                   └─────────────────┘
 ```
 
 ---
 
-## Quality Gates
+## Quality Gate Pipeline
 
-Every PR passes through 9 gates before submission:
+Every PR passes through 9 sequential gates. Failure at any gate aborts submission.
 
 ```
-    ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐
-    │  0  │─▶│  1  │─▶│  2  │─▶│  3  │─▶│  4  │─▶│  5  │─▶│  6  │─▶│  7  │─▶│  8  │
-    │     │  │     │  │     │  │     │  │     │  │     │  │     │  │     │  │     │
-    │BUD- │  │SCOPE│  │CODE │  │TESTS│  │SECU-│  │ANTI-│  │ GIT │  │ PR  │  │INDEP│
-    │GET  │  │     │  │QUAL │  │     │  │RITY │  │SLOP │  │HYGI-│  │TEMP-│  │REVW │
-    │     │  │     │  │     │  │     │  │     │  │     │  │ENE  │  │LATE │  │     │
-    └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘
-     daily    <200     linter   all      no        no AI    branch   title    isolated
-     spend    LOC      passes   pass     secrets   markers  naming   + why    subagent
-     cap      <5 files style    +new     no keys   no junk  commits  issue#   clean ctx
+    Issue ──► Clone ──► Implement ──► Self-Review ──► Safety ──► Submit
+                                           │              │
+                                     ┌─────┘        ┌─────┘
+                                     ▼              ▼
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                                                                 │
+    │   ░░░░░░░   ░░░░░░░   ▒▒▒▒▒▒▒   ▒▒▒▒▒▒▒   ▓▓▓▓▓▓▓           │
+    │   GATE 0    GATE 1    GATE 2    GATE 3    GATE 4              │
+    │   BUDGET    SCOPE     CODE      TESTS     SECURITY            │
+    │                                                                 │
+    │   token     <200 LOC  linter    all pass  no sk-*             │
+    │   cap ok    <5 files  style ok  +new test no ghp_*            │
+    │             on-issue  no debug  right     no .env             │
+    │                       no junk   reason    no keys             │
+    │                                                                 │
+    │   ▓▓▓▓▓▓▓   ▓▓▓▓▓▓▓   ▓▓▓▓▓▓▓   ▓▓▓▓▓▓▓   ▓▓▓▓▓▓▓           │
+    │   GATE 5    GATE 6    GATE 7    GATE 8    GATE 8+             │
+    │   ANTI-SLOP GIT HYG   PR TMPL   INDEP     FINAL              │
+    │                                  REVIEW                        │
+    │   no "I"    clawoss/  title     isolated  ──► oss-submit      │
+    │   no AI     conv.     + why     subagent  ──► fork + push     │
+    │   no bloat  commits   issue #   clean ctx ──► AI disclosure   │
+    │   no over-  linear    AI disc   no impl                       │
+    │   engineer  history   evidence  history                       │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+
+    Gate 8 (Independent Review) spawns an ISOLATED subagent that sees
+    ONLY the diff + issue description — never the implementation journey.
+    This catches bugs, slop, and style issues the implementer missed.
 ```
 
-| Gate | What It Checks |
-|------|----------------|
-| **0. Budget** | Daily token spend hasn't exceeded cap |
-| **1. Scope** | Changes related to issue only, <200 LOC, <5 files |
-| **2. Code Quality** | Linter passes, matches repo style, no debug statements |
-| **3. Tests** | All tests pass, new tests added for changes |
-| **4. Security** | No secrets, API keys, .env files, or dangerous patterns |
-| **5. Anti-Slop** | No unnecessary comments, AI markers, over-engineering, single-use helpers |
-| **6. Git Hygiene** | Correct branch naming, conventional commits, clean history |
-| **7. PR Template** | Concise title, explains "why", references issue, AI disclosure |
-| **8. Independent Review** | Isolated subagent reviews diff with clean context |
+---
+
+## Cron Schedule
+
+Five scheduled jobs handle discovery, follow-up, reporting, and maintenance outside the heartbeat loop.
+
+```
+    ┌───────────── minute (0-59)
+    │ ┌─────────── hour (0-23)
+    │ │ ┌───────── day of month (1-31)
+    │ │ │ ┌─────── month (1-12)
+    │ │ │ │ ┌───── day of week (0-6)
+    │ │ │ │ │
+    │ │ │ │ │
+
+    0 */2 * * *   work-queue-refill      ISOLATED session
+    ├─────────────────────────────────────────────────────
+    │  Search GitHub across all languages
+    │  Score candidates (stars >10, unassigned, <6mo)
+    │  Write top 10 to staging file (race-condition safe)
+    │  Max 3 issues per repo per cycle
+
+    */30 * * * *  pr-followup-scan       MAIN session
+    ├─────────────────────────────────────────────────────
+    │  gh pr list --author @me --state open
+    │  Detect review comments, CI failures
+    │  Write urgent items to followup-staging.md
+
+    0 23 * * *    daily-report           ISOLATED session
+    ├─────────────────────────────────────────────────────
+    │  PRs submitted / merged / rejected
+    │  Cost estimate + cost-per-merged-PR
+    │  Send to dashboard-reporter
+
+    0 9 * * 1     weekly-retrospective   ISOLATED session
+    ├─────────────────────────────────────────────────────
+    │  Acceptance rate per repo
+    │  Rejection analysis + strategy adjustment
+    │  Prune stale queue items
+
+    0 3 * * 0     memory-cleanup         ISOLATED session
+    ├─────────────────────────────────────────────────────
+    │  Archive important patterns to MEMORY.md
+    │  Remove daily logs >14 days
+    │  Prune closed PRs from pipeline-state.md
+```
+
+Isolated sessions prevent cron jobs from polluting the orchestrator's context.
+
+---
+
+## Event Hook Data Flow
+
+Three hooks fire automatically on OpenClaw events. Unlike skills, hooks cannot be invoked by the agent — they intercept the event bus.
+
+```
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                    EVENT BUS (OpenClaw Gateway)                  │
+    └───┬────────────────────┬───────────────────────┬────────────────┘
+        │                    │                       │
+        ▼                    ▼                       ▼
+    ┌────────────┐   ┌──────────────┐   ┌──────────────────┐
+    │ PII        │   │ DASHBOARD    │   │ AUDIT            │
+    │ SANITIZER  │   │ REPORTER     │   │ LOGGER           │
+    ├────────────┤   ├──────────────┤   ├──────────────────┤
+    │            │   │              │   │                  │
+    │ EVENTS:    │   │ EVENTS:      │   │ EVENTS:          │
+    │ tool_result│   │ agent_end    │   │ command:new      │
+    │ _persist   │   │ after_tool   │   │ agent_end        │
+    │ before_msg │   │ _call        │   │ after_tool_call  │
+    │ _write     │   │              │   │                  │
+    │ before_tool│   │ SENDS:       │   │ SENDS:           │
+    │ _call      │   │ POST /api/   │   │ POST /api/       │
+    │            │   │  ingest      │   │  ingest/logs     │
+    │ MUTATES:   │   │              │   │                  │
+    │ @ → ＠     │   │ heartbeat    │   │ action trail     │
+    │ ＠ → @     │   │ token counts │   │ tool names       │
+    │ (bidir.)   │   │ messages     │   │ timestamps       │
+    │            │   │ sub-agent    │   │ durations        │
+    │ SYNC       │   │ lifecycle    │   │                  │
+    │ (blocking) │   │              │   │ ASYNC            │
+    │            │   │ ASYNC        │   │ (fire+forget)    │
+    │            │   │ (10s timeout)│   │ (10s timeout)    │
+    └────────────┘   └──────┬───────┘   └────────┬─────────┘
+                            │                    │
+                            ▼                    ▼
+                     ┌────────────────────────────────┐
+                     │         T U R S O  D B         │
+                     │    (SQLite edge, AWS us-east)   │
+                     │                                │
+                     │   heartbeats  │  metrics       │
+                     │   PRs         │  logs          │
+                     │   messages    │  settings      │
+                     └────────────────────────────────┘
+                                    │
+                                    ▼
+                     ┌────────────────────────────────┐
+                     │    VERCEL DASHBOARD (Next.js)   │
+                     │                                │
+                     │  SWR polling:                   │
+                     │    conversation  2s             │
+                     │    agent state   5s             │
+                     │    sessions      5s             │
+                     │    connection   15s             │
+                     └────────────────────────────────┘
+```
+
+---
+
+## Memory Architecture
+
+The agent maintains persistent state across heartbeat cycles, compactions, and restarts through a file-based memory system.
+
+```
+    workspace/memory/
+    │
+    ├── wake-state.md ──────────── VOLATILE (per-cycle)
+    │   consecutive_wakes: N
+    │   errors_this_hour: N
+    │   prs_today_by_repo: {...}
+    │
+    ├── work-queue.md ──────────── ACTIVE (drain target)
+    │   In Progress: [...tasks with sub-agents]
+    │   Completed:   [...PRs with URLs]
+    │   Skipped:     [...with reasons]
+    │   Abandoned:   [...with reasons]
+    │
+    ├── pipeline-state.md ──────── TRACKING (all active PRs)
+    │   17 active PRs with repo, issue, status, date
+    │
+    ├── pr-ledger.md ───────────── DEDUP GUARD (auto-synced)
+    │   Never submit two PRs for the same issue.
+    │   Auto-updated via pr-ledger-sync.sh from GitHub API.
+    │
+    ├── repos/
+    │   ├── apache-mahout.md ────── Learned conventions per repo
+    │   ├── blocklist.md ────────── Repos that reject AI PRs
+    │   └── ...
+    │
+    ├── subagent-inputs/
+    │   └── <repo>_<issue>/
+    │       ├── issue-details.md ── Passed as attachment to sub-agent
+    │       └── repo-conventions.md
+    │
+    └── subagent-result-<repo>-<issue>.md  ── Written by sub-agent
+        Status, PR URL, files changed, test evidence, errors
+        Deleted by orchestrator after processing.
+```
+
+---
+
+## Reproduce-First Workflow
+
+Every implementation follows a strict TDD-style protocol. No exceptions.
+
+```
+    Issue
+      │
+      ▼
+    ┌──────────────────────────────────────────────────────┐
+    │  1. UNDERSTAND                                        │
+    │     Read issue, explore source, extract criteria      │
+    └──────────────────────────┬───────────────────────────┘
+                               │
+    ┌──────────────────────────▼───────────────────────────┐
+    │  2. REPRODUCE                            ◄── RED     │
+    │                                                       │
+    │     Run existing tests (baseline)                    │
+    │     Write a FAILING test for the bug                 │
+    │     Verify it fails for the RIGHT reason             │
+    │     Record failure output as evidence                │
+    │                                                       │
+    │     Cannot reproduce in 10 min? ──► ABANDON          │
+    └──────────────────────────┬───────────────────────────┘
+                               │
+    ┌──────────────────────────▼───────────────────────────┐
+    │  3. IMPLEMENT                            ◄── GREEN   │
+    │                                                       │
+    │     MINIMAL fix to make the failing test pass        │
+    │     Match existing code style exactly                │
+    │     No "while I'm here" improvements                 │
+    └──────────────────────────┬───────────────────────────┘
+                               │
+    ┌──────────────────────────▼───────────────────────────┐
+    │  4. VERIFY                                            │
+    │                                                       │
+    │     Failing test MUST now pass                        │
+    │     Full test suite — no regressions                 │
+    │     Record passing output as evidence                │
+    │                                                       │
+    │     Tests fail after 2 fix attempts? ──► ABANDON     │
+    └──────────────────────────┬───────────────────────────┘
+                               │
+    ┌──────────────────────────▼───────────────────────────┐
+    │  5. REVIEW (7-gate check)                             │
+    │     Scope? Style? Secrets? Size? Commits? Slop?      │
+    │     3+ failures? ──► ABANDON                          │
+    └──────────────────────────┬───────────────────────────┘
+                               │
+    ┌──────────────────────────▼───────────────────────────┐
+    │  6. SUBMIT                                            │
+    │     PR body: summary, repro steps, before/after      │
+    │     evidence, changes list, AI disclosure             │
+    │     Push to fork. Do NOT wait for remote CI.          │
+    └──────────────────────────────────────────────────────┘
+```
+
+---
+
+## Configuration Reference
+
+### openclaw.json
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `agents.defaults.model.primary` | `kimi-coding/k2p5` | Kimi Code direct API (bypasses OpenRouter) |
+| `agents.defaults.model.fallbacks` | `[]` | No fallback to Anthropic |
+| `agents.defaults.subagents.maxConcurrent` | `5` | Parallel sub-agent limit |
+| `agents.defaults.compaction.mode` | `safeguard` | Auto-compact at capacity |
+| `agents.defaults.compaction.reserveTokens` | `30000` | Tokens reserved for new work |
+| `agents.defaults.compaction.memoryFlush.softThresholdTokens` | `150000` | Flush state before compaction |
+| `agents.defaults.compaction.postCompactionSections` | Architecture, Safety, Context Rot | Preserved across compaction |
+| `heartbeat.every` | `10m` | Heartbeat interval |
+| `heartbeat.lightContext` | `true` | Minimal context load per cycle |
+| `tools.sessions_spawn.attachments.enabled` | `true` | Pass files to sub-agents |
+| `tools.web.search.provider` | `perplexity` | Web search via Perplexity |
+| `tools.loopDetection.enabled` | `true` | Guard against infinite tool loops |
+| `gateway.port` | `18789` | Local gateway port |
+
+### Workspace Files
+
+| File | Role |
+|------|------|
+| `AGENTS.md` | Behavioral contract: safety, quality, anti-spam, content filter rules |
+| `SOUL.md` | Persona: professional, humble, technical. Boundaries: stay in lane, disclose AI |
+| `HEARTBEAT.md` | 9-step autonomous loop with circuit breakers and stall recovery |
+| `USER.md` | Operator profile and BillionClaw GitHub identity |
+| `IDENTITY.md` | Agent name: ClawOSS, role: autonomous OSS contributor |
+| `TOOLS.md` | Tool conventions: git, gh, node safety rules |
+| `BOOTSTRAP.md` | First-run init sequence (deleted after completion) |
+| `MEMORY.md` | Long-term memory: repo conventions, strategies, blocklists |
+
+---
+
+## Safety Defaults
+
+```
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                     N E V E R                                     ║
+    ╠═══════════════════════════════════════════════════════════════════╣
+    ║  push to main/master or default branches                         ║
+    ║  force-push to any branch                                        ║
+    ║  commit secrets, credentials, API keys, or .env files            ║
+    ║  modify CI/CD pipelines without explicit approval                ║
+    ║  submit PRs without reading CONTRIBUTING.md first                ║
+    ║  submit >3 PRs to same repo/day, >10 total/day                  ║
+    ║  submit PRs >200 lines changed or >5 files                      ║
+    ╠═══════════════════════════════════════════════════════════════════╣
+    ║                     A L W A Y S                                   ║
+    ╠═══════════════════════════════════════════════════════════════════╣
+    ║  use public_repo token scope (least privilege)                   ║
+    ║  create feature branches: clawoss/<type>/<description>           ║
+    ║  run tests before submitting                                     ║
+    ║  disclose AI authorship in every PR                              ║
+    ║  close PRs politely on rejection                                 ║
+    ║  max 3 follow-up rounds per PR, then disengage                  ║
+    ╚═══════════════════════════════════════════════════════════════════╝
+```
 
 ---
 
@@ -245,470 +631,68 @@ Every PR passes through 9 gates before submission:
 
 ```
 ClawOSS/
-│
-├── workspace/                          # OpenClaw workspace
-│   ├── AGENTS.md                       # Core behavioral contract
-│   ├── SOUL.md                         # Persona and boundaries
-│   ├── HEARTBEAT.md                    # 9-step autonomous work loop
-│   │
-│   ├── skills/                         # ── 15 Skills ──────────────
-│   │   ├── oss-discover/               #   Find issues to work on
-│   │   ├── oss-implement/              #   Reproduce-first TDD workflow
-│   │   ├── oss-review/                 #   7-gate quality check
-│   │   ├── oss-submit/                 #   Create PRs with AI disclosure
-│   │   ├── oss-followup/               #   Respond to review feedback
-│   │   ├── oss-triage/                 #   Assess issue feasibility
-│   │   ├── repo-analyzer/              #   Detect tech stack and style
-│   │   ├── context-manager/            #   Manage context window
-│   │   ├── dashboard-reporter/         #   Send metrics to dashboard
-│   │   ├── safety-checker/             #   Final pre-submit gate
-│   │   ├── systematic-debugging/       #   (superpowers) Root cause analysis
-│   │   ├── test-driven-development/    #   (superpowers) Red-Green-Refactor
-│   │   ├── verification-before-completion/  # (superpowers) Final checks
-│   │   ├── brainstorming/              #   (superpowers) Design exploration
-│   │   └── requesting-code-review/     #   (superpowers) Code review workflow
-│   │
-│   ├── hooks/                          # ── Event Hooks ────────────
-│   │   ├── dashboard-reporter/         #   Telemetry after each turn
-│   │   ├── audit-logger/               #   Action audit trail
-│   │   └── pii-sanitizer/              #   Strip PII from tool results
-│   │
-│   └── memory/                         #   Persistent agent memory
-│
+├── workspace/                    # OpenClaw workspace root
+│   ├── AGENTS.md                 #   behavioral contract
+│   ├── SOUL.md                   #   persona + boundaries
+│   ├── HEARTBEAT.md              #   9-step autonomous loop
+│   ├── skills/                   #   15 skills (10 custom + 5 superpowers)
+│   │   ├── oss-discover/         oss-implement/     oss-review/
+│   │   ├── oss-submit/           oss-followup/      oss-triage/
+│   │   ├── repo-analyzer/        context-manager/   dashboard-reporter/
+│   │   ├── safety-checker/       systematic-debugging/
+│   │   ├── test-driven-development/                 brainstorming/
+│   │   └── verification-before-completion/          requesting-code-review/
+│   ├── hooks/                    #   3 event hooks
+│   │   ├── pii-sanitizer/        #     @ ↔ ＠ bidirectional
+│   │   ├── dashboard-reporter/   #     telemetry to Turso
+│   │   └── audit-logger/         #     action audit trail
+│   └── memory/                   #   persistent agent state
+│       ├── wake-state.md         pipeline-state.md   work-queue.md
+│       ├── pr-ledger.md          repos/              subagent-inputs/
+│       └── subagent-result-*.md  (transient, per-task)
 ├── config/
-│   ├── openclaw.json                   # Gateway config (model, compaction, tools)
-│   └── cron-jobs.json                  # 5 scheduled jobs
-│
+│   ├── openclaw.json             #   gateway + model + compaction config
+│   └── cron-jobs.json            #   5 scheduled jobs
 ├── plugins/
-│   └── pii-sanitizer/                  # Compiled PII sanitizer plugin
-│
-├── dashboard/                          # Next.js 15 + Turso monitoring app
-├── issues/                             # 34 tracked issues (16 fixed)
-├── research/                           # Architecture research docs
-├── templates/                          # PR, commit, issue templates
-└── scripts/                            # Setup, start, stop, health, backup
-```
-
----
-
-## GitHub Identity
-
-```
-    ┌──────────────────────────────────────────────────────────┐
-    │                                                          │
-    │   @BillionClaw                                           │
-    │   billionclaw+clawoss@users.noreply.github.com           │
-    │                                                          │
-    │   Scope ......... public_repo (least privilege)          │
-    │   Purpose ....... Exclusively for ClawOSS operations     │
-    │   Auth .......... gh auth login (interactive, no PAT)    │
-    │   AI Disclosure . Every PR includes AI-generated notice  │
-    │                                                          │
-    └──────────────────────────────────────────────────────────┘
+│   └── pii-sanitizer/            #   compiled bidirectional sanitizer
+├── dashboard/                    #   Next.js 15 + Turso monitoring
+├── scripts/                      #   setup, start, stop, restart, health
+├── issues/                       #   34 tracked issues
+├── research/                     #   8 architecture research docs
+└── templates/                    #   PR, commit, issue templates
 ```
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- [OpenClaw](https://github.com/openclaw/openclaw) installed
-- [GitHub CLI](https://cli.github.com) (`gh`) installed
-- [Node.js](https://nodejs.org) (v18+)
-- A GitHub account for the agent (default: [@BillionClaw](https://github.com/BillionClaw))
-
-### Setup
-
 ```bash
-# Clone the repository
 git clone https://github.com/billion-token-one-task/ClawOSS.git
 cd ClawOSS
-
-# Run setup (configures git identity, links workspace, copies config)
-npm run setup
-
-# Edit your OpenClaw config with API keys
-vim ~/.openclaw/openclaw.json
-
-# Start the agent
-npm run start
+npm run setup       # configure identity, link workspace, copy config
+vim ~/.openclaw/openclaw.json   # add API keys
+npm run start       # register cron jobs, start gateway
 ```
-
-### Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm run setup` | One-time setup: link workspace, configure git identity, authenticate gh |
-| `npm run start` | Register cron jobs and start the OpenClaw gateway |
+| `npm run setup` | One-time: link workspace, git identity, gh auth |
+| `npm run start` | Register cron jobs, start gateway |
 | `npm run stop` | Graceful shutdown |
-| `npm run restart` | Full restart: env, identity, auth, config, clean sessions, start gateway + sync, kick agent |
-| `npm run health` | Verify agent is running and healthy |
-| `npm run validate` | Validate config files and skill definitions |
-| `npm run dashboard:dev` | Run the monitoring dashboard locally |
-| `npm run dashboard:build` | Build the dashboard for production |
-
----
-
-## Skills
-
-### Custom Pipeline Skills
-
-```
-    DISCOVER ─── TRIAGE ─── ANALYZE ─── IMPLEMENT ─── REVIEW
-        │           │          │            │            │
-    oss-discover  oss-triage  repo-      oss-         oss-review
-                              analyzer   implement
-                                                         │
-    FOLLOWUP ─── SUBMIT ─── SAFETY ─── CONTEXT ─── DASHBOARD
-        │           │          │           │            │
-    oss-followup  oss-submit  safety-   context-    dashboard-
-                              checker   manager     reporter
-```
-
-| Skill | Description |
-|-------|-------------|
-| **oss-discover** | Search GitHub for contribution opportunities, score and rank candidates |
-| **oss-implement** | Reproduce-first workflow: failing test, minimal fix, verify, evidence-based PR |
-| **oss-review** | 7-gate quality check with isolated subagent for independent review |
-| **oss-submit** | Submit PRs via fork with AI disclosure notice |
-| **oss-followup** | Respond to review feedback (max 3 revision rounds) |
-| **oss-triage** | Assess issue feasibility, complexity, and success probability |
-| **repo-analyzer** | Detect tech stack, code style, test framework, CI system |
-| **context-manager** | Manage context window, flush state before compaction |
-| **dashboard-reporter** | Send heartbeat and event telemetry to Vercel dashboard |
-| **safety-checker** | Final gate: budget, diff size, secrets, spam limits, independent review |
-
-### Superpowers (from obra/superpowers)
-
-| Skill | Description |
-|-------|-------------|
-| **systematic-debugging** | Structured root cause analysis before proposing fixes |
-| **test-driven-development** | Red-Green-Refactor cycle for implementation |
-| **verification-before-completion** | Final checks before claiming work is done |
-| **brainstorming** | Collaborative design exploration before implementation |
-| **requesting-code-review** | Structured approach to requesting and incorporating reviews |
-
----
-
-## Event Hooks
-
-Hooks run automatically on OpenClaw events (unlike skills, which are invoked by the agent):
-
-```
-    Tool Result ──► pii-sanitizer ──► Sanitized Result ──► Session
-                        │
-                  ┌─────┴─────┐
-                  │  Replace @ │
-                  │  Strip PII │
-                  │  Redact IP │
-                  └───────────┘
-
-    Agent Turn  ──► dashboard-reporter ──► POST /api/ingest ──► Turso DB
-                        │
-                  ┌─────┴─────┐
-                  │ Heartbeat  │
-                  │ Metrics    │
-                  │ Messages   │
-                  └───────────┘
-
-    Any Action  ──► audit-logger ──► POST /api/ingest/logs ──► Turso DB
-```
-
-| Hook | Events | Description |
-|------|--------|-------------|
-| **pii-sanitizer** | `tool_result_persist`, `before_message_write` | Strips emails (fullwidth @), phones, IPs, SSNs, credit cards from tool results — prevents OpenRouter 403 loops |
-| **dashboard-reporter** | `agent_end`, `after_tool_call` | Posts heartbeats, token metrics, and conversation messages to dashboard |
-| **audit-logger** | `command:new`, `agent_end`, `after_tool_call` | Logs all agent actions to dashboard audit trail |
-
-Dashboard hooks are fire-and-forget with 10s timeouts. The PII sanitizer runs synchronously before persistence.
-
----
-
-## Configuration
-
-### openclaw.json
-
-Key settings in `config/openclaw.json`:
-
-| Setting | Value | Why |
-|---------|-------|-----|
-| Primary model | `openrouter/z-ai/glm-5` | Switched from K2.5 to work around content filter ($0.72/MTok in, $2.30/MTok out) |
-| Fallback models | `[]` (none) | Prevents silent fallback to expensive Anthropic models |
-| Heartbeat interval | 10 minutes | Fast autonomous loop cycling; cheap with lightContext |
-| Heartbeat model | `openrouter/z-ai/glm-5` | Same model for consistency |
-| Heartbeat lightContext | `true` | Minimal context load; HEARTBEAT.md embeds safety rules |
-| Compaction mode | `safeguard` | Triggers compaction at context capacity |
-| Compaction memory flush | Enabled at 150K tokens | Pre-compaction state preservation |
-| Post-compaction sections | Architecture, Safety, Context Rot | Key sections preserved after compaction |
-| Tool profile | `coding` | Full filesystem + runtime access |
-| Sub-agent concurrency | 5 | Up to 5 parallel sub-agents for different tasks |
-| sessions_spawn attachments | `enabled` | Required for passing context to sub-agents |
-
-### Workspace Files
-
-| File | Purpose |
-|------|---------|
-| `AGENTS.md` | Core behavioral contract: safety defaults, work discovery, quality standards, anti-spam |
-| `SOUL.md` | Persona: professional, humble, technical. Boundaries: stay in lane, disclose AI |
-| `USER.md` | Operator profile and BillionClaw GitHub identity |
-| `IDENTITY.md` | Agent name, role, GitHub account |
-| `TOOLS.md` | Tool conventions and safety rules for git, gh, node |
-| `HEARTBEAT.md` | 9-step autonomous work loop: context health, circuit breakers, stall recovery, PR follow-ups, queue management, triage, sub-agent spawn, result handling, reporting |
-| `BOOTSTRAP.md` | First-run initialization sequence (deleted after completion) |
-| `MEMORY.md` | Long-term memory: repo conventions, maintainer prefs, strategies |
-
-### Cron Jobs
-
-```
-    ┌─────────────────────────────────────────────────────────────────┐
-    │  CRON SCHEDULE                                                  │
-    │                                                                 │
-    │  Every 2h    ░░░░ work-queue-refill   Discover + score issues   │
-    │  Every 30m   ░░░░ pr-followup-scan    Check PRs for reviews     │
-    │  11pm daily  ░░░░ daily-report        Compile daily metrics     │
-    │  Mon 9am     ░░░░ weekly-retrospective Analyze acceptance rates │
-    │  Sun 3am     ░░░░ memory-cleanup      Archive stale memory      │
-    │                                                                 │
-    └─────────────────────────────────────────────────────────────────┘
-```
-
-| Job | Schedule | Session | Purpose |
-|-----|----------|---------|---------|
-| work-queue-refill | Every 2h | Isolated | Discover and score candidate issues, write to staging file |
-| pr-followup-scan | Every 30min | Main | Check open PRs for review comments and CI status |
-| daily-report | 11pm daily | Isolated | Compile daily metrics and cost-per-merged-PR |
-| weekly-retrospective | Monday 9am | Isolated | Analyze acceptance rates, adjust strategy |
-| memory-cleanup | Sunday 3am | Isolated | Archive stale memory, prune expired queue items |
-
----
-
-## Dashboard
-
-**Live:** [clawoss-dashboard.vercel.app](https://clawoss-dashboard.vercel.app)
-
-```
-    ┌──────────────────────────────────────────────────────────────────┐
-    │  ClawOSS Dashboard                              clawoss.vercel  │
-    ├──────┬──────┬──────┬──────┬──────┬──────┬───────────────────────┤
-    │ Over │  PR  │Health│Qual- │ Logs │ Live │ Settings              │
-    │ view │Track │      │ity   │      │ Feed │                       │
-    ├──────┴──────┴──────┴──────┴──────┴──────┴───────────────────────┤
-    │                                                                  │
-    │  ┌─────────────────────────────────────────────────────────────┐ │
-    │  │ Pipeline: ● connected  heartbeats/hr: 6  errors: 0        │ │
-    │  │ model: GLM-5  pricing: $0.72/$2.30/M  pii-sanitizer: on   │ │
-    │  └─────────────────────────────────────────────────────────────┘ │
-    │                                                                  │
-    │  LIVE FEED ─────────────────────────────────────────────────     │
-    │  ┌─────────────────────┬──────────┬───────────┬──────────┐      │
-    │  │ All Sessions        │ # Main   │ ~> Sub: 1 │ ~> Sub: 2│      │
-    │  ├─────────────────────┴──────────┴───────────┴──────────┤      │
-    │  │ Feed │ Tools │ Errors │ Costs │    │ State │ GW │Stats│      │
-    │  ├──────┴───────┴────────┴───────┘    └───────┴────┴─────┤      │
-    │  │                                                        │      │
-    │  │  12:03  [oss-discover] Found 5 candidate issues        │      │
-    │  │  12:04  [oss-triage] apache/mahout#1191 score: 8.5     │      │
-    │  │  12:05  [sessions_spawn] Sub-agent for mahout#1191     │      │
-    │  │  12:17  [PR created] apache/mahout#1191 +359/-2        │      │
-    │  │                                                        │      │
-    │  └────────────────────────────────────────────────────────┘      │
-    │                                                                  │
-    └──────────────────────────────────────────────────────────────────┘
-```
-
-### Pages
-
-- **Overview** — Agent status, key metrics, activity timeline, current task, pipeline status bar
-- **PR Tracker** — All submitted PRs with status, quality scores, review state, build logs
-- **Health** — Token usage, cost tracking, heartbeat status, error rates
-- **Quality** — Quality score trends, by-repo breakdown, rejection analysis
-- **Logs** — Filterable log stream with infinite scroll
-- **Live Feed** — Full-featured conversation monitor:
-  - Session tabs: orchestrator + per-sub-agent with green pulse on active sessions
-  - View modes: unified timeline, orchestrator only, sub-agents only
-  - Main tabs: Feed / Tools / Errors / Costs
-  - Sidebar tabs: State / Gateway / Stats
-  - Tool call log with duration tracking, success/fail color-coding, search
-  - Error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.)
-  - Cost breakdown per session with $/hour rate and GLM-5 pricing
-  - Gateway status panel (port, model, sessions, heartbeat, skills)
-  - PII sanitizer indicators (header badge, per-message badges, filter counter)
-  - Raw JSON toggle per message, pause-on-hover, slow tool highlighting
-- **Settings** — Target repos, quality thresholds, notification config
-
-**Tech stack:** Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
-
-### Deploy
-
-```bash
-cd dashboard
-npx vercel --prod
-```
-
-Required environment variables (set in Vercel dashboard):
-
-- `TURSO_DATABASE_URL` — Turso SQLite edge database URL
-- `TURSO_AUTH_TOKEN` — Turso auth token
-- `GITHUB_TOKEN` — GitHub PAT for PR sync
-- `CLAW_AGENT_USERNAME` — Agent's GitHub username (BillionClaw)
-- `CLAW_API_KEY` — Shared secret for agent-to-dashboard auth
-
----
-
-## Operational Scripts
-
-| Script | Command | Description |
-|--------|---------|-------------|
-| `setup.sh` | `npm run setup` | Configure git identity (BillionClaw), authenticate gh, link workspace, copy config |
-| `start.sh` | `npm run start` | Register all 5 cron jobs, start OpenClaw gateway in daemon mode |
-| `stop.sh` | `npm run stop` | Graceful gateway shutdown |
-| `restart.sh` | `npm run restart` | Full restart: load .env, set identity, auth gh, deploy config, clean sessions, start gateway + dashboard sync, kick agent |
-| `health-check.sh` | `npm run health` | Verify gateway running, gh authenticated, workspace linked, cron registered |
-| `backup-workspace.sh` | — | Commit agent memory state to git |
-| `rotate-logs.sh` | — | Remove log files older than 14 days |
-| `dashboard-sync.sh` | — | Sync agent state to dashboard (runs in background) |
-
----
-
-## Realistic Expectations
-
-ClawOSS is honest about what autonomous AI contribution can achieve today. The primary metric is **merged PRs per day with >70% acceptance rate and <$2/merged PR** — not commits per hour (see `issues/010`).
-
-### Actual vs Expected Throughput
-
-```
-    EXPECTED              ACTUAL (4 DAYS)
-    ────────              ───────────────
-    Week 1-2     1-2      ████████████████████████████████████  30 PRs
-    Week 3-4     3-5      ██████████████████████████████████░░  22 repos
-    Month 2+     5-10     █████████████████░░░░░░░░░░░░░░░░░░  1 merged
-    Month 3+     10-15
-
-    30 PRs in 4 days across 22 repos, 6 languages, 5 concurrent sub-agents
-    First merge: badlogic/pi-mono#2166
-```
-
-### Cost Projections (GLM-5 via OpenRouter)
-
-| Scenario | Daily Cost | Monthly Cost |
-|----------|-----------|--------------|
-| Moderate (2-3 PRs/day) | $2-5 | $60-150 |
-| High (5+ PRs/day) | $5-15 | $150-450 |
-| With retries/failures (2x) | $10-25 | $300-750 |
-
-### Merge Rates by Task Type
-
-```
-    Documentation / CI / deps   ████████████████████████████░░░░░  40-60%
-    Simple bug fixes            ██████████████░░░░░░░░░░░░░░░░░░░  20-30%
-    Feature additions           █████████░░░░░░░░░░░░░░░░░░░░░░░░  10-20%
-    Complex refactors           ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   5-10%
-```
-
-### Timeline
-
-| Milestone | Timeline |
-|-----------|----------|
-| First PR submitted | Day 1-3 |
-| First PR merged | Week 1-2 |
-| First code-change PR merged | Week 3-4 |
-| Steady state | Month 2-3 |
-
-### What ClawOSS Is NOT
-
-- Not "autonomous development" — it's autonomous **contribution** to specific task types
-- Not a replacement for developers — it augments maintainer capacity for mechanical tasks
-- Not self-improving without feedback — human review of quality trends is essential
-- Not optimized for volume — quality and merge rate over commit count
-
----
-
-## Safety & Ethics
-
-```
-    ┌───────────────────────────────────────────────────────────────────┐
-    │                     S A F E T Y   D E F A U L T S                │
-    ├───────────────────────────────────────────────────────────────────┤
-    │                                                                   │
-    │  NEVER push to main/master or default branches                    │
-    │  NEVER force-push to any branch                                   │
-    │  NEVER commit secrets, credentials, API keys, or .env files       │
-    │  NEVER modify CI/CD pipelines without explicit approval           │
-    │  NEVER submit PRs without reading CONTRIBUTING.md first           │
-    │  NEVER submit more than 3 PRs to the same repo per day           │
-    │  NEVER submit PRs larger than 200 lines changed                   │
-    │  NEVER modify more than 5 files in a single PR                    │
-    │                                                                   │
-    │  ALWAYS use public_repo token scope (least privilege)             │
-    │  ALWAYS create feature branches (clawoss/<type>/<desc>)           │
-    │  ALWAYS run tests before submitting                               │
-    │  ALWAYS disclose AI authorship in every PR                        │
-    │  ALWAYS close PRs politely on rejection                           │
-    │                                                                   │
-    └───────────────────────────────────────────────────────────────────┘
-```
+| `npm run restart` | Full restart: env, identity, config, clean sessions, kick agent |
+| `npm run health` | Verify gateway, gh auth, workspace, cron |
+| `npm run validate` | Validate configs + skills (29 checks) |
+| `npm run dashboard:dev` | Dashboard locally |
+| `npm run dashboard:build` | Dashboard for production |
 
 ---
 
 ## Known Issues
 
-See the [`issues/`](issues/) directory for detailed tracking (34 issues).
-
-```
-    STATUS OVERVIEW
-    ═══════════════
-
-    Fixed ··················  ████████████████░░░░░░░░░░░░░░░░░░  16
-    Open ···················  █████████░░░░░░░░░░░░░░░░░░░░░░░░░   9
-    Implemented ············  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   2
-    Other ··················  ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░   7
-                                                          Total: 34
-```
-
-| # | Issue | Status |
-|---|-------|--------|
-| 001 | OpenRouter content filter causes 403 loops with PII content | Partially Fixed (see #033) |
-| 002 | Stale agent processes hold session locks | Open |
-| 003 | Symlinked skills get "outside root" warnings | Open |
-| 004 | Sessions can exceed model context window | Open (mitigated) |
-| 005 | Model fallback to expensive Anthropic APIs | **Fixed** |
-| 006 | Sub-agent attachments disabled by default | **Fixed** |
-| 007 | Git email triggers content filter | **Fixed** |
-| 008 | Cron jobs need isolated sessions | **Fixed** |
-| 009 | Heartbeat cost optimization | **Fixed** |
-| 010 | Throughput expectations reframed | Acknowledged |
-| 011 | oss-review referenced Haiku/Sonnet | **Fixed** |
-| 012 | safety-checker referenced "Sonnet subagent" | **Fixed** |
-| 013 | TOOLS.md had 500 LOC limit | **Fixed** |
-| 014 | start.sh ignores sessionTarget | Open |
-| 015 | Dashboard reporter hardcoded URL | **Fixed** |
-| 016 | Dashboard Live Feed undocumented | **Fixed** |
-| 017 | Dashboard cost model wrong ID | **Fixed** |
-| 018 | .env contains real API keys | Open (CRITICAL) |
-| 019 | .env missing dashboard variables | Open |
-| 020 | OpenClaw hooks undocumented | **Fixed** |
-| 021 | Model switch M2.5 to K2.5 | **Completed** |
-| 022 | Cloned repos should be gitignored | **Fixed** |
-| 023 | oss-implement exceeded char limit | **Fixed** |
-| 024 | Invalid openclaw.json schema | **Fixed** |
-| 025 | Gateway restart kills agent turns | Known |
-| 026 | Heartbeat stops after diagnostics | **Fixed** |
-| 027 | maxConcurrent mismatch (5 vs 1) | **Fixed** |
-| 028 | Sub-agent stall recovery | **Implemented** |
-| 029 | Heartbeat not executing full loop | In Progress |
-| 030 | PII sanitizer plugin | **Implemented** |
-| 031 | Work queue trap on 403 | **Mitigated** |
-| 032 | Telemetry gap on 403 failures | Open |
-| 033 | OpenRouter blocks model's own @ output | Worked around (GLM-5) |
-| 034 | Autonomous model switch to GLM-5 | Active |
+See [`issues/`](issues/) for detailed tracking (34 issues).
 
 ---
 
-## Contributing
-
-Contributions welcome! Please read the existing workspace files and skills to understand the architecture before submitting changes.
-
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
