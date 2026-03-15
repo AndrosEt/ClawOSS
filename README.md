@@ -1,62 +1,143 @@
 # ClawOSS
 
+```
+     ██████╗██╗      █████╗ ██╗    ██╗ ██████╗ ███████╗███████╗
+    ██╔════╝██║     ██╔══██╗██║    ██║██╔═══██╗██╔════╝██╔════╝
+    ██║     ██║     ███████║██║ █╗ ██║██║   ██║███████╗███████╗
+    ██║     ██║     ██╔══██║██║███╗██║██║   ██║╚════██║╚════██║
+    ╚██████╗███████╗██║  ██║╚███╔███╔╝╚██████╔╝███████║███████║
+     ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝ ╚══════╝╚══════╝
+           Autonomous Open-Source Contribution Engine
+```
+
 **The best OpenClaw agent configuration for autonomous open-source contribution.**
 
 ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to autonomously discover issues, implement fixes, and submit high-quality pull requests to open-source projects — 24/7, without human intervention.
 
 > **OpenClaw is the engine; ClawOSS is the race car.** We do not modify OpenClaw. We configure it — writing skills, workspace instructions, hooks, and monitoring — to produce the highest quality OSS contributions possible.
 
-**First autonomous PR:** [apache/mahout#1191](https://github.com/apache/mahout/pull/1191) — 11 new tests for Parquet readers, +359 lines, all passing, zero regressions. Submitted by [@BillionClaw](https://github.com/BillionClaw) without human intervention.
+---
+
+### First Autonomous PR
+
+```
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                                                                     │
+  │   apache/mahout#1191  ·  [QDP] Add direct coverage for Parquet     │
+  │                                                                     │
+  │   Author .... @BillionClaw (autonomous)                             │
+  │   Files ..... 5 changed                    ████████████████░  +359  │
+  │   Tests ..... 11 new, ALL PASSING                           -2      │
+  │   Time ...... ~12 minutes autonomous coding                         │
+  │   Model ..... Kimi Code k2p5 (direct API)                           │
+  │   Status .... Submitted, awaiting review                            │
+  │                                                                     │
+  │   https://github.com/apache/mahout/pull/1191                        │
+  │                                                                     │
+  └─────────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## System Architecture
 
 ```
-┌───────────────────────────────────────────────────────────────────┐
-│                        OpenClaw Gateway                           │
-│                                                                   │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│  │  Heartbeat   │  │  Cron Jobs   │  │  Agent (GLM-5)           │ │
-│  │  (10min)     │  │  (5 jobs)    │  │  via OpenRouter           │ │
-│  │  lightCtx    │  │              │  │  15 Skills (10 custom +   │ │
-│  │     5 superpowers)        │ │
-│  └──────┬───────┘  └──────┬───────┘  │  9-Gate Quality System   │ │
-│         │                 │          │  Memory Persistence      │ │
-│         └────────┬────────┘          └────────────┬─────────────┘ │
-│                  │                                │               │
-└──────────────────┼────────────────────────────────┼───────────────┘
-                   │                                │
-          ┌────────▼────────┐              ┌────────▼────────┐
-          │    GitHub API    │              │  Vercel Dashboard │
-          │                  │              │  (Turso DB)       │
-          │  - Fork repos    │              │  - Agent status   │
-          │  - Create PRs    │              │  - PR tracker     │
-          │  - Respond to    │              │  - Quality metrics│
-          │    reviews       │              │  - Token/cost     │
-          │  - Search issues │              │  - Activity logs  │
-          └──────────────────┘              └───────────────────┘
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                          O P E N C L A W   G A T E W A Y                ║
+║                                                                         ║
+║   ┌──────────────┐   ┌──────────────┐   ┌────────────────────────────┐  ║
+║   │  HEARTBEAT   │   │  CRON JOBS   │   │         A G E N T          │  ║
+║   │              │   │              │   │                            │  ║
+║   │  every 10m   │   │  5 scheduled │   │  Model: GLM-5 / Kimi Code │  ║
+║   │  lightCtx    │   │  jobs        │   │  Skills: 15 (10+5)        │  ║
+║   │              │   │              │   │  Quality: 9-gate system    │  ║
+║   │  9 steps:    │   │  - discover  │   │  Memory: persistent       │  ║
+║   │  0a,0b,1-7   │   │  - followup  │   │  Sub-agents: max 5       │  ║
+║   │              │   │  - report    │   │                            │  ║
+║   └──────┬───────┘   │  - retro     │   └─────────────┬──────────────┘  ║
+║          │           │  - cleanup   │                 │                  ║
+║          │           └──────┬───────┘                 │                  ║
+║          └─────────┬────────┘                         │                  ║
+║                    │                                  │                  ║
+╚════════════════════╪══════════════════════════════════╪══════════════════╝
+                     │                                  │
+        ┌────────────▼────────────┐        ┌────────────▼────────────┐
+        │                         │        │                         │
+        │      G I T H U B        │        │    V E R C E L          │
+        │                         │        │    D A S H B O A R D    │
+        │  ░░ Fork repos          │        │                         │
+        │  ░░ Create PRs          │        │  ░░ Agent status        │
+        │  ░░ Respond to reviews  │        │  ░░ PR tracker          │
+        │  ░░ Search issues       │        │  ░░ Quality metrics     │
+        │  ░░ AI disclosure       │        │  ░░ Token/cost tracking │
+        │                         │        │  ░░ Live conversation   │
+        └─────────────────────────┘        └─────────────────────────┘
 ```
 
 ## How It Works
 
-ClawOSS uses a **v5 orchestrator + sub-agent architecture**: a persistent main session handles orchestration (heartbeat loop, work queue, PR follow-ups), while implementation tasks are delegated to fresh sub-agent sessions via `sessions_spawn` for zero cross-task context pollution.
+ClawOSS uses an **orchestrator + sub-agent architecture**: a persistent main session handles orchestration (heartbeat loop, work queue, PR follow-ups), while implementation tasks are delegated to fresh sub-agent sessions via `sessions_spawn` for zero cross-task context pollution.
 
-The contribution pipeline follows a 9-phase loop driven by a 10-minute heartbeat cycle:
+### Orchestrator + Sub-Agent Model
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ 1.       │──▶│ 2.       │──▶│ 3. Repo  │──▶│ 4.       │
-│ Discover │   │ Triage   │   │ Analyze  │   │Implement │
-└──────────┘   └──────────┘   └──────────┘   └────┬─────┘
-                                                   │
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌────▼─────┐
-│ 8.       │◀──│ 7.       │◀──│ 6. Safety│◀──│ 5. Self  │
-│ Follow-up│   │ Submit   │   │ Check    │   │ Review   │
-└──────────┘   └──────────┘   └──────────┘   └──────────┘
-     │
-┌────▼─────┐
-│ 9.Context│
-│ Manage   │
-└──────────┘
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    ORCHESTRATOR (main session)               │
+    │                                                             │
+    │   Heartbeat ──► Triage ──► Spawn ──► Monitor ──► Report    │
+    │       │                       │          │                   │
+    │       │              ┌────────┼──────────┤                   │
+    │       ▼              ▼        ▼          ▼                   │
+    │   ┌────────┐   ┌────────┐ ┌────────┐ ┌────────┐            │
+    │   │  Work  │   │Sub     │ │Sub     │ │Sub     │  max 5     │
+    │   │  Queue │   │Agent 1 │ │Agent 2 │ │Agent 3 │  concurrent│
+    │   │  ░░░░░ │   │        │ │        │ │        │            │
+    │   │  ░░░░░ │   │ clone  │ │ clone  │ │ clone  │            │
+    │   │  ░░░   │   │ test   │ │ test   │ │ test   │            │
+    │   │        │   │ fix    │ │ fix    │ │ fix    │            │
+    │   └────────┘   │ PR     │ │ PR     │ │ PR     │            │
+    │                └───┬────┘ └───┬────┘ └───┬────┘            │
+    │                    │          │          │                   │
+    │                    └──────────┼──────────┘                   │
+    │                               ▼                              │
+    │                    ┌────────────────────┐                    │
+    │                    │   Results + PRs    │                    │
+    │                    │   back to orch.    │                    │
+    │                    └────────────────────┘                    │
+    └─────────────────────────────────────────────────────────────┘
+```
+
+### Contribution Pipeline
+
+The pipeline follows a 9-phase loop driven by a 10-minute heartbeat cycle:
+
+```
+    ╭──────────╮   ╭──────────╮   ╭──────────╮   ╭──────────╮
+    │    1.    │──▶│    2.    │──▶│    3.    │──▶│    4.    │
+    │ DISCOVER │   │  TRIAGE  │   │ ANALYZE  │   │IMPLEMENT │
+    │          │   │          │   │          │   │          │
+    │ search   │   │ feasible │   │ clone    │   │ failing  │
+    │ github   │   │ assess   │   │ read     │   │ test     │
+    │ score    │   │ score    │   │ detect   │   │ min fix  │
+    ╰──────────╯   ╰──────────╯   ╰──────────╯   ╰─────┬────╯
+                                                        │
+    ╭──────────╮   ╭──────────╮   ╭──────────╮   ╭─────▼────╮
+    │    8.    │◀──│    7.    │◀──│    6.    │◀──│    5.    │
+    │ FOLLOW   │   │  SUBMIT  │   │  SAFETY  │   │  REVIEW  │
+    │   UP     │   │          │   │  CHECK   │   │          │
+    │          │   │ push     │   │          │   │ 7-gate   │
+    │ review   │   │ fork     │   │ budget   │   │ quality  │
+    │ respond  │   │ PR       │   │ secrets  │   │ subagent │
+    ╰────┬─────╯   ╰──────────╯   ╰──────────╯   ╰──────────╯
+         │
+    ╭────▼─────╮
+    │    9.    │
+    │ CONTEXT  │
+    │ MANAGE   │
+    │          │
+    │ flush    │
+    │ compact  │
+    ╰──────────╯
 ```
 
 | Phase | Skill | Description |
@@ -73,73 +154,145 @@ The contribution pipeline follows a 9-phase loop driven by a 10-minute heartbeat
 
 The `dashboard-reporter` skill runs throughout, sending metrics to the Vercel dashboard on every heartbeat and after significant events.
 
+---
+
 ## Features
 
-- **Z-AI GLM-5 via OpenRouter** — Current model ($0.72/MTok input, $2.30/MTok output). Switched autonomously from Kimi K2.5 to work around content filter (#034)
-- **Orchestrator + Sub-Agent Architecture** — Main session orchestrates, sub-agents implement in fresh contexts
-- **15 Skills** — 10 custom pipeline skills + 5 OpenClaw superpowers (debugging, TDD, brainstorming, code review, verification)
-- **7-Gate Quality System** — Scope, code quality, tests, security, anti-slop, git hygiene, PR template
-- **Independent Review** — Isolated subagent reviews diffs with clean context (no implementation bias)
-- **Anti-Spam Protections** — 3 PRs/repo/day, 10 total/day, 200 LOC max, 5 files max
-- **Vercel Dashboard** — Real-time monitoring with Turso persistent database ([live](https://clawoss-dashboard.vercel.app))
-- **5 Cron Jobs** — Issue discovery (2h), PR follow-up (30min), daily report, weekly retrospective, memory cleanup
-- **Memory System** — Learns repo conventions, maintainer preferences, and strategies over time
-- **Safety-First** — Never force-push, never push to main, never commit secrets, content filter protections
-- **Verified Autonomous Loop** — Heartbeat + cron + sub-agent pipeline tested end-to-end
+```
+    ┌───────────────────────────────────────────────────────────────┐
+    │                    C L A W O S S   F E A T U R E S            │
+    ├───────────────────────────────────────────────────────────────┤
+    │                                                               │
+    │  MODEL          GLM-5 via OpenRouter / Kimi Code direct API   │
+    │  ·············  $0.72/MTok in, $2.30/MTok out                 │
+    │                                                               │
+    │  ARCHITECTURE   Orchestrator + up to 5 parallel sub-agents    │
+    │  ·············  Fresh context per task, zero pollution         │
+    │                                                               │
+    │  SKILLS         15 total (10 pipeline + 5 superpowers)        │
+    │  ·············  TDD, debugging, brainstorming, code review    │
+    │                                                               │
+    │  QUALITY        9-gate system + independent subagent review   │
+    │  ·············  Scope, tests, security, anti-slop, git hygiene│
+    │                                                               │
+    │  ANTI-SPAM      3 PRs/repo/day, 10 total, 200 LOC, 5 files   │
+    │  ·············  Rate limits enforced per heartbeat cycle       │
+    │                                                               │
+    │  DASHBOARD      Real-time Vercel app with Turso DB            │
+    │  ·············  Live feed, PR tracker, cost, quality metrics   │
+    │                                                               │
+    │  MEMORY         Learns repo conventions over time             │
+    │  ·············  Maintainer preferences, strategies, blocklists │
+    │                                                               │
+    │  SAFETY         Never force-push, never push to main          │
+    │  ·············  Never commit secrets, content filter defense   │
+    │                                                               │
+    │  CRON           5 scheduled jobs for discovery + maintenance   │
+    │  ·············  Issue scan, PR followup, reports, cleanup      │
+    │                                                               │
+    └───────────────────────────────────────────────────────────────┘
+```
 
-## Architecture
+---
+
+## Quality Gates
+
+Every PR passes through 9 gates before submission:
+
+```
+    ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐
+    │  0  │─▶│  1  │─▶│  2  │─▶│  3  │─▶│  4  │─▶│  5  │─▶│  6  │─▶│  7  │─▶│  8  │
+    │     │  │     │  │     │  │     │  │     │  │     │  │     │  │     │  │     │
+    │BUD- │  │SCOPE│  │CODE │  │TESTS│  │SECU-│  │ANTI-│  │ GIT │  │ PR  │  │INDEP│
+    │GET  │  │     │  │QUAL │  │     │  │RITY │  │SLOP │  │HYGI-│  │TEMP-│  │REVW │
+    │     │  │     │  │     │  │     │  │     │  │     │  │ENE  │  │LATE │  │     │
+    └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘  └─────┘
+     daily    <200     linter   all      no        no AI    branch   title    isolated
+     spend    LOC      passes   pass     secrets   markers  naming   + why    subagent
+     cap      <5 files style    +new     no keys   no junk  commits  issue#   clean ctx
+```
+
+| Gate | What It Checks |
+|------|----------------|
+| **0. Budget** | Daily token spend hasn't exceeded cap |
+| **1. Scope** | Changes related to issue only, <200 LOC, <5 files |
+| **2. Code Quality** | Linter passes, matches repo style, no debug statements |
+| **3. Tests** | All tests pass, new tests added for changes |
+| **4. Security** | No secrets, API keys, .env files, or dangerous patterns |
+| **5. Anti-Slop** | No unnecessary comments, AI markers, over-engineering, single-use helpers |
+| **6. Git Hygiene** | Correct branch naming, conventional commits, clean history |
+| **7. PR Template** | Concise title, explains "why", references issue, AI disclosure |
+| **8. Independent Review** | Isolated subagent reviews diff with clean context |
+
+---
+
+## Project Structure
 
 ```
 ClawOSS/
-├── workspace/                  # OpenClaw workspace (symlinked to ~/.openclaw/workspace)
-│   ├── AGENTS.md               # Core behavioral contract
-│   ├── SOUL.md                 # Persona and boundaries
-│   ├── HEARTBEAT.md            # Periodic work checklist
-│   ├── skills/                 # 15 skills (10 custom + 5 superpowers)
-│   │   ├── oss-discover/       # Find issues to work on
-│   │   ├── oss-implement/      # Write code and tests
-│   │   ├── oss-review/         # 7-gate self-review
-│   │   ├── oss-submit/         # Create PRs with disclosure
-│   │   ├── oss-followup/       # Respond to reviews
-│   │   ├── oss-triage/         # Assess issue feasibility
-│   │   ├── repo-analyzer/      # Understand repo conventions
-│   │   ├── context-manager/    # Manage context window
-│   │   ├── dashboard-reporter/ # Send metrics to dashboard
-│   │   ├── safety-checker/     # Final pre-submit gate
-│   │   ├── systematic-debugging/     # (superpowers) Root cause analysis
-│   │   ├── test-driven-development/  # (superpowers) Red-Green-Refactor
-│   │   ├── verification-before-completion/ # (superpowers) Final checks
-│   │   ├── brainstorming/            # (superpowers) Design exploration
-│   │   └── requesting-code-review/   # (superpowers) Code review workflow
-│   ├── hooks/                  # OpenClaw event hooks (automatic)
-│   │   ├── dashboard-reporter/ # Posts telemetry after each agent turn
-│   │   ├── audit-logger/       # Logs all actions to dashboard audit trail
-│   │   └── pii-sanitizer/      # Strips PII from tool results (prevents 403s)
-│   └── memory/                 # Persistent agent memory
+│
+├── workspace/                          # OpenClaw workspace
+│   ├── AGENTS.md                       # Core behavioral contract
+│   ├── SOUL.md                         # Persona and boundaries
+│   ├── HEARTBEAT.md                    # 9-step autonomous work loop
+│   │
+│   ├── skills/                         # ── 15 Skills ──────────────
+│   │   ├── oss-discover/               #   Find issues to work on
+│   │   ├── oss-implement/              #   Reproduce-first TDD workflow
+│   │   ├── oss-review/                 #   7-gate quality check
+│   │   ├── oss-submit/                 #   Create PRs with AI disclosure
+│   │   ├── oss-followup/               #   Respond to review feedback
+│   │   ├── oss-triage/                 #   Assess issue feasibility
+│   │   ├── repo-analyzer/              #   Detect tech stack and style
+│   │   ├── context-manager/            #   Manage context window
+│   │   ├── dashboard-reporter/         #   Send metrics to dashboard
+│   │   ├── safety-checker/             #   Final pre-submit gate
+│   │   ├── systematic-debugging/       #   (superpowers) Root cause analysis
+│   │   ├── test-driven-development/    #   (superpowers) Red-Green-Refactor
+│   │   ├── verification-before-completion/  # (superpowers) Final checks
+│   │   ├── brainstorming/              #   (superpowers) Design exploration
+│   │   └── requesting-code-review/     #   (superpowers) Code review workflow
+│   │
+│   ├── hooks/                          # ── Event Hooks ────────────
+│   │   ├── dashboard-reporter/         #   Telemetry after each turn
+│   │   ├── audit-logger/               #   Action audit trail
+│   │   └── pii-sanitizer/              #   Strip PII from tool results
+│   │
+│   └── memory/                         #   Persistent agent memory
+│
 ├── config/
-│   ├── openclaw.json           # Gateway configuration (GLM-5 via OpenRouter)
-│   └── cron-jobs.json          # Scheduled job definitions (5 jobs)
-├── plugins/                   # OpenClaw plugins (compiled)
-│   └── pii-sanitizer/         # Compiled PII sanitizer (also in workspace/hooks/)
-├── dashboard/                  # Next.js 15 Vercel monitoring app (Turso DB)
-├── issues/                     # Known issues and limitations tracker
-├── research/                   # Architecture research and analysis docs
-├── templates/                  # PR, commit, and issue templates
-└── scripts/                    # Operational scripts
+│   ├── openclaw.json                   # Gateway config (model, compaction, tools)
+│   └── cron-jobs.json                  # 5 scheduled jobs
+│
+├── plugins/
+│   └── pii-sanitizer/                  # Compiled PII sanitizer plugin
+│
+├── dashboard/                          # Next.js 15 + Turso monitoring app
+├── issues/                             # 34 tracked issues
+├── research/                           # Architecture research docs
+├── templates/                          # PR, commit, issue templates
+└── scripts/                            # Setup, start, stop, health, backup
 ```
+
+---
 
 ## GitHub Identity
 
-ClawOSS operates under a dedicated GitHub account:
+```
+    ┌──────────────────────────────────────────────────────────┐
+    │                                                          │
+    │   @BillionClaw                                           │
+    │   billionclaw+clawoss@users.noreply.github.com           │
+    │                                                          │
+    │   Scope ......... public_repo (least privilege)          │
+    │   Purpose ....... Exclusively for ClawOSS operations     │
+    │   Auth .......... gh auth login (interactive, no PAT)    │
+    │   AI Disclosure . Every PR includes AI-generated notice  │
+    │                                                          │
+    └──────────────────────────────────────────────────────────┘
+```
 
-| Field | Value |
-|-------|-------|
-| **Account** | [@BillionClaw](https://github.com/BillionClaw) |
-| **Email** | billionclaw+clawoss@users.noreply.github.com |
-| **Token Scope** | `public_repo` (least privilege) |
-| **Purpose** | Exclusively reserved for ClawOSS autonomous operations |
-
-All PRs, commits, and issue interactions use this identity. The noreply email format avoids triggering OpenRouter's content filter (see `issues/007`). The account is authenticated interactively via `gh auth login` during setup — no tokens are stored in files.
+---
 
 ## Quick Start
 
@@ -179,7 +332,23 @@ npm run start
 | `npm run dashboard:dev` | Run the monitoring dashboard locally |
 | `npm run dashboard:build` | Build the dashboard for production |
 
-## Custom Skills
+---
+
+## Skills
+
+### Custom Pipeline Skills
+
+```
+    DISCOVER ─── TRIAGE ─── ANALYZE ─── IMPLEMENT ─── REVIEW
+        │           │          │            │            │
+    oss-discover  oss-triage  repo-      oss-         oss-review
+                              analyzer   implement
+                                                         │
+    FOLLOWUP ─── SUBMIT ─── SAFETY ─── CONTEXT ─── DASHBOARD
+        │           │          │           │            │
+    oss-followup  oss-submit  safety-   context-    dashboard-
+                              checker   manager     reporter
+```
 
 | Skill | Description |
 |-------|-------------|
@@ -194,7 +363,7 @@ npm run start
 | **dashboard-reporter** | Send heartbeat and event telemetry to Vercel dashboard |
 | **safety-checker** | Final gate: budget, diff size, secrets, spam limits, independent review |
 
-### Superpowers Skills (OpenClaw built-in)
+### Superpowers (from obra/superpowers)
 
 | Skill | Description |
 |-------|-------------|
@@ -204,33 +373,41 @@ npm run start
 | **brainstorming** | Collaborative design exploration before implementation |
 | **requesting-code-review** | Structured approach to requesting and incorporating reviews |
 
+---
+
 ## Event Hooks
 
 Hooks run automatically on OpenClaw events (unlike skills, which are invoked by the agent):
 
+```
+    Tool Result ──► pii-sanitizer ──► Sanitized Result ──► Session
+                        │
+                  ┌─────┴─────┐
+                  │  Replace @ │
+                  │  Strip PII │
+                  │  Redact IP │
+                  └───────────┘
+
+    Agent Turn  ──► dashboard-reporter ──► POST /api/ingest ──► Turso DB
+                        │
+                  ┌─────┴─────┐
+                  │ Heartbeat  │
+                  │ Metrics    │
+                  │ Messages   │
+                  └───────────┘
+
+    Any Action  ──► audit-logger ──► POST /api/ingest/logs ──► Turso DB
+```
+
 | Hook | Events | Description |
 |------|--------|-------------|
-| **dashboard-reporter** | `agent_end`, `after_tool_call` | Posts heartbeats, token metrics, and conversation messages to the dashboard after each agent turn |
-| **audit-logger** | `command:new`, `agent_end`, `after_tool_call` | Logs all agent actions to the dashboard audit trail for debugging |
-| **pii-sanitizer** | `tool_result_persist` | Strips emails (via fullwidth @), phone numbers, IPs, SSNs, and credit card numbers from tool results before they enter session context — permanently prevents OpenRouter 403 loops |
+| **pii-sanitizer** | `tool_result_persist`, `before_message_write` | Strips emails (fullwidth @), phones, IPs, SSNs, credit cards from tool results — prevents OpenRouter 403 loops |
+| **dashboard-reporter** | `agent_end`, `after_tool_call` | Posts heartbeats, token metrics, and conversation messages to dashboard |
+| **audit-logger** | `command:new`, `agent_end`, `after_tool_call` | Logs all agent actions to dashboard audit trail |
 
-Dashboard hooks are fire-and-forget with 10s timeouts — they never block agent work. The PII sanitizer runs synchronously on tool results before persistence.
+Dashboard hooks are fire-and-forget with 10s timeouts. The PII sanitizer runs synchronously before persistence.
 
-## Quality Gates
-
-Every PR passes 7 gates before submission (plus 2 safety gates):
-
-| Gate | What It Checks |
-|------|----------------|
-| **0. Budget** | Daily token spend hasn't exceeded cap |
-| **1. Scope** | Changes related to issue only, <200 LOC, <5 files |
-| **2. Code Quality** | Linter passes, matches repo style, no debug statements |
-| **3. Tests** | All tests pass, new tests added for changes |
-| **4. Security** | No secrets, API keys, .env files, or dangerous patterns |
-| **5. Anti-Slop** | No unnecessary comments, AI markers, over-engineering, single-use helpers |
-| **6. Git Hygiene** | Correct branch naming, conventional commits, clean history |
-| **7. PR Template** | Concise title, explains "why", references issue, AI disclosure |
-| **8. Independent Review** | Isolated subagent reviews diff with clean context |
+---
 
 ## Configuration
 
@@ -267,6 +444,19 @@ Key settings in `config/openclaw.json`:
 
 ### Cron Jobs
 
+```
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  CRON SCHEDULE                                                  │
+    │                                                                 │
+    │  Every 2h    ░░░░ work-queue-refill   Discover + score issues   │
+    │  Every 30m   ░░░░ pr-followup-scan    Check PRs for reviews     │
+    │  11pm daily  ░░░░ daily-report        Compile daily metrics     │
+    │  Mon 9am     ░░░░ weekly-retrospective Analyze acceptance rates │
+    │  Sun 3am     ░░░░ memory-cleanup      Archive stale memory      │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+```
+
 | Job | Schedule | Session | Purpose |
 |-----|----------|---------|---------|
 | work-queue-refill | Every 2h | Isolated | Discover and score candidate issues, write to staging file |
@@ -275,33 +465,65 @@ Key settings in `config/openclaw.json`:
 | weekly-retrospective | Monday 9am | Isolated | Analyze acceptance rates, adjust strategy |
 | memory-cleanup | Sunday 3am | Isolated | Archive stale memory, prune expired queue items |
 
+---
+
 ## Dashboard
 
 **Live:** [clawoss-dashboard.vercel.app](https://clawoss-dashboard.vercel.app)
 
-The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database (`clawoss-cmlkevin.aws-us-east-1.turso.io`):
+```
+    ┌──────────────────────────────────────────────────────────────────┐
+    │  ClawOSS Dashboard                              clawoss.vercel  │
+    ├──────┬──────┬──────┬──────┬──────┬──────┬───────────────────────┤
+    │ Over │  PR  │Health│Qual- │ Logs │ Live │ Settings              │
+    │ view │Track │      │ity   │      │ Feed │                       │
+    ├──────┴──────┴──────┴──────┴──────┴──────┴───────────────────────┤
+    │                                                                  │
+    │  ┌─────────────────────────────────────────────────────────────┐ │
+    │  │ Pipeline: ● connected  heartbeats/hr: 6  errors: 0        │ │
+    │  │ model: GLM-5  pricing: $0.72/$2.30/M  pii-sanitizer: on   │ │
+    │  └─────────────────────────────────────────────────────────────┘ │
+    │                                                                  │
+    │  LIVE FEED ─────────────────────────────────────────────────     │
+    │  ┌─────────────────────┬──────────┬───────────┬──────────┐      │
+    │  │ All Sessions        │ # Main   │ ~> Sub: 1 │ ~> Sub: 2│      │
+    │  ├─────────────────────┴──────────┴───────────┴──────────┤      │
+    │  │ Feed │ Tools │ Errors │ Costs │    │ State │ GW │Stats│      │
+    │  ├──────┴───────┴────────┴───────┘    └───────┴────┴─────┤      │
+    │  │                                                        │      │
+    │  │  12:03  [oss-discover] Found 5 candidate issues        │      │
+    │  │  12:04  [oss-triage] apache/mahout#1191 score: 8.5     │      │
+    │  │  12:05  [sessions_spawn] Sub-agent for mahout#1191     │      │
+    │  │  12:17  [PR created] apache/mahout#1191 +359/-2        │      │
+    │  │                                                        │      │
+    │  └────────────────────────────────────────────────────────┘      │
+    │                                                                  │
+    └──────────────────────────────────────────────────────────────────┘
+```
 
-- **Overview** — Agent status, key metrics, activity timeline, current task, pipeline status bar (heartbeats/hr, errors/hr, model, pricing, PII sanitizer status)
+### Pages
+
+- **Overview** — Agent status, key metrics, activity timeline, current task, pipeline status bar
 - **PR Tracker** — All submitted PRs with status, quality scores, review state, build logs
 - **Health** — Token usage, cost tracking, heartbeat status, error rates
 - **Quality** — Quality score trends, by-repo breakdown, rejection analysis
 - **Logs** — Filterable log stream with infinite scroll
 - **Live Feed** — Full-featured conversation monitor:
-  - Session tabs: orchestrator + per-sub-agent tabs with green pulse on active sessions
+  - Session tabs: orchestrator + per-sub-agent with green pulse on active sessions
   - View modes: unified timeline, orchestrator only, sub-agents only
   - Main tabs: Feed / Tools / Errors / Costs
   - Sidebar tabs: State / Gateway / Stats
   - Tool call log with duration tracking, success/fail color-coding, search
-  - Error log with classified error types (403-filter, timeout, ENOENT, rate-limit, etc.)
+  - Error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.)
   - Cost breakdown per session with $/hour rate and GLM-5 pricing
   - Gateway status panel (port, model, sessions, heartbeat, skills)
-  - PII sanitizer indicators (header badge, per-message PII badges, filter counter)
-  - Raw JSON toggle per message, pause-on-hover, slow tool highlighting (>5s/10s)
+  - PII sanitizer indicators (header badge, per-message badges, filter counter)
+  - Raw JSON toggle per message, pause-on-hover, slow tool highlighting
 - **Settings** — Target repos, quality thresholds, notification config
 
-Tech stack: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
+**Tech stack:** Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
 
-Deploy to Vercel:
+### Deploy
 
 ```bash
 cd dashboard
@@ -316,6 +538,8 @@ Required environment variables (set in Vercel dashboard):
 - `CLAW_AGENT_USERNAME` — Agent's GitHub username (BillionClaw)
 - `CLAW_API_KEY` — Shared secret for agent-to-dashboard auth
 
+---
+
 ## Operational Scripts
 
 | Script | Command | Description |
@@ -327,18 +551,20 @@ Required environment variables (set in Vercel dashboard):
 | `backup-workspace.sh` | — | Commit agent memory state to git |
 | `rotate-logs.sh` | — | Remove log files older than 14 days |
 
+---
+
 ## Realistic Expectations
 
 ClawOSS is honest about what autonomous AI contribution can achieve today. The primary metric is **merged PRs per day with >70% acceptance rate and <$2/merged PR** — not commits per hour (see `issues/010`).
 
 ### Expected Throughput
 
-| Phase | Timeline | Target |
-|-------|----------|--------|
-| Calibration | Week 1-2 | 1-2 merged PRs/day, tuning acceptance rate |
-| Ramp | Week 3-4 | 3-5 merged PRs/day on curated repos |
-| Steady state | Month 2+ | 5-10 merged PRs/day, >70% acceptance rate |
-| Aspirational | Month 3+ | 10-15 merged PRs/day with multi-repo pipelining |
+```
+    Week 1-2     ░░░░░░░░░░░░░░░░░░░░           1-2 PRs/day (calibration)
+    Week 3-4     ░░░░░░░░░░░░░░░░░░░░░░░░░      3-5 PRs/day (ramp)
+    Month 2+     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  5-10 PRs/day (steady state)
+    Month 3+     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10-15 PRs/day (aspirational)
+```
 
 ### Cost Projections (GLM-5 via OpenRouter)
 
@@ -350,12 +576,12 @@ ClawOSS is honest about what autonomous AI contribution can achieve today. The p
 
 ### Merge Rates by Task Type
 
-| Task Type | Merge Rate |
-|-----------|-----------|
-| Documentation / CI / deps | 40-60% |
-| Simple bug fixes | 20-30% |
-| Feature additions | 10-20% |
-| Complex refactors | 5-10% |
+```
+    Documentation / CI / deps   ████████████████████████████░░░░░  40-60%
+    Simple bug fixes            ██████████████░░░░░░░░░░░░░░░░░░░  20-30%
+    Feature additions           █████████░░░░░░░░░░░░░░░░░░░░░░░░  10-20%
+    Complex refactors           ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   5-10%
+```
 
 ### Timeline
 
@@ -373,57 +599,88 @@ ClawOSS is honest about what autonomous AI contribution can achieve today. The p
 - Not self-improving without feedback — human review of quality trends is essential
 - Not optimized for volume — quality and merge rate over commit count
 
+---
+
 ## Safety & Ethics
 
-ClawOSS is designed to be a **good citizen** of the open-source ecosystem:
+```
+    ┌───────────────────────────────────────────────────────────────────┐
+    │                     S A F E T Y   D E F A U L T S                │
+    ├───────────────────────────────────────────────────────────────────┤
+    │                                                                   │
+    │  NEVER push to main/master or default branches                    │
+    │  NEVER force-push to any branch                                   │
+    │  NEVER commit secrets, credentials, API keys, or .env files       │
+    │  NEVER modify CI/CD pipelines without explicit approval           │
+    │  NEVER submit PRs without reading CONTRIBUTING.md first           │
+    │  NEVER submit more than 3 PRs to the same repo per day           │
+    │  NEVER submit PRs larger than 200 lines changed                   │
+    │  NEVER modify more than 5 files in a single PR                    │
+    │                                                                   │
+    │  ALWAYS use public_repo token scope (least privilege)             │
+    │  ALWAYS create feature branches (clawoss/<type>/<desc>)           │
+    │  ALWAYS run tests before submitting                               │
+    │  ALWAYS disclose AI authorship in every PR                        │
+    │  ALWAYS close PRs politely on rejection                           │
+    │                                                                   │
+    └───────────────────────────────────────────────────────────────────┘
+```
 
-- **AI Disclosure** — Every PR includes a notice that it was AI-generated
-- **Anti-Spam** — Hard limits prevent flooding repos with low-quality PRs
-- **Respect** — Reads CONTRIBUTING.md, follows repo conventions, stays in lane
-- **Graceful** — Closes PRs politely on rejection, never argues with maintainers
-- **Least Privilege** — Uses `public_repo` token scope, sandboxed execution
-- **Transparent** — All agent actions are logged and visible on the dashboard
+---
 
 ## Known Issues
 
-See the [`issues/`](issues/) directory for detailed tracking. Summary:
+See the [`issues/`](issues/) directory for detailed tracking (34 issues).
+
+```
+    STATUS OVERVIEW
+    ═══════════════
+
+    Fixed ··················  ████████████████░░░░░░░░░░░░░░░░░░  16
+    Open ···················  █████████░░░░░░░░░░░░░░░░░░░░░░░░░   9
+    Implemented ············  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   2
+    Other ··················  ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░   7
+                                                          Total: 34
+```
 
 | # | Issue | Status |
 |---|-------|--------|
-| 001 | OpenRouter content filter causes 403 loops with PII content | Partially Fixed (tool results sanitized, model output unsolvable — see #033) |
+| 001 | OpenRouter content filter causes 403 loops with PII content | Partially Fixed (see #033) |
 | 002 | Stale agent processes hold session locks | Open |
 | 003 | Symlinked skills get "outside root" warnings | Open |
-| 004 | Sessions can exceed model context window (262K for K2.5) | Open (mitigated) |
-| 005 | Model fallback to expensive Anthropic APIs | **Fixed** (`fallbacks: []`) |
-| 006 | Sub-agent attachments disabled by default | **Fixed** (`tools.sessions_spawn.attachments.enabled`) |
-| 007 | Git email triggers content filter | **Fixed** (noreply format) |
-| 008 | Cron jobs need isolated sessions | **Fixed** (session targeting) |
-| 009 | Heartbeat cost optimization | **Fixed** (lightContext + K2.5 + 10min) |
+| 004 | Sessions can exceed model context window | Open (mitigated) |
+| 005 | Model fallback to expensive Anthropic APIs | **Fixed** |
+| 006 | Sub-agent attachments disabled by default | **Fixed** |
+| 007 | Git email triggers content filter | **Fixed** |
+| 008 | Cron jobs need isolated sessions | **Fixed** |
+| 009 | Heartbeat cost optimization | **Fixed** |
 | 010 | Throughput expectations reframed | Acknowledged |
-| 011 | oss-review referenced Haiku/Sonnet for review | **Fixed** (model-agnostic wording) |
-| 012 | safety-checker referenced "Sonnet subagent" | **Fixed** (model-agnostic wording) |
-| 013 | TOOLS.md had 500 LOC limit vs 200 everywhere else | **Fixed** (standardized to 200) |
-| 014 | start.sh ignores sessionTarget from cron config | Open |
-| 015 | Dashboard reporter uses hardcoded URL fallback | **Fixed** (env var + canonical domain) |
-| 016 | Dashboard Live Feed page not documented | Open (documented now) |
-| 017 | Dashboard cost model uses wrong model ID key | **Fixed** (updated to K2.5) |
+| 011 | oss-review referenced Haiku/Sonnet | **Fixed** |
+| 012 | safety-checker referenced "Sonnet subagent" | **Fixed** |
+| 013 | TOOLS.md had 500 LOC limit | **Fixed** |
+| 014 | start.sh ignores sessionTarget | Open |
+| 015 | Dashboard reporter hardcoded URL | **Fixed** |
+| 016 | Dashboard Live Feed undocumented | **Fixed** |
+| 017 | Dashboard cost model wrong ID | **Fixed** |
 | 018 | .env contains real API keys | Open (CRITICAL) |
-| 019 | .env missing DASHBOARD_URL and CLAW_API_KEY | Open |
-| 020 | OpenClaw hooks not documented | Open (documented now) |
-| 021 | Model switch from M2.5 to Kimi K2.5 | **Completed** (config + dashboard + docs) |
-| 022 | Cloned repos in workspace should be gitignored | **Fixed** (.gitignore updated) |
-| 023 | oss-implement skill exceeded 2000 char limit after rewrite | **Fixed** (3605 -> 1895 chars) |
-| 024 | Invalid openclaw.json schema — many guessed config keys | **Fixed** (validated via DeepWiki) |
-| 025 | Gateway restart interrupts active agent turns (SIGTERM) | Known (minimize restarts) |
-| 026 | Heartbeat stops after diagnostics — agent doesn't pick work | **Fixed** (prompt rewritten) |
-| 027 | maxConcurrent mismatch across config and docs (5 vs 1) | **Fixed** (aligned to 5, no timeout) |
-| 028 | Sub-agent stall recovery | **Implemented** (detect, kill, retry, skip after 2) |
-| 029 | Heartbeat not executing full loop — replies HEARTBEAT_OK immediately | In Progress |
-| 030 | PII sanitizer plugin — permanent content filter fix | **Implemented** (fullwidth @ + PII stripping) |
-| 031 | Work queue trap — 403 kills before error handling can execute | **Mitigated** (blocklist + PII sanitizer) |
-| 032 | Telemetry gap — 403 failures not reported to dashboard | Open |
-| 033 | OpenRouter blocks model's own code output with @ symbols | Open (BLOCKING — worked around by switching to GLM-5) |
-| 034 | Autonomous model switch from K2.5 to GLM-5 | Active (agent switched without approval, unknown benchmarks) |
+| 019 | .env missing dashboard variables | Open |
+| 020 | OpenClaw hooks undocumented | **Fixed** |
+| 021 | Model switch M2.5 to K2.5 | **Completed** |
+| 022 | Cloned repos should be gitignored | **Fixed** |
+| 023 | oss-implement exceeded char limit | **Fixed** |
+| 024 | Invalid openclaw.json schema | **Fixed** |
+| 025 | Gateway restart kills agent turns | Known |
+| 026 | Heartbeat stops after diagnostics | **Fixed** |
+| 027 | maxConcurrent mismatch (5 vs 1) | **Fixed** |
+| 028 | Sub-agent stall recovery | **Implemented** |
+| 029 | Heartbeat not executing full loop | In Progress |
+| 030 | PII sanitizer plugin | **Implemented** |
+| 031 | Work queue trap on 403 | **Mitigated** |
+| 032 | Telemetry gap on 403 failures | Open |
+| 033 | OpenRouter blocks model's own @ output | Worked around (GLM-5) |
+| 034 | Autonomous model switch to GLM-5 | Active |
+
+---
 
 ## Contributing
 
