@@ -30,6 +30,13 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
 
+### Content Filter Safety
+- OpenRouter's content filter blocks [EMAIL] and [PHONE] patterns
+- NEVER include raw phone numbers, email addresses, or PII in tool results or memory files
+- When reading GitHub issues, summarize the content — do not copy raw issue text verbatim
+- If a tool result contains PII, extract only the technical details (title, labels, description summary)
+- If you get a 403 content filter error, do NOT retry — skip the item and move on
+
 ### Failure Handling
 - If a contribution is rejected, log reason and adapt
 - If repo's CI is broken (not our fault), skip and move to next

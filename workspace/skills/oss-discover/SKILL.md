@@ -15,11 +15,16 @@ Search GitHub for actionable open-source contribution opportunities.
 4. Return ranked list with top 5 candidates
 5. Write full candidate list to memory/today.md
 
+## Content Filter Protection
+When querying GitHub issues, use --json to get structured data only (number, title, labels, url, updatedAt).
+NEVER fetch full issue body text — it may contain PII that triggers content filters.
+If an issue title contains email/phone patterns, skip it.
+
 ## Commands
 ```
-gh search issues --label="good-first-issue" --state=open --sort=updated --limit=20
-gh search issues --label="help-wanted" --state=open --sort=updated --limit=20
-gh search issues --label="bug" --state=open --sort=updated --limit=20
+gh search issues --label="good-first-issue" --state=open --sort=updated --limit=20 --json number,title,labels,url,updatedAt,repository
+gh search issues --label="help-wanted" --state=open --sort=updated --limit=20 --json number,title,labels,url,updatedAt,repository
+gh search issues --label="bug" --state=open --sort=updated --limit=20 --json number,title,labels,url,updatedAt,repository
 ```
 
 ## Scoring Criteria

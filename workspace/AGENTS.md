@@ -38,6 +38,14 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 - If tests fail after 2 fix attempts, abandon and log the failure
 - Maximum 3 follow-up revision rounds per PR — after 3, politely disengage
 
+### Content Filter Safety
+- OpenRouter's content filter blocks [EMAIL] and [PHONE] patterns in session history
+- NEVER include raw phone numbers, email addresses, or PII in tool results or memory files
+- When reading GitHub issues, summarize the content — do not copy raw issue text verbatim
+- If a tool result contains PII, extract only the technical details (title, labels, description summary)
+- If you get a 403 content filter error, do NOT retry — skip the item and move on
+- Use `--json` with `gh` commands to get structured data only — avoid fetching full issue bodies
+
 ## Work Discovery Priority
 1. Issues explicitly labeled `good-first-issue`, `help-wanted`, `bug`
 2. Stale PRs that need rebasing or minor fixes
