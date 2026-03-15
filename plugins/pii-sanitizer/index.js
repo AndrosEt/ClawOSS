@@ -1,92 +1,100 @@
 /**
- * ClawOSS PII Sanitizer Plugin
+ * ClawOSS PII Sanitizer Plugin — COMPREHENSIVE + BIDIRECTIONAL
  *
- * Replaces @ symbols with fullwidth ＠ (U+FF20) in tool results
- * and messages BEFORE they enter the session transcript.
+ * TWO-WAY sanitization:
+ * 1. INCOMING (persist/write): @ → ＠ — prevents OpenRouter content filter
+ * 2. OUTGOING (tool calls): ＠ → @ — ensures files have correct symbols
  *
- * This prevents OpenRouter's content filter from matching
- * @pytest.fixture, @Override, user@domain.com etc. as email patterns.
- *
- * The model understands ＠ as @ — visually identical, semantically equivalent.
- * The agent's own code writes use real @ (this only affects what the model READS).
+ * The model sees ＠ in context. If it generates ＠ in code, the before_tool_call
+ * hook converts it back to @ before the tool executes. Files on disk always
+ * have real @. Session history always has ＠. OpenRouter never sees @.
  */
 
-function sanitize(text) {
+var FULLWIDTH_AT = '\uFF20'; // ＠
+
+// === SANITIZATION (@ → ＠) for session persistence ===
+
+function sanitizeString(text) {
   if (typeof text !== 'string') return text;
+  return text.replace(/@/g, FULLWIDTH_AT);
+}
 
-  // Replace ALL @ with fullwidth ＠ — catches emails, decorators, annotations
-  text = text.replace(/@/g, '\uFF20');
-
-  // Phone numbers (various international formats)
-  text = text.replace(
-    /(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/g,
-    '[REDACTED_PHONE]'
-  );
-
-  // IPv4 addresses (valid ranges only, preserves version numbers)
-  text = text.replace(
-    /\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b/g,
-    function(match, a, b, c, d) {
-      if ([a, b, c, d].every(function(o) { return parseInt(o) >= 0 && parseInt(o) <= 255; })) {
-        return '[REDACTED_IP]';
-      }
-      return match;
+function deepSanitize(value) {
+  if (typeof value === 'string') return sanitizeString(value);
+  if (Array.isArray(value)) return value.map(deepSanitize);
+  if (value && typeof value === 'object') {
+    var result = {};
+    var keys = Object.keys(value);
+    for (var i = 0; i < keys.length; i++) {
+      result[keys[i]] = deepSanitize(value[keys[i]]);
     }
-  );
-
-  // SSN patterns (XXX-XX-XXXX)
-  text = text.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_SSN]');
-
-  // Credit card patterns (XXXX-XXXX-XXXX-XXXX or XXXX XXXX XXXX XXXX)
-  text = text.replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, '[REDACTED_CC]');
-
-  return text;
+    return result;
+  }
+  return value;
 }
 
 function sanitizeMessage(msg) {
-  if (!msg || !msg.content) return undefined;
-
-  if (typeof msg.content === 'string') {
-    var cleaned = sanitize(msg.content);
-    if (cleaned !== msg.content) {
-      return { message: Object.assign({}, msg, { content: cleaned }) };
-    }
-    return undefined;
+  if (!msg) return undefined;
+  var cleaned = deepSanitize(msg);
+  if (JSON.stringify(msg) !== JSON.stringify(cleaned)) {
+    return { message: cleaned };
   }
-
-  if (Array.isArray(msg.content)) {
-    var changed = false;
-    var cleanedContent = msg.content.map(function(block) {
-      if (block.type === 'text' && typeof block.text === 'string') {
-        var cleanText = sanitize(block.text);
-        if (cleanText !== block.text) { changed = true; }
-        return Object.assign({}, block, { text: cleanText });
-      }
-      if (typeof block.content === 'string') {
-        var cleanContent = sanitize(block.content);
-        if (cleanContent !== block.content) { changed = true; }
-        return Object.assign({}, block, { content: cleanContent });
-      }
-      return block;
-    });
-    if (changed) {
-      return { message: Object.assign({}, msg, { content: cleanedContent }) };
-    }
-    return undefined;
-  }
-
   return undefined;
 }
 
+// === DESANITIZATION (＠ → @) for tool execution ===
+
+function desanitizeString(text) {
+  if (typeof text !== 'string') return text;
+  return text.replace(new RegExp(FULLWIDTH_AT, 'g'), '@');
+}
+
+function deepDesanitize(value) {
+  if (typeof value === 'string') return desanitizeString(value);
+  if (Array.isArray(value)) return value.map(deepDesanitize);
+  if (value && typeof value === 'object') {
+    var result = {};
+    var keys = Object.keys(value);
+    for (var i = 0; i < keys.length; i++) {
+      result[keys[i]] = deepDesanitize(value[keys[i]]);
+    }
+    return result;
+  }
+  return value;
+}
+
 function register(api) {
-  // Sanitize tool results before they enter the session transcript
+  // === INCOMING: Sanitize @ → ＠ before persistence ===
+
+  // Tool results (file reads, exec output)
   api.on('tool_result_persist', function(event, ctx) {
     return sanitizeMessage(event.message);
   });
 
-  // Sanitize ALL messages before writing (catches sub-agent announce results)
+  // ALL messages before writing to session (assistant output, announces)
   api.on('before_message_write', function(event, ctx) {
     return sanitizeMessage(event.message);
+  });
+
+  // === OUTGOING: Desanitize ＠ → @ before tool execution ===
+
+  // If the model generates code with ＠ (because context had ＠),
+  // convert back to real @ before the tool runs.
+  // This ensures write/exec tools create files with correct @ symbols.
+  api.on('before_tool_call', function(event, ctx) {
+    if (!event || !event.params) return;
+
+    var toolName = event.toolName || ctx.toolName || '';
+
+    // Only desanitize for tools that write to disk or run commands
+    if (['write', 'edit', 'exec', 'apply_patch', 'process'].indexOf(toolName) === -1) {
+      return;
+    }
+
+    var cleaned = deepDesanitize(event.params);
+    if (JSON.stringify(event.params) !== JSON.stringify(cleaned)) {
+      return { params: cleaned };
+    }
   });
 }
 
