@@ -17,43 +17,75 @@ export async function syncPRsFromGitHub(): Promise<{
   const octokit = getOctokit();
   const agentUsername = process.env.CLAW_AGENT_USERNAME || "BillionClaw";
 
-  // Get target repos from settings
+  // Dynamic discovery: search for ALL PRs by the agent across GitHub
+  // This replaces the old hardcoded targetRepos approach
+  const searchResults = await octokit.search.issuesAndPullRequests({
+    q: `author:${agentUsername} is:pr sort:updated-desc`,
+    per_page: 100,
+  });
+
+  // Also check target repos from settings for any PRs the search might miss
   const settingsRow = await db.query.settings.findFirst({
     where: eq(
       (await import("./schema")).settings.key,
       "dashboard_settings"
     ),
   });
-
   const settings = settingsRow?.value as { targetRepos?: string[] } | null;
   const targetRepos = settings?.targetRepos || [];
 
-  if (targetRepos.length === 0) {
-    return { synced: 0, repos: [] };
+  // Collect all PRs: from search + from target repos
+  type PRInfo = { owner: string; repo: string; repoFullName: string; number: number };
+  const prMap = new Map<string, PRInfo>();
+
+  // Add PRs from search results
+  for (const item of searchResults.data.items) {
+    if (!item.pull_request) continue;
+    // Extract owner/repo from repository_url: "https://api.github.com/repos/owner/repo"
+    const match = item.repository_url?.match(/repos\/([^/]+)\/([^/]+)$/);
+    if (!match) continue;
+    const [, owner, repo] = match;
+    const repoFullName = `${owner}/${repo}`;
+    const key = `${repoFullName}#${item.number}`;
+    prMap.set(key, { owner, repo, repoFullName, number: item.number });
+  }
+
+  // Also scan target repos for any PRs search might have missed
+  for (const repoFullName of targetRepos) {
+    const [owner, repo] = repoFullName.split("/");
+    if (!owner || !repo) continue;
+    try {
+      const { data: prs } = await octokit.pulls.list({
+        owner, repo, state: "all", sort: "updated", direction: "desc", per_page: 30,
+      });
+      for (const pr of prs) {
+        if (pr.user?.login === agentUsername) {
+          const key = `${repoFullName}#${pr.number}`;
+          if (!prMap.has(key)) {
+            prMap.set(key, { owner, repo, repoFullName, number: pr.number });
+          }
+        }
+      }
+    } catch {
+      // Skip repos that error
+    }
   }
 
   let synced = 0;
   const syncedRepos: string[] = [];
 
-  for (const repoFullName of targetRepos) {
-    const [owner, repo] = repoFullName.split("/");
-    if (!owner || !repo) continue;
+  for (const [, info] of prMap) {
+    const { owner, repo, repoFullName } = info;
 
     try {
-      const { data: prs } = await octokit.pulls.list({
-        owner,
-        repo,
-        state: "all",
-        sort: "updated",
-        direction: "desc",
-        per_page: 30,
+      // Fetch full PR details
+      const { data: pr } = await octokit.pulls.get({
+        owner, repo, pull_number: info.number,
       });
 
-      const agentPRs = prs.filter(
-        (pr) => pr.user?.login === agentUsername
-      );
+      if (pr.user?.login !== agentUsername) continue;
 
-      for (const pr of agentPRs) {
+      {
         const prId = `${repoFullName}#${pr.number}`;
 
         const status = pr.merged_at
@@ -62,22 +94,10 @@ export async function syncPRsFromGitHub(): Promise<{
             ? "closed"
             : "open";
 
-        // Fetch detailed PR data (list endpoint doesn't include additions/deletions)
-        let additions = 0;
-        let deletions = 0;
-        let filesChanged = 0;
-        try {
-          const { data: detail } = await octokit.pulls.get({
-            owner,
-            repo,
-            pull_number: pr.number,
-          });
-          additions = detail.additions;
-          deletions = detail.deletions;
-          filesChanged = detail.changed_files;
-        } catch {
-          // Use defaults if detail fetch fails
-        }
+        // pulls.get already includes additions/deletions/changed_files
+        const additions = pr.additions;
+        const deletions = pr.deletions;
+        const filesChanged = pr.changed_files;
 
         await db
           .insert(pullRequests)
@@ -188,13 +208,12 @@ export async function syncPRsFromGitHub(): Promise<{
         }
 
         synced++;
-      }
-
-      if (agentPRs.length > 0) {
-        syncedRepos.push(repoFullName);
+        if (!syncedRepos.includes(repoFullName)) {
+          syncedRepos.push(repoFullName);
+        }
       }
     } catch {
-      // Skip repos that error
+      // Skip PRs that error
     }
   }
 
