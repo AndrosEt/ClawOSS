@@ -4,7 +4,7 @@ set -euo pipefail
 echo "=== ClawOSS Health Check ==="
 
 # Check gateway
-if openclaw status 2>/dev/null | grep -q "running"; then
+if openclaw gateway status 2>/dev/null | grep -q "running\|reachable"; then
     echo "[OK] Gateway is running"
 else
     echo "[FAIL] Gateway is not running"
@@ -25,9 +25,16 @@ else
     echo "[FAIL] Workspace not linked"
 fi
 
+# Check clawoss agent
+if openclaw agents list 2>/dev/null | grep -q "clawoss"; then
+    echo "[OK] Agent 'clawoss' registered"
+else
+    echo "[FAIL] Agent 'clawoss' not registered"
+fi
+
 # Check cron jobs
-CRON_COUNT=$(openclaw cron list 2>/dev/null | wc -l)
-echo "[INFO] $CRON_COUNT cron jobs registered"
+CRON_COUNT=$(openclaw cron list 2>/dev/null | grep -c "clawoss" || true)
+echo "[INFO] $CRON_COUNT cron jobs registered for clawoss (expected: 5)"
 
 echo ""
 echo "=== Health Check Complete ==="

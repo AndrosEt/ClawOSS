@@ -3,41 +3,52 @@ set -euo pipefail
 
 echo "=== Starting ClawOSS ==="
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+AGENT_ID="clawoss"
+WORKSPACE_DIR="$PROJECT_DIR/workspace"
+
 # Verify setup
 if [ ! -L "$HOME/.openclaw/workspace" ]; then
     echo "Error: workspace not linked. Run 'npm run setup' first."
     exit 1
 fi
 
-# Register cron jobs
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# Register the clawoss agent if it doesn't exist
+if openclaw agents list 2>/dev/null | grep -q "^- $AGENT_ID "; then
+    echo "Agent '$AGENT_ID' already registered"
+else
+    echo "Registering agent '$AGENT_ID'..."
+    openclaw agents add "$AGENT_ID" \
+        --workspace "$WORKSPACE_DIR" \
+        --model "openrouter/minimax/minimax-m2.5" \
+        --non-interactive
+    echo "Agent '$AGENT_ID' registered"
+fi
 
+# Register cron jobs
 echo "Registering cron jobs..."
 while IFS= read -r job; do
     name=$(echo "$job" | jq -r '.id')
     schedule=$(echo "$job" | jq -r '.schedule')
     session=$(echo "$job" | jq -r '.session')
     payload=$(echo "$job" | jq -r '.payload')
-    model=$(echo "$job" | jq -r '.model // empty')
 
-    model_flag=""
-    if [ -n "$model" ]; then
-        model_flag="--model $model"
-    fi
+    # Non-default agents must use isolated sessions with session-key for persistence
+    cmd=(openclaw cron add --name "$name" --agent "$AGENT_ID" --cron "$schedule")
+    cmd+=(--session isolated --session-key "agent:${AGENT_ID}:${name}" --message "$payload")
 
-    openclaw cron add \
-        --name "$name" \
-        --cron "$schedule" \
-        --session "$session" \
-        --message "$payload" \
-        $model_flag \
-        2>/dev/null || echo "  Cron job '$name' may already exist"
+    "${cmd[@]}" 2>/dev/null && echo "  Added: $name" || echo "  Cron job '$name' may already exist"
 done < <(jq -c '.[]' "$PROJECT_DIR/config/cron-jobs.json")
 
-# Start OpenClaw gateway
-echo "Starting OpenClaw gateway..."
-openclaw start --daemon
+# Start OpenClaw gateway (if not already running)
+if openclaw gateway status 2>/dev/null | grep -q "running\|reachable"; then
+    echo "OpenClaw gateway already running — restarting to pick up config..."
+    openclaw gateway restart 2>/dev/null || true
+else
+    echo "Starting OpenClaw gateway..."
+    openclaw gateway install 2>/dev/null || openclaw gateway run &
+fi
 
 echo ""
 echo "=== ClawOSS Running ==="
