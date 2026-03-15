@@ -8,18 +8,36 @@ command -v openclaw >/dev/null 2>&1 || { echo "Error: openclaw CLI not found. In
 command -v gh >/dev/null 2>&1 || { echo "Error: gh CLI not found. Install from https://cli.github.com"; exit 1; }
 command -v node >/dev/null 2>&1 || { echo "Error: node not found"; exit 1; }
 
-# Configure git identity for BillionClaw
-git config --global user.name "BillionClaw"
-git config --global user.email "drsparrowhawk@proton.me"
-echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
+# Load .env if it exists
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+    echo "Loaded .env"
+else
+    echo "Warning: .env not found. Copy .env.example to .env and fill in values."
+    exit 1
+fi
 
-# Check gh auth — must be logged in as BillionClaw
-if gh auth status 2>&1 | grep -q "BillionClaw"; then
+# Configure git identity for BillionClaw
+git config --global user.name "${GITHUB_USERNAME:-BillionClaw}"
+git config --global user.email "${GITHUB_EMAIL:-drsparrowhawk@proton.me}"
+echo "Git identity set to ${GITHUB_USERNAME:-BillionClaw} <${GITHUB_EMAIL:-drsparrowhawk@proton.me}>"
+
+# Authenticate gh CLI with BillionClaw PAT
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+    echo "GitHub CLI authenticated with PAT"
+fi
+
+# Verify gh auth is BillionClaw
+if gh auth status 2>&1 | grep -qi "BillionClaw\|logged in"; then
     echo "GitHub CLI authenticated as BillionClaw"
 else
-    echo "Warning: gh CLI not authenticated as BillionClaw."
-    echo "Run: gh auth login"
-    echo "Log in with the BillionClaw account."
+    echo "Warning: gh CLI authentication failed."
+    echo "Check your GITHUB_TOKEN in .env"
     exit 1
 fi
 
