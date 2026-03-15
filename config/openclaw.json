@@ -32,7 +32,8 @@
       "heartbeat": {
         "every": "60m",
         "model": "claude-haiku-4-5",
-        "prompt": "Run the heartbeat checklist in HEARTBEAT.md"
+        "prompt": "Run the heartbeat checklist in HEARTBEAT.md",
+        "isolatedSession": false
       },
       "sandbox": {
         "enabled": true,
