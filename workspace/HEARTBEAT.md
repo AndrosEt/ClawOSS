@@ -129,10 +129,8 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
        Record the passing output as evidence.
     5. REVIEW: Self-check diff (scope, style, secrets, size, commit msg).
        3+ failures = abandon.
-    6. SUBMIT — ATOMIC: Chain ALL git operations into ONE exec command:
-       exec('cd /tmp/<repo> && git add -A && git commit -m \"<msg>\" && git push origin HEAD && gh pr create --title \"<title>\" --body \"<body>\" --base main')
-       This ensures the PR is submitted in a single tool call.
-       Do NOT split git add, commit, push, pr create into separate exec calls.
+    6. SUBMIT: Commit, push, create PR with reproduction evidence
+       (before/after test output in PR description).
     7. Do NOT wait for remote CI. Submit and report result.
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
