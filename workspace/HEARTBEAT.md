@@ -51,7 +51,7 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 ### Context Management
 - Before spawning a sub-agent, check orchestrator context with session_status
 - If orchestrator context > 60%, flush state to memory and trigger compaction before spawning
-- Sub-agents have a 600s timeout -- they compact or die, no runaway context
+- Sub-agents take as long as they need -- no hard timeout, quality over speed
 - After each heartbeat cycle, if context > 50%, write important state to memory and compact
 - NEVER start new work if context > 70% -- compact first
 
@@ -142,10 +142,10 @@ The sub-agent runs in a FRESH context with zero pollution from prior tasks.
 Do NOT implement in the main session. Wait for the announce step.
 If web_search results were gathered during triage, include a summary in the attachments.
 
-### Sub-Agent Discipline
+### Sub-Agent Discipline (MUST match config — do NOT change without updating openclaw.json)
 - Each sub-agent MUST finish its task, report back in EXTREME DETAIL, and TERMINATE
-- Sub-agents have 600s (10 min) timeout — they complete or die, no runaway
-- maxConcurrent: 1 — only ONE sub-agent at a time, ever (serialized execution)
+- Sub-agents have 600s (10 min) timeout — config: runTimeoutSeconds: 600
+- maxConcurrent: 1 — config enforces ONE sub-agent at a time (serialized execution)
 - The orchestrator NEVER spawns a new sub-agent while one is still active
 - Sub-agent report must include: what was done, files changed, tests run, PR URL (if created), or reason for failure
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
