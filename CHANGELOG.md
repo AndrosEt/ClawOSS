@@ -127,7 +127,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Cloned repos gitignored** — Issue #022: sub-agents clone target repos into `workspace/`. Added `workspace/4x-game-agent/` to `.gitignore`. First autonomous contribution target: `sonpiaz/4x-game-agent#9` (template matching tests).
 - **Model switch confirmed user-directed** — K2.5 switch was explicitly requested by user, not benchmark-driven. Benchmarks pending throughput-critic review.
 - **Stall recovery documented** — Issue #028: sub-agent stall detection, kill, retry (max 2), skip. Already implemented in commits `13d0aa3` and `6d85a5a`.
-- **30 issues tracked** — 17 fixed, 2 implemented, 7 open, 1 known, 1 informational, 1 completed
+- **32 issues tracked** — 17 fixed, 2 implemented, 1 mitigated, 8 open, 1 known, 1 informational, 1 completed, 1 in progress
 
 ### V6 Release — Autonomous Operation Begins
 
@@ -159,7 +159,7 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - Dashboard URL canonicalization
 - **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified. Later expanded to also cover `before_message_write` to catch sub-agent announce messages.
 - **Dashboard enhancements** (commit `fd054fe`) — pipeline status bar on overview page, skill-colored badges in agent state panel, sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay), PR build logs component, error alert banner, session picker improvements
-- 30 issues documented (17 fixed, 2 implemented)
+- 32 issues documented (17 fixed, 2 implemented, 1 mitigated)
 
 **First autonomous activity observed:**
 - Agent confirmed running on K2.5

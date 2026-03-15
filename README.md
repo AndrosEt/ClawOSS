@@ -406,6 +406,8 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 028 | Sub-agent stall recovery | **Implemented** (detect, kill, retry, skip after 2) |
 | 029 | Heartbeat not executing full loop — replies HEARTBEAT_OK immediately | In Progress |
 | 030 | PII sanitizer plugin — permanent content filter fix | **Implemented** (fullwidth @ + PII stripping) |
+| 031 | Work queue trap — 403 kills before error handling can execute | **Mitigated** (blocklist + PII sanitizer) |
+| 032 | Telemetry gap — 403 failures not reported to dashboard | Open |
 
 ## Contributing
 
