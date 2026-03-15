@@ -23,22 +23,30 @@ const levelVariant: Record<string, "default" | "secondary" | "destructive" | "ou
   error: "destructive",
 };
 
+const levelColors: Record<string, string> = {
+  debug: "text-muted-foreground",
+  info: "text-blue-400",
+  warn: "text-yellow-400",
+  error: "text-red-400",
+};
+
 export function LogStream({ entries, onEntryClick }: LogStreamProps) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[140px]">Timestamp</TableHead>
-          <TableHead className="w-[80px]">Level</TableHead>
-          <TableHead className="w-[100px]">Source</TableHead>
-          <TableHead>Message</TableHead>
+          <TableHead className="w-[140px] font-mono text-[10px] uppercase tracking-wider">Timestamp</TableHead>
+          <TableHead className="w-[80px] font-mono text-[10px] uppercase tracking-wider">Level</TableHead>
+          <TableHead className="w-[100px] font-mono text-[10px] uppercase tracking-wider">Source</TableHead>
+          <TableHead className="font-mono text-[10px] uppercase tracking-wider">Message</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {entries.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground">
-              No log entries found
+            <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+              <p>No log entries found</p>
+              <p className="text-[11px] text-muted-foreground/50 font-mono mt-1">Adjust filters or check time range</p>
             </TableCell>
           </TableRow>
         ) : (
@@ -50,10 +58,10 @@ export function LogStream({ entries, onEntryClick }: LogStreamProps) {
             return (
               <TableRow
                 key={entry.id}
-                className="cursor-pointer font-mono text-xs"
+                className="cursor-pointer font-mono text-xs table-row-hover group"
                 onClick={() => onEntryClick(entry)}
               >
-                <TableCell>
+                <TableCell className="text-muted-foreground/60">
                   {ts instanceof Date && !isNaN(ts.getTime())
                     ? ts.toLocaleTimeString()
                     : String(entry.timestamp)}
@@ -61,15 +69,15 @@ export function LogStream({ entries, onEntryClick }: LogStreamProps) {
                 <TableCell>
                   <Badge
                     variant={levelVariant[entry.level] || "outline"}
-                    className="text-xs"
+                    className={`text-[10px] ${entry.level === "error" ? "badge-glow-red" : ""}`}
                   >
                     {entry.level.toUpperCase()}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground/60">
                   {entry.source || "-"}
                 </TableCell>
-                <TableCell className="max-w-[400px] truncate">
+                <TableCell className={`max-w-[400px] truncate group-hover:text-foreground transition-colors ${levelColors[entry.level] || ""}`}>
                   {entry.message}
                 </TableCell>
               </TableRow>

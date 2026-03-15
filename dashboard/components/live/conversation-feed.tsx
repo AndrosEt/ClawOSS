@@ -13,43 +13,49 @@ interface ConversationFeedProps {
 
 const roleConfig: Record<
   string,
-  { label: string; color: string; bgColor: string; icon: string }
+  { label: string; color: string; bgColor: string; icon: string; accent: string }
 > = {
   assistant: {
     label: "Agent",
     color: "text-blue-400",
     bgColor: "bg-blue-500/10 border-blue-500/20",
     icon: ">>",
+    accent: "msg-accent-blue",
   },
   user: {
     label: "Prompt",
     color: "text-green-400",
     bgColor: "bg-green-500/10 border-green-500/20",
     icon: "$",
+    accent: "msg-accent-green",
   },
   tool_call: {
     label: "Tool",
     color: "text-yellow-400",
     bgColor: "bg-yellow-500/10 border-yellow-500/20",
     icon: "->",
+    accent: "msg-accent-yellow",
   },
   tool_result: {
     label: "Result",
     color: "text-purple-400",
     bgColor: "bg-purple-500/10 border-purple-500/20",
     icon: "<-",
+    accent: "msg-accent-purple",
   },
   system: {
     label: "System",
     color: "text-gray-400",
     bgColor: "bg-gray-500/10 border-gray-500/20",
     icon: "#",
+    accent: "msg-accent",
   },
   thinking: {
     label: "Think",
     color: "text-orange-400",
     bgColor: "bg-orange-500/10 border-orange-500/20",
     icon: "~",
+    accent: "msg-accent-orange",
   },
 };
 
@@ -123,7 +129,7 @@ export function ConversationFeed({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col gap-1 font-mono text-sm overflow-y-auto h-full"
+      className="flex flex-col gap-1 font-mono text-sm overflow-y-auto h-full smooth-scroll"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -165,9 +171,9 @@ export function ConversationFeed({
         return (
           <div
             key={msg.id}
-            className={`border rounded-md px-3 py-2 ${
+            className={`border rounded-md px-3 py-2 ${config.accent} transition-colors ${
               isError
-                ? "bg-red-500/10 border-red-500/30"
+                ? "bg-red-500/10 border-red-500/30 msg-accent-red"
                 : isSlow && msg.role === "tool_call"
                 ? "bg-yellow-500/5 border-yellow-500/20"
                 : config.bgColor

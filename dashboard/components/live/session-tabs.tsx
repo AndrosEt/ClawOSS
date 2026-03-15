@@ -19,12 +19,12 @@ export function SessionTabs({
   const subSessions = sessions.filter((s) => s.isSubagent);
 
   return (
-    <div className="flex items-center gap-1 px-4 py-1 border-b bg-background/50 overflow-x-auto">
+    <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-background/50 overflow-x-auto smooth-scroll">
       {/* Unified view */}
       <Button
         variant={activeSessionId === undefined ? "default" : "ghost"}
         size="sm"
-        className="text-[10px] h-6 px-2.5 shrink-0"
+        className={`text-[10px] h-6 px-2.5 shrink-0 ${activeSessionId === undefined ? "tab-active-line" : ""}`}
         onClick={() => onSelectSession(undefined)}
       >
         All Sessions

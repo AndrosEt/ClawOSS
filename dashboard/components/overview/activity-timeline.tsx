@@ -37,30 +37,51 @@ export function ActivityTimeline({
   const displayed = items.slice(0, maxItems);
 
   return (
-    <Card>
+    <Card className="card-glow">
       <CardHeader>
-        <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+        <CardTitle className="text-sm font-medium flex items-center justify-between">
+          <span>Recent Activity</span>
+          {displayed.length > 0 && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-mono">
+              {items.length}
+            </Badge>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {displayed.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No recent activity</p>
+          <div className="text-center py-6">
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+            <p className="text-[11px] text-muted-foreground/50 font-mono mt-1">Waiting for events...</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {displayed.map((item) => (
-              <div key={item.id} className="flex items-start gap-3">
-                <span
-                  className={`mt-1 h-2 w-2 rounded-full ${typeColors[item.type] || "bg-gray-400"}`}
-                />
+          <div className="space-y-1">
+            {displayed.map((item, i) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 py-2 px-2 -mx-2 rounded-md hover:bg-muted/40 transition-colors group"
+              >
+                {/* Timeline line + dot */}
+                <div className="flex flex-col items-center mt-0.5">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ring-2 ring-background ${typeColors[item.type] || "bg-gray-400"}`}
+                  />
+                  {i < displayed.length - 1 && (
+                    <div className="w-px flex-1 bg-border mt-1 min-h-[16px]" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                       {typeLabels[item.type] || item.type}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
                       {formatRelativeTime(item.timestamp)}
                     </span>
                   </div>
-                  <p className="text-sm truncate mt-0.5">{item.description}</p>
+                  <p className="text-sm truncate mt-0.5 text-muted-foreground group-hover:text-foreground transition-colors">
+                    {item.description}
+                  </p>
                 </div>
               </div>
             ))}

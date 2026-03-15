@@ -31,12 +31,17 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-3 mb-2">
-          <Badge>{pr.status}</Badge>
-          <span className="text-sm text-muted-foreground">{pr.repo}</span>
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 mb-3">
+          <Badge className={pr.status === "merged" ? "badge-glow-green" : pr.status === "closed" ? "badge-glow-red" : ""}>{pr.status}</Badge>
+          <span className="text-sm text-muted-foreground font-mono">{pr.repo}</span>
+          <span className="text-[11px] text-muted-foreground/60 font-mono">
             {formatRelativeTime(pr.createdAt)}
           </span>
+          {pr.qualityScore != null && (
+            <span className={`quality-ring ml-auto ${pr.qualityScore >= 80 ? "q-high" : pr.qualityScore >= 60 ? "q-mid" : "q-low"}`}>
+              {pr.qualityScore.toFixed(0)}
+            </span>
+          )}
         </div>
 
         <Tabs defaultValue="details" className="w-full">
@@ -47,17 +52,17 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
 
           <TabsContent value="details" className="space-y-4 mt-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Files Changed</p>
-                <p className="font-medium">{pr.filesChanged}</p>
+              <div className="p-3 rounded-md bg-muted/30">
+                <p className="text-[10px] text-muted-foreground/60 font-mono uppercase">Files</p>
+                <p className="font-bold text-lg tracking-tight">{pr.filesChanged}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">Additions</p>
-                <p className="font-medium text-green-500">+{pr.additions}</p>
+              <div className="p-3 rounded-md bg-green-500/5">
+                <p className="text-[10px] text-green-400/60 font-mono uppercase">Additions</p>
+                <p className="font-bold text-lg tracking-tight text-green-400">+{pr.additions}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">Deletions</p>
-                <p className="font-medium text-red-500">-{pr.deletions}</p>
+              <div className="p-3 rounded-md bg-red-500/5">
+                <p className="text-[10px] text-red-400/60 font-mono uppercase">Deletions</p>
+                <p className="font-bold text-lg tracking-tight text-red-400">-{pr.deletions}</p>
               </div>
             </div>
 
@@ -66,26 +71,46 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
                 <Separator />
                 <div>
                   <h3 className="text-sm font-semibold mb-3">Quality Breakdown</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="space-y-2">
                     {[
-                      { label: "Scope Check (10%)", value: pr.qualityBreakdown.scopeCheck },
-                      { label: "Code Quality (20%)", value: pr.qualityBreakdown.codeQuality },
-                      { label: "Test Coverage (20%)", value: pr.qualityBreakdown.testCoverage },
-                      { label: "Security (10%)", value: pr.qualityBreakdown.security },
-                      { label: "Anti-Slop (15%)", value: pr.qualityBreakdown.antiSlop },
-                      { label: "Git Hygiene (10%)", value: pr.qualityBreakdown.gitHygiene },
-                      { label: "PR Template (15%)", value: pr.qualityBreakdown.prTemplate },
+                      { label: "Scope Check", weight: "10%", value: pr.qualityBreakdown.scopeCheck },
+                      { label: "Code Quality", weight: "20%", value: pr.qualityBreakdown.codeQuality },
+                      { label: "Test Coverage", weight: "20%", value: pr.qualityBreakdown.testCoverage },
+                      { label: "Security", weight: "10%", value: pr.qualityBreakdown.security },
+                      { label: "Anti-Slop", weight: "15%", value: pr.qualityBreakdown.antiSlop },
+                      { label: "Git Hygiene", weight: "10%", value: pr.qualityBreakdown.gitHygiene },
+                      { label: "PR Template", weight: "15%", value: pr.qualityBreakdown.prTemplate },
                     ].map((gate) => (
-                      <div key={gate.label} className="flex justify-between">
-                        <span className="text-muted-foreground">{gate.label}</span>
-                        <span className="font-mono">
-                          {gate.value != null ? gate.value.toFixed(0) : "--"}
-                        </span>
+                      <div key={gate.label} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {gate.label} <span className="text-muted-foreground/40">({gate.weight})</span>
+                          </span>
+                          <span className={`font-mono font-bold ${
+                            gate.value != null
+                              ? gate.value >= 80 ? "text-green-400" : gate.value >= 60 ? "text-yellow-400" : "text-red-400"
+                              : "text-muted-foreground/40"
+                          }`}>
+                            {gate.value != null ? gate.value.toFixed(0) : "--"}
+                          </span>
+                        </div>
+                        {gate.value != null && (
+                          <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                gate.value >= 80 ? "bg-green-500" : gate.value >= 60 ? "bg-yellow-500" : "bg-red-500"
+                              }`}
+                              style={{ width: `${gate.value}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
-                    <div className="col-span-2 flex justify-between border-t pt-2 font-semibold">
+                    <div className="flex justify-between border-t pt-3 mt-3 font-semibold">
                       <span>Overall Score</span>
-                      <span className="font-mono">
+                      <span className={`font-mono text-lg ${
+                        pr.qualityBreakdown.overallScore >= 80 ? "text-green-400" : pr.qualityBreakdown.overallScore >= 60 ? "text-yellow-400" : "text-red-400"
+                      }`}>
                         {pr.qualityBreakdown.overallScore.toFixed(1)}
                       </span>
                     </div>

@@ -134,7 +134,7 @@ export function LiveStatsBar({
   }, [lastHeartbeat]);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 border-b bg-muted/30 text-xs font-mono overflow-x-auto">
+    <div className="flex items-center gap-3 px-4 py-2 border-b pipeline-bar text-xs font-mono overflow-x-auto">
       {/* Connection status */}
       <div className="flex items-center gap-1.5">
         <span

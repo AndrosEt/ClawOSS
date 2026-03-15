@@ -10,6 +10,14 @@ interface PRStatsBarProps {
   avgReviewTime: number;
 }
 
+const statColors: Record<string, string> = {
+  Total: "",
+  Open: "text-blue-400",
+  Merged: "text-green-400",
+  Closed: "text-red-400",
+  "Avg Review": "text-muted-foreground",
+};
+
 export function PRStatsBar({
   total,
   open,
@@ -27,11 +35,11 @@ export function PRStatsBar({
 
   return (
     <div className="grid grid-cols-5 gap-4">
-      {stats.map((stat) => (
-        <Card key={stat.label}>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-            <p className="text-2xl font-bold">{stat.value}</p>
+      {stats.map((stat, i) => (
+        <Card key={stat.label} className={`card-glow hover-lift animate-fade-up animate-fade-up-${Math.min(i + 1, 4)}`}>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-mono">{stat.label}</p>
+            <p className={`text-2xl font-bold tracking-tight mt-0.5 ${statColors[stat.label] || ""}`}>{stat.value}</p>
           </CardContent>
         </Card>
       ))}

@@ -23,6 +23,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { ConnectionStatusIndicator } from "./connection-status-indicator";
 
 const navItems = [
@@ -42,7 +43,11 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold">ClawOSS</span>
+          <span className="text-xs font-mono text-muted-foreground/30 mr-0.5">{">_"}</span>
+          <span className="text-lg font-bold claw-title tracking-tight">ClawOSS</span>
+          <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/40 border-muted-foreground/15 font-mono mt-0.5">
+            v7
+          </Badge>
         </div>
         <div className="mt-2">
           <ConnectionStatusIndicator />
@@ -50,7 +55,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/50">
+            Dashboard
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -69,9 +76,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        <p className="text-xs text-muted-foreground">
-          ClawOSS Monitoring Dashboard
-        </p>
+        <div className="space-y-1">
+          <p className="text-[10px] text-muted-foreground/40 font-mono">
+            ClawOSS Monitoring
+          </p>
+          <p className="text-[9px] text-muted-foreground/25 font-mono">
+            Kimi K2.5 | Autonomous OSS
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

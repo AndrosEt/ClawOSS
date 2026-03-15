@@ -52,27 +52,27 @@ export function QualityOverviewCards({
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      {cards.map((card) => (
-        <Card key={card.title}>
+      {cards.map((card, i) => (
+        <Card key={card.title} className={`card-glow hover-lift animate-fade-up animate-fade-up-${Math.min(i + 1, 4)}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+            <CardTitle className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60">{card.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
+            <div className="text-2xl font-bold tracking-tight">{card.value}</div>
             {card.change != null && (
               <p
-                className={`text-xs ${
+                className={`text-[11px] font-mono mt-0.5 ${
                   card.invertColor
                     ? card.change < 0
-                      ? "text-green-500"
+                      ? "text-green-400"
                       : card.change > 0
-                        ? "text-red-500"
-                        : "text-muted-foreground"
+                        ? "text-red-400"
+                        : "text-muted-foreground/50"
                     : card.change > 0
-                      ? "text-green-500"
+                      ? "text-green-400"
                       : card.change < 0
-                        ? "text-red-500"
-                        : "text-muted-foreground"
+                        ? "text-red-400"
+                        : "text-muted-foreground/50"
                 }`}
               >
                 {card.change > 0 ? "+" : ""}

@@ -27,6 +27,18 @@ const trendLabels = {
   decreasing: "Decreasing",
 };
 
+const trendIcons: Record<string, string> = {
+  increasing: "^",
+  stable: "~",
+  decreasing: "v",
+};
+
+const trendColors: Record<string, string> = {
+  increasing: "text-red-400",
+  stable: "text-muted-foreground",
+  decreasing: "text-green-400",
+};
+
 export function HealthStatusCards({
   heartbeat,
   uptime,
@@ -34,69 +46,82 @@ export function HealthStatusCards({
 }: HealthStatusCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card>
+      <Card className="card-glow hover-lift animate-fade-up animate-fade-up-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Heartbeat</CardTitle>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500 glow-dot glow-dot-green" />
+            Heartbeat
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Last</span>
-            <span>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Last</span>
+            <span className="font-mono text-[12px]">
               {heartbeat.lastBeat
                 ? formatRelativeTime(heartbeat.lastBeat)
                 : "Never"}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Interval</span>
-            <span>{heartbeat.intervalMinutes}min</span>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Interval</span>
+            <span className="font-mono text-[12px]">{heartbeat.intervalMinutes}min</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Streak</span>
-            <span>{heartbeat.streak.toLocaleString()}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Percentage</span>
-            <span>{formatPercentage(uptime.percentage)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Since</span>
-            <span>{formatRelativeTime(uptime.since)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Downtime</span>
-            <span>{formatDuration(uptime.totalDowntimeMinutes * 60)}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Streak</span>
+            <span className="font-mono text-[12px] text-green-400">{heartbeat.streak.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="card-glow hover-lift animate-fade-up animate-fade-up-2">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            Uptime
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Per Hour</span>
-            <span>{errorRate.perHour}/hr</span>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Percentage</span>
+            <span className="font-mono text-[12px] font-bold">{formatPercentage(uptime.percentage)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Trend</span>
-            <span>{trendLabels[errorRate.trend]}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Since</span>
+            <span className="font-mono text-[12px]">{formatRelativeTime(uptime.since)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Last Error</span>
-            <span>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Downtime</span>
+            <span className="font-mono text-[12px]">{formatDuration(uptime.totalDowntimeMinutes * 60)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={`card-glow hover-lift animate-fade-up animate-fade-up-3 ${errorRate.perHour > 0 ? "border-red-500/20" : ""}`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${errorRate.perHour > 0 ? "bg-red-500" : "bg-green-500"}`} />
+            Error Rate
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Per Hour</span>
+            <span className={`font-mono text-[12px] font-bold ${errorRate.perHour > 0 ? "text-red-400" : ""}`}>
+              {errorRate.perHour}/hr
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Trend</span>
+            <span className={`font-mono text-[12px] ${trendColors[errorRate.trend] || ""}`}>
+              {trendIcons[errorRate.trend]} {trendLabels[errorRate.trend]}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Last Error</span>
+            <span className="font-mono text-[12px]">
               {errorRate.lastError
                 ? formatRelativeTime(errorRate.lastError)
-                : "None"}
+                : <span className="text-green-400">None</span>}
             </span>
           </div>
         </CardContent>

@@ -17,18 +17,18 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
-      <h1 className="text-lg font-semibold">{title}</h1>
-      <div className="ml-auto flex items-center gap-4">
+      <h1 className="text-sm font-semibold tracking-tight">{title}</h1>
+      <div className="ml-auto flex items-center gap-3">
         <Tooltip>
           <TooltipTrigger>
             <Badge
               variant="outline"
-              className="text-[10px] h-5 px-2 text-muted-foreground border-muted-foreground/30 cursor-default"
+              className="text-[9px] h-4 px-1.5 text-muted-foreground/50 border-muted-foreground/20 cursor-default font-mono"
             >
-              PII sanitizer disabled
+              pii:off
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="bottom">
@@ -38,7 +38,6 @@ export function Header({ title }: HeaderProps) {
                 Disabled. Using Kimi Code direct API which has no
                 content filter restrictions on @ symbols.
               </p>
-              <p className="text-muted-foreground">No sanitization needed.</p>
             </div>
           </TooltipContent>
         </Tooltip>

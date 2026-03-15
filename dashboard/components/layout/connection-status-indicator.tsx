@@ -63,10 +63,12 @@ export function ConnectionStatusIndicator() {
             />
           )}
           <span
-            className={`relative inline-flex h-2.5 w-2.5 rounded-full ${config.color}`}
+            className={`relative inline-flex h-2.5 w-2.5 rounded-full ${config.color} ${
+              config.ping ? `glow-dot glow-dot-${state === "connected" ? "green" : "yellow"}` : ""
+            }`}
           />
         </span>
-        <span className={`font-medium ${config.textColor}`}>
+        <span className={`font-medium text-xs ${config.textColor}`}>
           {config.label}
         </span>
       </TooltipTrigger>

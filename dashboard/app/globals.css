@@ -127,3 +127,241 @@
     @apply font-sans;
   }
 }
+
+/* =========================================================
+   ClawOSS Visual System
+   ========================================================= */
+
+/* ASCII art gradient text effect */
+.ascii-gradient {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 25%, #a855f7 50%, #3b82f6 75%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Gradient title for ClawOSS branding */
+.claw-title {
+  background: linear-gradient(90deg, #f97316, #ef4444, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+
+/* Subtle scanline overlay for terminal aesthetic */
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+.dark .scanlines::after {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.015) 2px,
+    rgba(255, 255, 255, 0.015) 4px
+  );
+}
+
+/* Terminal cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ---- Animated glow ring for status indicators ---- */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px currentColor; }
+  50% { box-shadow: 0 0 10px 3px currentColor; }
+}
+.glow-dot {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+.glow-dot-green { color: #22c55e; }
+.glow-dot-yellow { color: #eab308; }
+.glow-dot-red { color: #ef4444; }
+
+/* ---- Gradient borders for cards ---- */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+.card-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card-glow:hover::before {
+  opacity: 1;
+}
+
+/* ---- Quality score ring ---- */
+.quality-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 2px solid;
+  transition: all 0.2s ease;
+}
+.quality-ring.q-high { border-color: #22c55e; color: #22c55e; }
+.quality-ring.q-mid { border-color: #eab308; color: #eab308; }
+.quality-ring.q-low { border-color: #ef4444; color: #ef4444; }
+.quality-ring:hover { transform: scale(1.1); }
+
+/* ---- Status badge glow ---- */
+.badge-glow-green {
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
+}
+.badge-glow-red {
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
+}
+.badge-glow-yellow {
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.3);
+}
+
+/* ---- Smooth scroll behavior with custom scrollbar ---- */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+.smooth-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.smooth-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.smooth-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0 / 40%);
+  border-radius: 3px;
+}
+.dark .smooth-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 30%);
+}
+.smooth-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 60%);
+}
+
+/* ---- Fade-in animation for staggered cards ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
+.animate-fade-up-1 { animation-delay: 0.04s; }
+.animate-fade-up-2 { animation-delay: 0.08s; }
+.animate-fade-up-3 { animation-delay: 0.12s; }
+.animate-fade-up-4 { animation-delay: 0.16s; }
+
+/* ---- Subtle hover lift for interactive cards ---- */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.dark .hover-lift:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Table row hover effect ---- */
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+.table-row-hover:hover {
+  background-color: oklch(0.97 0 0);
+}
+.dark .table-row-hover:hover {
+  background-color: oklch(0.22 0 0);
+}
+
+/* ---- Pipeline status bar ---- */
+.pipeline-bar {
+  border: 1px solid oklch(1 0 0 / 5%);
+  background: oklch(0.16 0 0);
+}
+:root .pipeline-bar {
+  background: oklch(0.97 0 0);
+  border: 1px solid oklch(0 0 0 / 5%);
+}
+
+/* ---- Progress bar gradient ---- */
+.progress-gradient {
+  background: linear-gradient(90deg, #f97316, #ef4444, #a855f7);
+}
+
+/* ---- Session tab active underline ---- */
+.tab-active-line {
+  position: relative;
+}
+.tab-active-line::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #f97316, #a855f7);
+  border-radius: 1px;
+}
+
+/* ---- Inline sparkline bar ---- */
+.spark-bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 1px;
+  vertical-align: bottom;
+  background: currentColor;
+  opacity: 0.5;
+  transition: height 0.3s ease;
+}
+
+/* ---- Message bubble subtle left accent ---- */
+.msg-accent {
+  border-left: 2px solid transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.msg-accent:hover {
+  border-left-color: oklch(0.5 0.1 264);
+}
+.msg-accent-blue { border-left-color: oklch(0.65 0.17 255 / 40%); }
+.msg-accent-green { border-left-color: oklch(0.65 0.17 150 / 40%); }
+.msg-accent-yellow { border-left-color: oklch(0.75 0.15 85 / 40%); }
+.msg-accent-purple { border-left-color: oklch(0.6 0.2 295 / 40%); }
+.msg-accent-red { border-left-color: oklch(0.6 0.2 25 / 40%); }
+.msg-accent-orange { border-left-color: oklch(0.7 0.15 55 / 40%); }
