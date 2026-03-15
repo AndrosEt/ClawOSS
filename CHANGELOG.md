@@ -163,7 +163,7 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - **Dashboard V6 overhaul** — Full Live Feed rewrite with session tabs (orchestrator + per-sub-agent), view modes (unified/orchestrator/sub-agents), main tabs (Feed/Tools/Errors/Costs), sidebar tabs (State/Gateway/Stats). New components: tool call log with duration/success tracking, error log with classified types (403-filter, timeout, ENOENT, rate-limit, etc.), cost breakdown per session with $/hour rate, gateway status panel, raw JSON toggle per message, PII sanitizer indicators (header badge, per-message badges, filter counter). Pipeline status bar on overview. Sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay). Sessions API enhanced with repo/issue/isSubagent fields. SWR polling: conversation 2s, state 5s, sessions 5s, connection 15s. Token counts estimated from char length (~4 chars/token) when actual counts unavailable.
 - 34 issues documented (16 fixed, 2 implemented, 1 partially fixed, 1 mitigated, 1 active)
 
-**First autonomous activity observed:**
+**First autonomous activity observed (on K2.5, before GLM-5 switch):**
 - Agent confirmed running on K2.5
 - Discovered issues across multiple repos
 - Spawned sub-agents for `sonpiaz/4x-game-agent#9` (template matching tests)

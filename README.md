@@ -291,7 +291,7 @@ The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso 
   - Sidebar tabs: State / Gateway / Stats
   - Tool call log with duration tracking, success/fail color-coding, search
   - Error log with classified error types (403-filter, timeout, ENOENT, rate-limit, etc.)
-  - Cost breakdown per session with $/hour rate and K2.5 pricing
+  - Cost breakdown per session with $/hour rate and GLM-5 pricing
   - Gateway status panel (port, model, sessions, heartbeat, skills)
   - PII sanitizer indicators (header badge, per-message PII badges, filter counter)
   - Raw JSON toggle per message, pause-on-hover, slow tool highlighting (>5s/10s)
