@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { RawJsonToggle } from "./raw-json-toggle";
 import type { ConversationMessage } from "@/lib/types";
 
 interface ConversationFeedProps {
   messages: ConversationMessage[];
   autoScroll?: boolean;
+  showRawJson?: boolean;
 }
 
 const roleConfig: Record<
@@ -86,15 +88,20 @@ function MessageContent({ content }: { content: string }) {
 export function ConversationFeed({
   messages,
   autoScroll = true,
+  showRawJson = false,
 }: ConversationFeedProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    if (autoScroll && bottomRef.current) {
+    if (autoScroll && !isPaused && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages.length, autoScroll]);
+  }, [messages.length, autoScroll, isPaused]);
+
+  const handleMouseEnter = useCallback(() => setIsPaused(true), []);
+  const handleMouseLeave = useCallback(() => setIsPaused(false), []);
 
   if (messages.length === 0) {
     return (
@@ -117,7 +124,14 @@ export function ConversationFeed({
     <div
       ref={containerRef}
       className="flex flex-col gap-1 font-mono text-sm overflow-y-auto h-full"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      {isPaused && (
+        <div className="sticky top-0 z-10 bg-yellow-500/10 border border-yellow-500/20 rounded px-2 py-0.5 text-[10px] text-yellow-400 text-center">
+          Auto-scroll paused (hover)
+        </div>
+      )}
       {messages.map((msg) => {
         const config = roleConfig[msg.role] || roleConfig.system;
         const ts =
@@ -137,17 +151,31 @@ export function ConversationFeed({
         const isError =
           msg.role === "tool_result" &&
           (msg.content?.startsWith("ERROR:") ||
-            (msg.metadata as Record<string, unknown>)?.error);
+            !!(msg.metadata as Record<string, unknown>)?.error);
+
+        const isSlow = (msg.durationMs || 0) > 5000;
 
         return (
           <div
             key={msg.id}
             className={`border rounded-md px-3 py-2 ${
-              isError ? "bg-red-500/10 border-red-500/30" : config.bgColor
+              isError
+                ? "bg-red-500/10 border-red-500/30"
+                : isSlow && msg.role === "tool_call"
+                ? "bg-yellow-500/5 border-yellow-500/20"
+                : config.bgColor
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className={`font-bold ${isError ? "text-red-400" : config.color}`}>
+              <span
+                className={`font-bold ${
+                  isError
+                    ? "text-red-400"
+                    : isSlow && msg.role === "tool_call"
+                    ? "text-yellow-400"
+                    : config.color
+                }`}
+              >
                 {isError ? "!!" : config.icon}
               </span>
               <Badge variant="outline" className="text-[10px] h-4 px-1">
@@ -159,7 +187,15 @@ export function ConversationFeed({
                 </Badge>
               )}
               {msg.durationMs != null && msg.durationMs > 0 && (
-                <span className={`text-[10px] ${msg.durationMs > 5000 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                <span
+                  className={`text-[10px] ${
+                    msg.durationMs > 10000
+                      ? "text-red-400"
+                      : msg.durationMs > 5000
+                      ? "text-yellow-400"
+                      : "text-muted-foreground"
+                  }`}
+                >
                   {msg.durationMs > 1000
                     ? `${(msg.durationMs / 1000).toFixed(1)}s`
                     : `${msg.durationMs}ms`}
@@ -200,6 +236,7 @@ export function ConversationFeed({
               </span>
             </div>
             <MessageContent content={msg.content} />
+            {showRawJson && <RawJsonToggle message={msg} />}
           </div>
         );
       })}
