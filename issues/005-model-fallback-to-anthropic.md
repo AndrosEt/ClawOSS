@@ -10,9 +10,16 @@ When Minimax M2.5 was unavailable or returned errors via OpenRouter, OpenClaw's 
 
 The agent would silently switch to Claude without any indication in the session, consuming budget at a drastically higher rate.
 
+## Observed During v5 Launch
+
+- **Time:** 2026-03-16 17:49-17:50 UTC (cascaded from session lock, issue #002)
+- **Error:** `No API key found for provider "anthropic". Auth store: ...auth-profiles.json`
+- Auto-fallback chain: `openrouter/minimax/minimax-m2.5` -> `anthropic/claude-opus-4-6`
+- Result: `All models failed (2)` — complete agent failure
+
 ## Root Cause
 
-OpenClaw's default model configuration includes implicit fallback chains. If the primary model (`openrouter/minimax/minimax-m2.5`) fails, the gateway falls back to its built-in default models (Anthropic Claude). Without explicitly disabling fallbacks, every M2.5 outage triggered expensive Claude API calls.
+OpenClaw's default model configuration includes implicit fallback chains. If the primary model fails, the gateway falls back to its built-in default models (Anthropic Claude). Without explicitly disabling fallbacks, every primary model outage triggered expensive Claude API calls (or auth failures if no Anthropic key).
 
 ## Impact
 

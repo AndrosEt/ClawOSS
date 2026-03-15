@@ -1,6 +1,6 @@
 # 002: Session Lock Contention — Stale Agent Processes
 
-**Status:** Open
+**Status:** Open (self-resolving — locks auto-clear after process termination)
 **Severity:** Medium
 **Component:** OpenClaw Gateway / Session Management
 
@@ -27,9 +27,17 @@ OpenClaw uses file-based session locking (JSONL persistence). If the agent proce
 - Manually kill orphaned processes and clear session lock files
 - The `stop.sh` script attempts graceful shutdown but cannot handle all crash scenarios
 
+## Observed During v5 Launch
+
+- **Time:** 2026-03-16 17:49-17:50 UTC
+- **Error:** `session file locked (timeout 10000ms): pid=57572 ...9741f803...jsonl.lock`
+- Stale lock from previous gateway process (pid 57572) not cleaned up on restart
+- Cascaded to fallback failure (issue #005)
+- Self-resolved after process termination (~17:51 UTC)
+
 ## Fix Applied
 
-None — this is an OpenClaw platform limitation. A session health-check cron could be added to detect and recover from stale locks, but this would require modifying OpenClaw internals.
+None needed — locks auto-clear after process termination. This is transient. Ensure clean gateway shutdown with SIGTERM to minimize occurrence.
 
 ## Related Files
 

@@ -10,6 +10,14 @@ When ClawOSS skills are symlinked from the project workspace into `~/.openclaw/s
 
 The skills still load and function correctly, but the warnings clutter gateway logs.
 
+## Observed During v5 Launch
+
+- **Time:** 2026-03-16 17:52 UTC
+- **Error:** `ENOENT: no such file or directory, access '/Users/kevinlin/.agents/skills/oss-discover/SKILL.md'`
+- Skills existed in workspace but were NOT symlinked into `~/.openclaw/skills/`
+- Agent could not invoke any custom skills
+- **Fixed at 17:55 UTC** by adding symlink loop to `setup.sh`
+
 ## Root Cause
 
 The `setup.sh` script creates symlinks from `~/.openclaw/skills/<skill-name>` pointing to `/path/to/clawOSS/workspace/skills/<skill-name>/`. OpenClaw's skill loader resolves symlinks and checks that the resolved path is within the expected root. Since the resolved path is in the ClawOSS project directory (not `~/.openclaw/`), warnings are emitted.

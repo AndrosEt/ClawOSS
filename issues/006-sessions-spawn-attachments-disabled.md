@@ -10,6 +10,15 @@ The v5 throughput architecture relies on spawning sub-agent sessions via `sessio
 
 Without attachments, sub-agents have no knowledge of repo conventions, issue details, or prior analysis — they operate blind and produce lower-quality contributions.
 
+## Observed During v5 Launch
+
+- **Time:** 2026-03-16 17:59 UTC
+- **Error:** `"attachments are disabled for sessions_spawn (enable tools.sessions_spawn.attachments.enabled)"`
+- Agent could discover and triage but could NOT delegate to sub-agents
+- First fix attempt placed config inside `agents.list[0].tools` — caused validation error
+- **Fixed at 18:01 UTC:** Moved to top-level `tools` config
+- **Note:** Placing inside `agents.list[].tools` causes: `Unrecognized key: "sessions_spawn"`
+
 ## Root Cause
 
 OpenClaw's `tools.sessions_spawn.attachments.enabled` defaults to `false` as a security measure. The v5 architecture requires this to be explicitly enabled since the orchestrator passes context to sub-agents via attachments (the only way to share data, since sub-agents cannot access memory tools).

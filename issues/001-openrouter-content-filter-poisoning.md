@@ -12,6 +12,14 @@ When the agent reads GitHub issue content that contains email addresses or phone
 
 The 403 behavior is the more severe problem: once PII-containing text enters the session context, every subsequent API call fails with 403, creating an infinite loop that blocks all agent operations until the session is reset.
 
+## Observed During v5 Launch
+
+- **Time:** 2026-03-16 17:53-17:55 UTC (3 consecutive failures)
+- **Error:** `403 Request blocked by content filter: [PHONE]`
+- Original git email `drsparrowhawk@proton.me` triggered the filter
+- Once PII entered session history, every subsequent call got 403 — infinite loop
+- **Fixed at 17:56 UTC:** Changed to noreply email + cleared poisoned session files
+
 ## Root Cause
 
 OpenRouter applies content filtering on all text passing through its API, including tool outputs and system messages. When `[EMAIL]` or `[PHONE]` patterns appear in the conversation history sent to the API, it triggers a 403 rejection. This is a platform-level behavior that cannot be disabled through ClawOSS configuration.
