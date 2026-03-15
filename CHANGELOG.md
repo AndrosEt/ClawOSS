@@ -157,7 +157,8 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - Race condition prevention (default:true in agent config)
 - Cloned repo gitignore patterns
 - Dashboard URL canonicalization
-- **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified.
+- **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified. Later expanded to also cover `before_message_write` to catch sub-agent announce messages.
+- **Dashboard enhancements** (commit `fd054fe`) — pipeline status bar on overview page, skill-colored badges in agent state panel, sub-agent lifecycle tracking in dashboard-reporter hook (spawn/history/announce relay), PR build logs component, error alert banner, session picker improvements
 - 30 issues documented (17 fixed, 2 implemented)
 
 **First autonomous activity observed:**
