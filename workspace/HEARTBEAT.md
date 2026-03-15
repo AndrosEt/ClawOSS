@@ -158,6 +158,14 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
        3+ failures = abandon.
     6. SUBMIT: Commit, push, create PR with reproduction evidence
        (before/after test output in PR description).
+       Include a CLA confirmation section at the bottom of the PR body:
+       '## Contributor License Agreement
+       By submitting this pull request, I confirm that my contribution is made
+       under the terms of the project's license and I have the right to submit
+       it. I agree that my contributions may be distributed under the project license.
+       - [x] I have read and agree to the project's contributing guidelines
+       - [x] This contribution is my original work (or properly attributed)
+       - [x] I license this contribution under the project's existing license'
     7. Do NOT wait for remote CI. Submit and report result.
     8. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
        This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
