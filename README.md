@@ -402,6 +402,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 026 | Heartbeat stops after diagnostics — agent doesn't pick work | **Fixed** (prompt rewritten) |
 | 027 | maxConcurrent mismatch across config and docs (5 vs 1) | Open |
 | 028 | Sub-agent stall recovery | **Implemented** (detect, kill, retry, skip after 2) |
+| 029 | Heartbeat not executing full loop — replies HEARTBEAT_OK immediately | In Progress |
 
 ## Contributing
 
