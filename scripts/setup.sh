@@ -90,7 +90,7 @@ c['env']['KIMI_API_KEY'] = '${KIMI_API_KEY:-}'
 c['env']['OPENROUTER_API_KEY'] = '${OPENROUTER_API_KEY:-}'
 c['env']['GITHUB_TOKEN'] = '${GITHUB_TOKEN:-}'
 c['env']['DASHBOARD_URL'] = '${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}'
-c['env']['CLAW_API_KEY'] = '${CLAW_API_KEY:-clawoss-dashboard-key-2024}'
+c['env']['CLAW_API_KEY'] = '${CLAW_API_KEY:-}'
 c['env'] = {k:v for k,v in c['env'].items() if v}
 with open('$OPENCLAW_DIR/openclaw.json', 'w') as f: json.dump(c, f, indent=2)
 " 2>/dev/null

@@ -12,7 +12,7 @@
 # Usage: nohup bash scripts/dashboard-sync.sh > /tmp/dashboard-sync.log 2>&1 &
 
 URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
-KEY="${CLAW_API_KEY:-clawoss-dashboard-key-2024}"
+KEY="${CLAW_API_KEY:?Set CLAW_API_KEY env var}"
 DIR="$HOME/.openclaw/agents/clawoss/sessions"
 INTERVAL=10
 OFFSET_DIR="/tmp/dashboard-sync-offsets"

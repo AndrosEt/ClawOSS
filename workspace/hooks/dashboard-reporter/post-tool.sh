@@ -4,7 +4,7 @@
 # Non-blocking: all errors silently ignored
 
 DASHBOARD_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
-API_KEY="${CLAW_API_KEY:-clawoss-dashboard-key-2024}"
+API_KEY="${CLAW_API_KEY:?Set CLAW_API_KEY env var}"
 SESSION_ID="${CLAUDE_SESSION_ID:-agent-session}"
 
 # Read the hook input from stdin
