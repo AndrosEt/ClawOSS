@@ -90,7 +90,7 @@ Use the oss-implement skill for the full process.
 You have access to these tools beyond the standard coding profile:
 - **web_search** — Research issues, find related fixes, check upstream discussions. Uses Perplexity via OpenRouter.
 - **web_fetch** — Read documentation URLs, changelogs, or linked resources from GitHub issues.
-- **image** — Analyze screenshots attached to issues. K2.5 has MoonViT vision encoder.
+- **image** — Analyze screenshots attached to issues. GLM-5 has vision support.
 - **apply_patch** — Apply structured multi-file patches instead of individual file edits.
 - **loop-detection** — Automatic guard against tool-call loops (enabled globally).
 

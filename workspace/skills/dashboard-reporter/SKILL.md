@@ -20,9 +20,9 @@ URL base: `$DASHBOARD_URL` (default: `https://clawoss-dashboard.vercel.app`)
 
 **Metrics** — POST `/api/ingest/metrics`
 ```json
-{"metrics":[{"provider":"openrouter","model":"moonshotai/kimi-k2.5","inputTokens":N,"outputTokens":N,"costUsd":N}]}
+{"metrics":[{"provider":"openrouter","model":"z-ai/glm-5","inputTokens":N,"outputTokens":N,"costUsd":N}]}
 ```
-Cost: `(input * 0.45 + output * 2.20) / 1000000`
+Cost: `(input * 0.72 + output * 2.30) / 1000000`
 
 **Logs** — POST `/api/ingest/logs`
 ```json

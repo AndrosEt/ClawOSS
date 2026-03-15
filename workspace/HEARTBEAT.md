@@ -61,7 +61,7 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 ### Available Tools
 - web_search: Use to research issues, find related fixes, check upstream discussions before implementing
 - web_fetch: Use to read documentation URLs, changelogs, or linked resources from issues
-- image: K2.5 has vision (MoonViT) -- use to analyze screenshots attached to issues
+- image: GLM-5 has vision -- use to analyze screenshots attached to issues
 - apply_patch: Use for multi-file structured patches instead of individual edits
 - loop-detection: Automatically guards against tool-call loops -- enabled globally
 
