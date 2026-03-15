@@ -120,7 +120,7 @@ All notable changes to the ClawOSS project documented chronologically.
 
 - **Sub-agent discipline restored** — Commits `4dfdb11`, `211bf5f`, `b310726`, `6763be3` iterated on maxConcurrent and timeout settings
 - **V6 feature release** — Commit `6d85a5a`: stability, expanded toolkit, stall recovery
-- **Heartbeat prompt fix** — Issue #026: agent stopped after diagnostics without picking work. Prompt rewritten 3 times to be maximally directive (commit `becee7a`)
+- **Heartbeat prompt fix** — Issue #026: agent stopped after diagnostics without picking work. Prompt rewritten 3 times to be maximally directive (commits `748422c`, `becee7a`)
 - **maxConcurrent mismatch fixed** — Issue #027: config says 5, HEARTBEAT.md said 1, AGENTS.md says 5. Resolved: aligned all to maxConcurrent: 5, no timeout (user's explicit preference).
 - **Dashboard live-stats-bar centralized** — Cost model import moved from hardcoded M2.5 pricing to `DEFAULT_COST_MODEL` from `cost-models.ts`
 - **Dashboard canonical URL** — `clawoss-dashboard.vercel.app` is now the canonical domain (was `dashboard-plum-one-37.vercel.app`). All 12 file references updated.

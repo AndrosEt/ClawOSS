@@ -15,6 +15,16 @@ When the OpenClaw gateway configuration is hot-reloaded or restarted (e.g., afte
 - Sub-agents are also killed, losing their isolated context
 - Can leave stale session locks (see issue #002)
 
+## Important: Config Changes Require Restart
+
+OpenClaw config changes do NOT hot-reload. After modifying `config/openclaw.json`, you must restart the gateway:
+
+```bash
+launchctl kickstart -k gui/501/ai.openclaw.gateway
+```
+
+This is the operation that triggers the SIGTERM described above.
+
 ## Workaround
 
 - Minimize gateway restarts during active work

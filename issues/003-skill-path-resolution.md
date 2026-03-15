@@ -42,4 +42,8 @@ None — cosmetic issue. Could be addressed by OpenClaw adding symlink-aware pat
 
 - `scripts/setup.sh` (creates skill symlinks, lines 89-95)
 - `config/openclaw.json` (`skills.load.watch` setting)
-- `workspace/skills/` (all 10 skill directories)
+- `workspace/skills/` (all 15 skill directories)
+
+## Note: Re-run After Adding New Skills
+
+The symlink loop in `setup.sh` must be re-run after adding new skills (e.g., the 5 superpowers skills added in commit `be9f2db`). Otherwise the new skills won't be accessible to the agent. Run `npm run setup` or manually symlink.
