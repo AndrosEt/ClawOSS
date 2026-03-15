@@ -137,7 +137,6 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     Use web_search to research error messages or find related upstream fixes.
     Use image to analyze any screenshots attached to the issue."
   label: "<repo>#<issue>"
-  runTimeoutSeconds: 600
   attachments: [repo-conventions.md, issue-details.md]
 
 Read memory files for repo conventions and issue details BEFORE spawning.
@@ -146,11 +145,11 @@ The sub-agent runs in a FRESH context with zero pollution from prior tasks.
 Do NOT implement in the main session. Wait for the announce step.
 If web_search results were gathered during triage, include a summary in the attachments.
 
-### Sub-Agent Discipline (MUST match config — do NOT change without updating openclaw.json)
+### Sub-Agent Discipline
 - Each sub-agent MUST finish its task, report back in EXTREME DETAIL, and TERMINATE
-- Sub-agents have 600s (10 min) timeout — config: runTimeoutSeconds: 600
-- maxConcurrent: 1 — config enforces ONE sub-agent at a time (serialized execution)
-- The orchestrator NEVER spawns a new sub-agent while one is still active
+- NO hard timeout — sub-agents take as long as they need to do quality work
+- maxConcurrent: 5 — up to 5 sub-agents can work in parallel on different tasks
+- If 5 are already active, wait for one to finish before spawning another
 - Sub-agent report must include: what was done, files changed, tests run, PR URL (if created), or reason for failure
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 - When a sub-agent finishes (announces back), its session is archived automatically
