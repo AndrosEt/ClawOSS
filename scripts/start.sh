@@ -26,19 +26,24 @@ else
     echo "Agent '$AGENT_ID' registered"
 fi
 
-# Register cron jobs
+# Register cron jobs (skip if already registered to avoid duplicates)
 echo "Registering cron jobs..."
+EXISTING_CRONS=$(openclaw cron list --json 2>/dev/null | jq -r '.jobs[] | select(.agentId == "'"$AGENT_ID"'") | .name' 2>/dev/null || true)
 while IFS= read -r job; do
     name=$(echo "$job" | jq -r '.id')
     schedule=$(echo "$job" | jq -r '.schedule')
-    session=$(echo "$job" | jq -r '.session')
     payload=$(echo "$job" | jq -r '.payload')
+
+    if echo "$EXISTING_CRONS" | grep -q "^${name}$"; then
+        echo "  Exists: $name"
+        continue
+    fi
 
     # Non-default agents must use isolated sessions with session-key for persistence
     cmd=(openclaw cron add --name "$name" --agent "$AGENT_ID" --cron "$schedule")
     cmd+=(--session isolated --session-key "agent:${AGENT_ID}:${name}" --message "$payload")
 
-    "${cmd[@]}" 2>/dev/null && echo "  Added: $name" || echo "  Cron job '$name' may already exist"
+    "${cmd[@]}" 2>/dev/null && echo "  Added: $name" || echo "  Failed: $name"
 done < <(jq -c '.[]' "$PROJECT_DIR/config/cron-jobs.json")
 
 # Start OpenClaw gateway (if not already running)
