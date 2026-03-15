@@ -141,6 +141,15 @@ The sub-agent runs in a FRESH context with zero pollution from prior tasks.
 Do NOT implement in the main session. Wait for the announce step.
 If web_search results were gathered during triage, include a summary in the attachments.
 
+### Sub-Agent Discipline
+- Each sub-agent MUST finish its task, report back in EXTREME DETAIL, and TERMINATE
+- Sub-agents have 600s (10 min) timeout — they complete or die
+- The orchestrator NEVER spawns a new sub-agent while one is still active
+- maxConcurrent: 1 — only ONE sub-agent at a time, ever
+- After timeout: sub-agent's announce step still runs, reporting "timed out"
+- Sub-agent report must include: what was done, files changed, tests run, PR URL (if created), or reason for failure
+- Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
+
 ## 6. Handle Sub-Agent Result
 When the sub-agent announces back:
 - If PR submitted: update memory/pipeline-state.md with new PR.
