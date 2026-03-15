@@ -132,11 +132,10 @@ export function PRBuildLogs({ repo, issueNumber }: PRBuildLogsProps) {
       </div>
 
       {Array.from(sessions.entries()).map(([sid, msgs]) => {
-        const isSubagent = sid.includes("subagent:");
-        const shortId = isSubagent
-          ? "sub:" + sid.split(":").pop()?.slice(0, 8)
-          : sid.length > 20
-          ? sid.slice(0, 20) + "..."
+        const firstMsg = msgs[0];
+        const isSubagent = !!(firstMsg?.metadata as Record<string, unknown>)?.isSubagent;
+        const shortId = sid.length > 16
+          ? sid.slice(0, 12) + "..."
           : sid;
 
         return (

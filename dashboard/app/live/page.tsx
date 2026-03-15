@@ -69,9 +69,17 @@ export default function LivePage() {
     let msgs = allMessages;
 
     if (viewMode === "orchestrator") {
-      msgs = msgs.filter((m) => !m.sessionId?.includes("subagent:"));
+      // Show messages from non-subagent sessions
+      const subagentSessionIds = new Set(
+        sessions.filter((s) => s.isSubagent).map((s) => s.sessionId)
+      );
+      msgs = msgs.filter((m) => !subagentSessionIds.has(m.sessionId));
     } else if (viewMode === "subagents") {
-      msgs = msgs.filter((m) => m.sessionId?.includes("subagent:"));
+      // Show messages from subagent sessions only
+      const subagentSessionIds = new Set(
+        sessions.filter((s) => s.isSubagent).map((s) => s.sessionId)
+      );
+      msgs = msgs.filter((m) => subagentSessionIds.has(m.sessionId));
     }
 
     if (roleFilter !== "all") {
@@ -89,9 +97,7 @@ export default function LivePage() {
     return msgs;
   }, [allMessages, viewMode, roleFilter, searchQuery]);
 
-  const subagentCount = sessions.filter(
-    (s) => s.isSubagent || s.sessionId.includes("subagent:")
-  ).length;
+  const subagentCount = sessions.filter((s) => s.isSubagent).length;
 
   const errorCount = allMessages.filter(
     (m) =>

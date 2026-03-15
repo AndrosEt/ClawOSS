@@ -76,7 +76,7 @@ export function ErrorLog({ messages }: ErrorLogProps) {
         sessionId: msg.sessionId,
         content: msg.content,
         errorType: classifyError(msg.content),
-        isSubagent: msg.sessionId?.includes("subagent:") || false,
+        isSubagent: !!(msg.metadata as Record<string, unknown>)?.isSubagent,
       });
     }
 

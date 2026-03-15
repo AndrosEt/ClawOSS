@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { validateApiKey, unauthorizedResponse } from "@/lib/auth-api";
 import { db, ensureDb } from "@/lib/db";
 import { conversationMessages } from "@/lib/schema";
 import { desc, eq, gte, sql, and, type SQL } from "drizzle-orm";
@@ -24,10 +25,12 @@ export async function GET(request: Request) {
           firstMessage: sql<number>`MIN(timestamp)`,
           lastMessage: sql<number>`MAX(timestamp)`,
           messageCount: sql<number>`COUNT(*)`,
-          // Extract repo/issue from the first message's metadata (sub-agent spawn messages)
+          // Extract repo/issue/subagent info from metadata
           repo: sql<string | null>`MAX(json_extract(metadata, '$.repo'))`,
           issue: sql<string | null>`MAX(json_extract(metadata, '$.issue'))`,
           event: sql<string | null>`MAX(json_extract(metadata, '$.event'))`,
+          label: sql<string | null>`MAX(json_extract(metadata, '$.label'))`,
+          isSubagentMeta: sql<number>`MAX(CASE WHEN json_extract(metadata, '$.isSubagent') = 1 THEN 1 ELSE 0 END)`,
         })
         .from(conversationMessages)
         .groupBy(conversationMessages.sessionId)
@@ -44,7 +47,8 @@ export async function GET(request: Request) {
           isActive: s.lastMessage * 1000 > fiveMinutesAgo,
           repo: s.repo || null,
           issue: s.issue || null,
-          isSubagent: s.sessionId.includes("subagent:"),
+          label: s.label || null,
+          isSubagent: s.isSubagentMeta === 1 || s.sessionId.includes("subagent:"),
         })),
       });
     }
@@ -97,6 +101,34 @@ export async function GET(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch conversation", details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!validateApiKey(request)) return unauthorizedResponse();
+
+  try {
+    await ensureDb();
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get("session");
+
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "session parameter required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await db
+      .delete(conversationMessages)
+      .where(eq(conversationMessages.sessionId, sessionId));
+
+    return NextResponse.json({ ok: true, sessionId, deleted: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to delete session", details: String(error) },
       { status: 500 }
     );
   }

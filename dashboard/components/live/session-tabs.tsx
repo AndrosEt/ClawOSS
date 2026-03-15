@@ -15,12 +15,8 @@ export function SessionTabs({
   activeSessionId,
   onSelectSession,
 }: SessionTabsProps) {
-  const mainSessions = sessions.filter(
-    (s) => !s.isSubagent && !s.sessionId.includes("subagent:")
-  );
-  const subSessions = sessions.filter(
-    (s) => s.isSubagent || s.sessionId.includes("subagent:")
-  );
+  const mainSessions = sessions.filter((s) => !s.isSubagent);
+  const subSessions = sessions.filter((s) => s.isSubagent);
 
   return (
     <div className="flex items-center gap-1 px-4 py-1 border-b bg-background/50 overflow-x-auto">
@@ -58,12 +54,16 @@ export function SessionTabs({
 
       {/* Sub-agent sessions */}
       {subSessions.map((session) => {
-        const prLabel =
-          session.repo && session.issue
-            ? `${session.repo}${session.issue}`
-            : session.repo
-            ? session.repo
-            : "sub:" + session.sessionId.split(":").pop()?.slice(0, 8);
+        // Show short label: "mahout#1180" instead of "apache/mahout#1180"
+        const rawLabel =
+          session.label
+            || (session.repo && session.issue ? `${session.repo}${session.issue}` : null)
+            || session.repo
+            || session.sessionId.slice(0, 8);
+        // Strip org prefix for tabs (e.g. "apache/mahout#1180" -> "mahout#1180")
+        const shortLabel = rawLabel.includes("/")
+          ? rawLabel.split("/").slice(1).join("/")
+          : rawLabel;
 
         return (
           <Button
@@ -74,9 +74,10 @@ export function SessionTabs({
             size="sm"
             className="text-[10px] h-6 px-2.5 shrink-0 gap-1.5"
             onClick={() => onSelectSession(session.sessionId)}
+            title={rawLabel}
           >
             <span className="text-yellow-400">{"~>"}</span>
-            <span>Sub: {prLabel}</span>
+            <span>{shortLabel}</span>
             {session.isActive && (
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
             )}

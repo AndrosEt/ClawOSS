@@ -153,6 +153,7 @@ export interface ConversationSession {
   isActive: boolean;
   repo: string | null;
   issue: string | null;
+  label: string | null;
   isSubagent: boolean;
 }
 

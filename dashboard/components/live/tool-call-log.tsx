@@ -62,7 +62,7 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
         errorMsg: isError ? resultMsg?.content?.slice(0, 200) || "Error" : null,
         params: msg.content?.slice(0, 500) || "",
         result: resultMsg?.content?.slice(0, 500) || "",
-        isSubagent: msg.sessionId?.includes("subagent:") || false,
+        isSubagent: !!(msg.metadata as Record<string, unknown>)?.isSubagent,
       });
     }
 
@@ -166,10 +166,9 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                   <span className="text-yellow-400/60 text-[9px]">SUB</span>
                 )}
                 <span className="text-muted-foreground/30 truncate flex-1 text-right">
-                  {entry.sessionId.includes("subagent:")
-                    ? "sub:" +
-                      entry.sessionId.split(":").pop()?.slice(0, 6)
-                    : entry.sessionId.slice(0, 12)}
+                  {entry.sessionId.length > 12
+                    ? entry.sessionId.slice(0, 8) + ".."
+                    : entry.sessionId}
                 </span>
               </button>
               {isExpanded && (

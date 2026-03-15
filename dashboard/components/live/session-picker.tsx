@@ -17,31 +17,21 @@ function getSessionLabel(session: ConversationSession): {
   detail: string | null;
   isSubagent: boolean;
 } {
-  const isSubagent =
-    session.isSubagent || session.sessionId.includes("subagent:");
-
-  if (isSubagent) {
-    const prLabel =
-      session.repo && session.issue
-        ? `${session.repo}${session.issue}`
-        : session.repo
-        ? session.repo
-        : null;
+  if (session.isSubagent) {
+    const label = session.label
+      || (session.repo && session.issue ? `${session.repo}${session.issue}` : null)
+      || session.repo
+      || session.sessionId.slice(0, 8);
     return {
-      name: prLabel
-        ? `Sub: ${prLabel}`
-        : "Sub: " + session.sessionId.split(":").pop()?.slice(0, 8),
-      detail: prLabel ? null : session.sessionId.split(":").pop()?.slice(0, 12) || null,
+      name: `Sub: ${label}`,
+      detail: session.sessionId.slice(0, 12),
       isSubagent: true,
     };
   }
 
   return {
-    name: "Main: ClawOSS Orchestrator",
-    detail:
-      session.sessionId.length > 20
-        ? session.sessionId.slice(0, 20) + "..."
-        : session.sessionId,
+    name: "Main: Orchestrator",
+    detail: session.sessionId.slice(0, 12),
     isSubagent: false,
   };
 }
@@ -51,12 +41,8 @@ export function SessionPicker({
   activeSessionId,
   onSelectSession,
 }: SessionPickerProps) {
-  const mainSessions = sessions.filter(
-    (s) => !s.isSubagent && !s.sessionId.includes("subagent:")
-  );
-  const subSessions = sessions.filter(
-    (s) => s.isSubagent || s.sessionId.includes("subagent:")
-  );
+  const mainSessions = sessions.filter((s) => !s.isSubagent);
+  const subSessions = sessions.filter((s) => s.isSubagent);
 
   return (
     <Card>

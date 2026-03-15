@@ -213,13 +213,18 @@ export function ConversationFeed({
                   {msg.tokenCount.toLocaleString()} tok
                 </span>
               )}
-              {msg.sessionId?.includes("subagent:") && (
+              {!!(msg.metadata as Record<string, unknown>)?.isSubagent && (
                 <Badge
                   variant="outline"
                   className="text-[8px] h-3 px-1 text-yellow-400 border-yellow-400/30"
                 >
                   SUB
                 </Badge>
+              )}
+              {!!(msg.metadata as Record<string, unknown>)?.label && (
+                <span className="text-[9px] text-yellow-400/80 font-mono">
+                  {String((msg.metadata as Record<string, unknown>).label)}
+                </span>
               )}
               {!!(msg.metadata as Record<string, unknown>)?.repo && (
                 <span className="text-[9px] text-cyan-400 font-mono">
@@ -231,10 +236,8 @@ export function ConversationFeed({
               )}
               {msg.sessionId && (
                 <span className="text-[10px] text-muted-foreground/50 font-mono">
-                  {msg.sessionId.includes("subagent:")
-                    ? "sub:" + msg.sessionId.split(":").pop()?.slice(0, 6)
-                    : msg.sessionId.length > 12
-                    ? msg.sessionId.slice(0, 12) + ".."
+                  {msg.sessionId.length > 12
+                    ? msg.sessionId.slice(0, 8) + ".."
                     : msg.sessionId}
                 </span>
               )}

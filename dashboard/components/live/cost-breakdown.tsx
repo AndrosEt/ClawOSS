@@ -35,6 +35,7 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
         durationMs: number;
         repo: string | null;
         issue: string | null;
+        isSubagent: boolean;
       }
     >();
 
@@ -48,6 +49,7 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
         durationMs: 0,
         repo: null,
         issue: null,
+        isSubagent: false,
       };
 
       existing.msgs++;
@@ -72,6 +74,7 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
       const meta = msg.metadata as Record<string, unknown>;
       if (meta?.repo && !existing.repo) existing.repo = String(meta.repo);
       if (meta?.issue && !existing.issue) existing.issue = String(meta.issue);
+      if (meta?.isSubagent) existing.isSubagent = true;
 
       sessions.set(sid, existing);
     }
@@ -86,14 +89,10 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
       const cost =
         inputTokens * inputCostPerToken + outputTokens * outputCostPerToken;
 
-      const isSubagent = sid.includes("subagent:");
+      const isSubagent = val.isSubagent;
       results.push({
         sessionId: sid,
-        displayName: isSubagent
-          ? "sub:" + sid.split(":").pop()?.slice(0, 8)
-          : sid.length > 16
-          ? sid.slice(0, 16) + "..."
-          : sid,
+        displayName: sid.length > 16 ? sid.slice(0, 12) + "..." : sid,
         isSubagent,
         repo: val.repo,
         issue: val.issue,

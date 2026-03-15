@@ -43,9 +43,7 @@ export function GatewayStatus({
     : null;
 
   const activeSessions = sessions.filter((s) => s.isActive);
-  const subagentSessions = sessions.filter(
-    (s) => s.isSubagent || s.sessionId.includes("subagent:")
-  );
+  const subagentSessions = sessions.filter((s) => s.isSubagent);
 
   // Next heartbeat estimate (every 10 min)
   const nextHbEstimate = lastHbDate
@@ -171,8 +169,7 @@ export function GatewayStatus({
         </div>
         {sessions.slice(0, 8).map((s) => {
           const isActive = s.isActive;
-          const isSub =
-            s.isSubagent || s.sessionId.includes("subagent:");
+          const isSub = s.isSubagent;
           const age = Math.floor(
             (Date.now() -
               new Date(
