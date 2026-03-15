@@ -1,5 +1,15 @@
 {
   "agents": {
+    "defaults": {
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "subagents": {
+        "model": "openrouter/minimax/minimax-m2.5",
+        "maxConcurrent": 1,
+        "runTimeoutSeconds": 600
+      }
+    },
     "list": [
       {
         "id": "clawoss",
@@ -10,8 +20,16 @@
         "tools": {
           "profile": "coding"
         },
+        "humanDelay": {
+          "mode": "off"
+        },
         "heartbeat": {
-          "every": "15m"
+          "every": "10m",
+          "model": "openrouter/minimax/minimax-m2.5",
+          "session": "main",
+          "target": "none",
+          "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",
+          "lightContext": true
         }
       }
     ]
@@ -19,6 +37,13 @@
   "gateway": {
     "port": 18789,
     "mode": "local"
+  },
+  "messages": {
+    "queue": {
+      "mode": "collect",
+      "debounceMs": 500,
+      "cap": 10
+    }
   },
   "skills": {
     "load": {
