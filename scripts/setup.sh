@@ -16,13 +16,21 @@ git config --global user.name "BillionClaw"
 git config --global user.email "drsparrowhawk@proton.me"
 echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
 
-# Check gh auth — prompt interactive login if not authenticated
+# Load .env for GITHUB_TOKEN if available
+if [ -f "$PROJECT_DIR/.env" ]; then
+    export GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' "$PROJECT_DIR/.env" | cut -d= -f2)
+fi
+
+# Authenticate gh CLI
 if gh auth status 2>/dev/null; then
     echo "GitHub CLI already authenticated"
+elif [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "$GITHUB_TOKEN" | gh auth login --with-token
+    echo "GitHub CLI authenticated with PAT from .env"
 else
-    echo "GitHub CLI not authenticated. Starting interactive login..."
-    echo "Log in as BillionClaw (https://github.com/BillionClaw)"
-    gh auth login
+    echo "GitHub CLI not authenticated. Run: gh auth login"
+    echo "Or add GITHUB_TOKEN to .env"
+    exit 1
 fi
 
 # Verify gh auth
