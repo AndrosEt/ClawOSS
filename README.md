@@ -716,12 +716,11 @@ The agent maintains persistent state across heartbeat cycles, compactions, and r
     │   Abandoned:   [...with reasons]
     │
     ├── pipeline-state.md ──────── TRACKING (all active PRs)
-    │   20 active PRs with repo, issue, status, date
+    │   PR URLs, repos, issues, status, timestamps
     │
     ├── pr-ledger.md ───────────── DEDUP GUARD (auto-synced)
     │   Never submit two PRs for the same issue.
     │   Auto-updated every 60s via launchd (pr-ledger-sync.sh).
-    │   30 entries across 22 repos (1 merged, 1 closed, 28 open).
     │
     ├── work-queue-staging.md ──── STAGING (race-condition safe)
     │   Cron writes here; heartbeat merges into work-queue.md.

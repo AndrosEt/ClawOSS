@@ -206,10 +206,10 @@ This is the milestone. ClawOSS autonomously discovered an issue, implemented a f
 - Switched to Kimi Code (k2p5) direct API — no content filter, no middleman
 - Coding time for the PR: ~12 minutes autonomous
 
-### Phase 14: Autonomous Operation — 30 PRs Across 22 Repos
+### Phase 14: Autonomous Operation — 32 PRs Across 23 Repos
 
 **Date:** 2026-03-13 to 2026-03-16
-**Status:** RUNNING — 30 PRs submitted, 1 MERGED, across 22 distinct repositories
+**Status:** RUNNING — 32 PRs submitted, 1 MERGED, across 23 distinct repositories
 
 The agent has been submitting PRs autonomously since March 13. Dashboard dynamic PR discovery (replacing hardcoded target repos) revealed the full scope of contributions. Highlights:
 
@@ -219,7 +219,7 @@ The agent has been submitting PRs autonomously since March 13. Dashboard dynamic
 - **Disk cleanup** — Sub-agents now clone to isolated `/tmp/clawoss-<issue>-<timestamp>/` dirs; orchestrator sweeps stale dirs (>60min) every cycle (commit `d303cc4`)
 - **oss-discover trimmed** — From 4076 to 1377 chars to fit 2000-char validation limit
 
-**All 30 PRs submitted (Mar 13-16):**
+**All 32 PRs submitted (Mar 13-16):**
 
 | # | PR | Repo | Status | Date | Description |
 |---|-----|------|--------|------|-------------|
@@ -253,8 +253,10 @@ The agent has been submitting PRs autonomously since March 13. Dashboard dynamic
 | 28 | [#33](https://github.com/windoze95/servicewow-mcp/pull/33) | windoze95/servicewow-mcp | open | 03-15 | Service fix |
 | 29 | [#34](https://github.com/windoze95/servicewow-mcp/pull/34) | windoze95/servicewow-mcp | open | 03-15 | Service fix |
 | 30 | [#41](https://github.com/windoze95/nullfeed-backend/pull/41) | windoze95/nullfeed-backend | open | 03-15 | Backend fix |
+| 31 | [#426](https://github.com/lukilabs/craft-agents-oss/pull/426) | lukilabs/craft-agents-oss | open | 03-15 | OAuth browser window fix (Windows) |
+| 32 | [#789](https://github.com/Xian55/WowClassicGrindBot/pull/789) | Xian55/WowClassicGrindBot | open | 03-15 | Assist Focus GUID check fix |
 
-**Repos contributed to (22):** apache/mahout, apache/arrow, anomalyco/opencode, autokey/autokey, badlogic/pi-mono, can1357/oh-my-pi, darrenhinde/OpenAgentsControl, GLips/Figma-Context-MCP, itdove/devaiflow, jenkinsci/warnings-ng-plugin, manaflow-ai/cmux, mistralai/mistral-vibe, moltis-org/moltis, Nexal-AI/voicecrew, pydantic/pydantic-ai, ray-project/ray, Shopify/ruby-lsp, sonpiaz/4x-game-agent, whoisjayd/yt-study, windoze95/servicewow-mcp, windoze95/nullfeed-backend
+**Repos contributed to (23):** apache/mahout, apache/arrow, anomalyco/opencode, autokey/autokey, badlogic/pi-mono, can1357/oh-my-pi, darrenhinde/OpenAgentsControl, GLips/Figma-Context-MCP, itdove/devaiflow, jenkinsci/warnings-ng-plugin, lukilabs/craft-agents-oss, manaflow-ai/cmux, mistralai/mistral-vibe, moltis-org/moltis, Nexal-AI/voicecrew, pydantic/pydantic-ai, ray-project/ray, Shopify/ruby-lsp, sonpiaz/4x-game-agent, whoisjayd/yt-study, windoze95/servicewow-mcp, windoze95/nullfeed-backend, Xian55/WowClassicGrindBot
 
 **First merge: badlogic/pi-mono#2166** — Accepted and merged by maintainer on 2026-03-14.
 
@@ -264,6 +266,8 @@ The agent has been submitting PRs autonomously since March 13. Dashboard dynamic
 - **anomalyco/opencode#17660** — Fixed light mode detection in Zellij terminal multiplexer by adding COLORFGBG env var and TERM_PROGRAM pattern detection.
 - **whoisjayd/yt-study#56** — Added cookie-based authentication for YouTube transcript fetching, with 276 tests passing.
 - **ray-project/ray#61754** — Contributed to Ray, a major distributed computing framework (83k+ stars).
+- **lukilabs/craft-agents-oss#426** — Fixed OAuth browser window not opening on Windows: replaced `shell.openExternal()` with `openUrl()` fallback in 3 OAuth flows.
+- **Xian55/WowClassicGrindBot#789** — Fixed Assist Focus not working: added GUID checks before target/clear operations, aligning with FollowFocusGoal behavior.
 - **pydantic/pydantic-ai#4648** — Contributed to Pydantic AI, the Python AI framework by the Pydantic team.
 
 ### Research Documents Created
