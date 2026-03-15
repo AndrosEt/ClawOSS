@@ -1270,3 +1270,72 @@ git push origin main
 **Parallelization:** Chunks 1-3 (workspace + skills + scripts) are independent of Chunks 4-7 (dashboard). They can be built simultaneously by separate agents. Chunk 8 depends on all others.
 
 **Estimated files:** ~120 files total (10 workspace configs, 10 skills, 6 scripts, ~90 dashboard files, 5 docs/CI files).
+
+---
+
+## Post-Implementation Notes
+
+*Added 2026-03-16 after implementation was complete.*
+
+### Major Deviations from Plan
+
+#### 1. Model Changed: Claude Sonnet -> Minimax M2.5 via OpenRouter
+
+The plan specified `claude-sonnet-4-6` as the primary model with `claude-haiku-4-5` as fallback. During implementation, the throughput architecture research (`research/06-throughput-architecture.md`) identified Minimax M2.5 as a superior choice:
+- **80.2% SWE-bench Verified** (matches Claude Sonnet's 79.6%)
+- **11x cheaper input tokens, 16x cheaper output tokens**
+- Routed via OpenRouter (`openrouter/minimax/minimax-m2.5`)
+- Model fallback explicitly disabled (`fallbacks: []`) to prevent silent cost spikes
+
+#### 2. Heartbeat Interval: 60min -> 10min
+
+The plan specified 60-minute heartbeat with Haiku model. Implementation uses:
+- **10-minute interval** for faster autonomous loop cycling
+- **M2.5 model** (same as primary, already very cheap)
+- **`lightContext: true`** to minimize context loading per cycle
+- **`session: "main"`** to maintain orchestrator state continuity
+- HEARTBEAT.md embeds safety rules since AGENTS.md is not loaded in light mode
+
+#### 3. Architecture: Flat Agent -> Orchestrator + Sub-Agent (v5)
+
+The original plan described a single agent handling all phases. The v5 throughput architecture introduced:
+- **Main session as orchestrator**: handles heartbeat loop, work queue management, PR follow-ups, dashboard reporting
+- **Sub-agents via `sessions_spawn`**: handle implementation in fresh isolated contexts (zero cross-task pollution)
+- **Staging file pattern**: cron jobs write to `*-staging.md` files; orchestrator merges into main work queue to prevent race conditions
+- **Circuit breakers**: `wake-state.md` tracks consecutive wakes, hourly errors
+- Required enabling `tools.sessions_spawn.attachments.enabled: true`
+
+#### 4. Cron Jobs Redesigned
+
+| Plan | Implementation |
+|------|---------------|
+| daily-discovery (8am, Sonnet) | work-queue-refill (every 2h, isolated session) |
+| pr-followup-check (every 4h, main session) | pr-followup-scan (every 30min, main session) |
+| daily-report (11pm, Haiku) | daily-report (11pm, isolated session) |
+| weekly-retrospective (Monday 9am, Opus) | weekly-retrospective (Monday 9am, isolated session) |
+| memory-cleanup (Sunday 3am, Haiku) | memory-cleanup (Sunday 3am, isolated session) |
+
+Key changes: more frequent discovery and PR scanning, all non-main jobs use isolated sessions, no model-specific routing (all use default M2.5).
+
+#### 5. GitHub Identity Email
+
+Changed from `drsparrowhawk@proton.me` to `billionclaw+clawoss@users.noreply.github.com` to avoid triggering OpenRouter's content filter which replaces email addresses with `[EMAIL]`.
+
+#### 6. Dashboard Deployment
+
+Dashboard deployed to Vercel at `dashboard-plum-one-37.vercel.app` (auto-assigned URL). Custom domain `clawoss-dashboard.vercel.app` pending. Database uses Turso (SQLite edge DB) for persistent data storage.
+
+### Issues Discovered During Implementation
+
+10 issues documented in `issues/` directory:
+- 4 open issues (content filter poisoning, session lock contention, skill path warnings, context window overflow)
+- 5 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost)
+- 1 informational (throughput expectations reframed)
+
+### Verification Status
+
+- Config validation (`node scripts/validate-config.mjs`): PASSED
+- Dashboard build: PASSED (deployed to Vercel)
+- Autonomous loop: VERIFIED (heartbeat + cron + sub-agent pipeline confirmed working)
+- All 10 skills: created and validated (under 2000 char limit)
+- All 6 scripts: created and executable
