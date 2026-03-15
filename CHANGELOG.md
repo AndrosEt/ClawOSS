@@ -96,6 +96,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Dashboard URL updated** — Deployed at `clawoss-dashboard.vercel.app`
 - **20 issues tracked** — 10 fixed, 10 open (1 critical: .env secrets)
 - **OpenClaw hooks documented** — Added dashboard-reporter and audit-logger hooks to README (issue #020)
+- **Context rot prevention** — Added compaction thresholds (reserveTokens, keepRecentTokens, maxHistoryShare), memory flush at 150K tokens, postCompactionSections to preserve critical state across compactions. HEARTBEAT.md step 0 split into 0a (Context Health) and 0b (Circuit Breakers). AGENTS.md "Context Rot Prevention" section added. Prevents 113% context overflow that broke the agent. (commit `d9e1e47`)
 
 ### Phase 12: Model Switch to Kimi K2.5
 
