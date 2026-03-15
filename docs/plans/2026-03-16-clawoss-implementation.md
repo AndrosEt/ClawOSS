@@ -1347,5 +1347,5 @@ Post-build, the primary model was switched from Minimax M2.5 to Moonshot Kimi K2
 - Config validation (`node scripts/validate-config.mjs`): PASSED (29/29)
 - Dashboard build: PASSED (deployed to Vercel)
 - Autonomous loop: VERIFIED (heartbeat + cron + sub-agent pipeline confirmed working)
-- All 10 skills: created and validated (under 2000 char limit)
+- All 15 skills: created and validated (10 custom + 5 superpowers, all under 2000 char limit)
 - All 6 scripts: created and executable

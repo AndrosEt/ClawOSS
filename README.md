@@ -93,7 +93,7 @@ ClawOSS/
 │   ├── AGENTS.md               # Core behavioral contract
 │   ├── SOUL.md                 # Persona and boundaries
 │   ├── HEARTBEAT.md            # Periodic work checklist
-│   ├── skills/                 # 10 custom skills
+│   ├── skills/                 # 15 skills (10 custom + 5 superpowers)
 │   │   ├── oss-discover/       # Find issues to work on
 │   │   ├── oss-implement/      # Write code and tests
 │   │   ├── oss-review/         # 7-gate self-review
