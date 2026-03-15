@@ -6,7 +6,9 @@
 
   "identity": {
     "name": "ClawOSS",
-    "theme": "lobster"
+    "theme": "lobster",
+    "github": "BillionClaw",
+    "email": "drsparrowhawk@proton.me"
   },
 
   "agents": {
@@ -28,7 +30,8 @@
         }
       },
       "heartbeat": {
-        "every": "30m",
+        "every": "60m",
+        "model": "claude-haiku-4-5",
         "prompt": "Run the heartbeat checklist in HEARTBEAT.md"
       },
       "sandbox": {
@@ -39,6 +42,10 @@
         ]
       },
       "compaction": {
+        "mode": "auto",
+        "targetTokens": 500000,
+        "model": "claude-haiku-4-5",
+        "keepRecentTokens": 50000,
         "memoryFlush": true
       },
       "imageMaxDimensionPx": 1024

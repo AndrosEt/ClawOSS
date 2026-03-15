@@ -8,8 +8,20 @@ command -v openclaw >/dev/null 2>&1 || { echo "Error: openclaw CLI not found. In
 command -v gh >/dev/null 2>&1 || { echo "Error: gh CLI not found. Install from https://cli.github.com"; exit 1; }
 command -v node >/dev/null 2>&1 || { echo "Error: node not found"; exit 1; }
 
-# Check gh auth
-gh auth status || { echo "Error: gh not authenticated. Run 'gh auth login'"; exit 1; }
+# Configure git identity for BillionClaw
+git config --global user.name "BillionClaw"
+git config --global user.email "drsparrowhawk@proton.me"
+echo "Git identity set to BillionClaw <drsparrowhawk@proton.me>"
+
+# Check gh auth — must be logged in as BillionClaw
+if gh auth status 2>&1 | grep -q "BillionClaw"; then
+    echo "GitHub CLI authenticated as BillionClaw"
+else
+    echo "Warning: gh CLI not authenticated as BillionClaw."
+    echo "Run: gh auth login"
+    echo "Log in with the BillionClaw account."
+    exit 1
+fi
 
 # Create workspace symlink
 WORKSPACE_DIR="$HOME/.openclaw/workspace"
