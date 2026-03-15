@@ -18,11 +18,11 @@
         ]
       },
       "model": {
-        "primary": "openrouter/z-ai/glm-5",
+        "primary": "kimi-coding/k2p5",
         "fallbacks": []
       },
       "subagents": {
-        "model": "openrouter/z-ai/glm-5",
+        "model": "kimi-coding/k2p5",
         "maxConcurrent": 5
       }
     },
@@ -32,7 +32,7 @@
         "default": true,
         "name": "ClawOSS",
         "workspace": "/Users/kevinlin/clawOSS/workspace",
-        "model": "openrouter/z-ai/glm-5",
+        "model": "kimi-coding/k2p5",
         "tools": {
           "profile": "coding"
         },
@@ -41,7 +41,7 @@
         },
         "heartbeat": {
           "every": "10m",
-          "model": "openrouter/z-ai/glm-5",
+          "model": "kimi-coding/k2p5",
           "session": "main",
           "target": "none",
           "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK. You MUST: check work queue, pick a task, spawn a sub-agent, and self-wake after completion. HEARTBEAT_OK is ONLY valid when there is literally zero work available. If work exists, DO IT.",
