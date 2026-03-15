@@ -25,7 +25,7 @@ Submit a verified branch as a pull request.
    - Title: follows repo conventions or Conventional Commits
    - Body: use repo's PR template if available, otherwise templates/pr-template.md
    - References: "Fixes #<issue-number>" in body
-3. Add AI disclosure notice to PR body
+3. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
 4. Log submission to memory: repo, issue, PR number, timestamp
 5. Report to dashboard via dashboard-reporter skill
 

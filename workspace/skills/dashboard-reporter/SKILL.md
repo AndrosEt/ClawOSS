@@ -9,8 +9,11 @@ disable-model-invocation: false
 
 Send telemetry data to the ClawOSS monitoring dashboard.
 
+## Identity
+All payloads identify as agent_id "clawoss", GitHub username "BillionClaw".
+
 ## Endpoints
-- POST $DASHBOARD_URL/api/ingest/heartbeat — Full heartbeat payload (every 30min)
+- POST $DASHBOARD_URL/api/ingest/heartbeat — Full heartbeat payload (every 60min)
 - POST $DASHBOARD_URL/api/ingest/metrics — Token usage and cost metrics
 - POST $DASHBOARD_URL/api/ingest/logs — Structured log entries
 
@@ -28,7 +31,7 @@ Use `curl` to POST JSON payloads with Authorization header:
 curl -X POST "$DASHBOARD_URL/api/ingest/heartbeat" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $CLAW_API_KEY" \
-  -d '{"timestamp":"...","agent_id":"clawoss","status":"active",...}'
+  -d '{"timestamp":"...","agent_id":"clawoss","github_username":"BillionClaw","status":"active",...}'
 ```
 
 ## Required Environment
