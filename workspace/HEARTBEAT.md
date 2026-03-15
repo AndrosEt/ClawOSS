@@ -115,7 +115,11 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
-- Queue empty AND queue has < 10 items --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
+- Queue has < 5 items --> run oss-discover with BROAD scope:
+  Search across ALL of GitHub, multiple languages (rust, python, typescript, go, java).
+  Target 20-30 candidate issues per discovery cycle.
+  Diversify across repos — max 3 issues from the same repo.
+  Score >= 5 to enter queue. If nothing found, HEARTBEAT_OK.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 
 ## 4. Triage (in main session, < 3 min)
