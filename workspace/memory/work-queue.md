@@ -1,18 +1,22 @@
 # Work Queue
 
+## In Progress
 | priority | repo | issue | title | score | notes |
 |----------|------|-------|-------|-------|-------|
-| 1 | sonpiaz/4x-game-agent | 8 | Add iOS device interface | 6 | enhancement - LAST TRY |
-| 2 | apache/mahout | 1183 | Improve PyTorch reader coverage | 7 | IN PROGRESS |
-| 3 | apache/mahout | 1180 | Add tests for streaming amplitude encoder | 7 | IN PROGRESS |
-| 4 | apache/mahout | 1181 | Add tests for streaming angle encoder | 7 | IN PROGRESS |
-| 5 | windoze95/servicewow-mcp | 30 | Security: Update hono dependency | 8 | IN PROGRESS |
-| 6 | windoze95/nullfeed-backend | 33 | Performance: Inefficient Table Scan | 8 | simple fix |
+| 1 | apache/arrow | 49503 | [Docs][Python] Document .pxi doctests | 6 | documentation |
+| 2 | devaiflow | 162 | Enable daf note command inside Claude Code | 6 | feature |
 
-## Completed
+## Completed (8 PRs)
 | repo | issue | pr | completed |
 |------|-------|-----|-----------|
 | apache/mahout | 1184 | https://github.com/apache/mahout/pull/1191 | 2026-03-16 |
+| windoze95/servicewow-mcp | 30 | https://github.com/windoze95/servicewow-mcp/pull/33 | 2026-03-16 |
+| apache/mahout | 1183 | https://github.com/apache/mahout/pull/1192 | 2026-03-16 |
+| windoze95/nullfeed-backend | 33 | https://github.com/windoze95/nullfeed-backend/pull/41 | 2026-03-16 |
+| apache/mahout | 1181 | https://github.com/apache/mahout/pull/1193 | 2026-03-16 |
+| apache/mahout | 1180 | https://github.com/apache/mahout/pull/1194 | 2026-03-16 |
+| sonpiaz/4x-game-agent | 8 | https://github.com/sonpiaz/4x-game-agent/pull/10 | 2026-03-16 |
+| windoze95/servicewow-mcp | 29 | https://github.com/windoze95/servicewow-mcp/pull/34 | 2026-03-16 |
 
 ## Skipped (Assigned)
 | repo | issue | reason |

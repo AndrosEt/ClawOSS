@@ -10,9 +10,11 @@
 | https://github.com/windoze95/nullfeed-backend/pull/41 | windoze95/nullfeed-backend | #33 | open | 2026-03-16 |
 | https://github.com/apache/mahout/pull/1193 | apache/mahout | #1181 | open | 2026-03-16 |
 | https://github.com/apache/mahout/pull/1194 | apache/mahout | #1180 | open | 2026-03-16 |
+| https://github.com/sonpiaz/4x-game-agent/pull/10 | sonpiaz/4x-game-agent | #8 | open | 2026-03-16 |
+| https://github.com/windoze95/servicewow-mcp/pull/34 | windoze95/servicewow-mcp | #29 | open | 2026-03-16 |
 
 ## Stats Today
-- submitted: 6
+- submitted: 8
 - merged: 0
 - rejected: 0
 - abandoned: 0
