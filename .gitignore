@@ -25,6 +25,10 @@ config/auth-profiles.json
 /workspace/ruby-lsp/
 /workspace/ray/
 /workspace/arrow/
+/workspace/WowClassicGrindBot/
+/workspace/craft-agents-oss/
+/workspace/crosspoint-reader/
+/workspace/fluxer/
 
 # OpenClaw runtime data
 /workspace/.openclaw/
