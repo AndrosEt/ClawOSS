@@ -4,6 +4,11 @@
 # Reads sessions.json to identify subagent sessions and their labels.
 # Bypasses OpenClaw hooks entirely — pure filesystem polling.
 #
+# Features:
+#   - PID lock file prevents duplicate instances
+#   - Self-updates: watches its own script file and restarts on change
+#   - Stale lock cleanup on startup
+#
 # Usage: nohup bash scripts/dashboard-sync.sh > /tmp/dashboard-sync.log 2>&1 &
 
 URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
@@ -12,9 +17,32 @@ DIR="$HOME/.openclaw/agents/clawoss/sessions"
 INTERVAL=10
 OFFSET_DIR="/tmp/dashboard-sync-offsets"
 SESSION_MAP="/tmp/dashboard-sync-session-map.json"
+LOCK_FILE="/tmp/dashboard-sync.pid"
+SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 mkdir -p "$OFFSET_DIR"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
+
+# --- PID lock: prevent duplicate instances ---
+if [ -f "$LOCK_FILE" ]; then
+  OLD_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    # Another instance is genuinely running — check if it's actually this script
+    OLD_CMD=$(ps -p "$OLD_PID" -o command= 2>/dev/null)
+    if echo "$OLD_CMD" | grep -q "dashboard-sync"; then
+      log "Another instance running (PID $OLD_PID). Exiting."
+      exit 0
+    fi
+  fi
+  log "Stale lock file found (PID $OLD_PID). Cleaning up."
+  rm -f "$LOCK_FILE"
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"; exit' EXIT INT TERM
+
+# --- Self-update: record script checksum at startup ---
+script_checksum() { md5 -q "$SCRIPT_PATH" 2>/dev/null || md5sum "$SCRIPT_PATH" 2>/dev/null | cut -d' ' -f1; }
+STARTUP_CHECKSUM=$(script_checksum)
 
 # Build session metadata map from sessions.json
 # Maps sessionId -> {isSubagent, label, spawnedBy}
@@ -59,9 +87,27 @@ CYCLE=0
 while true; do
   CYCLE=$((CYCLE + 1))
 
+  # --- Self-update check every 6 cycles (60 seconds) ---
+  if [ $((CYCLE % 6)) -eq 0 ]; then
+    CURRENT_CHECKSUM=$(script_checksum)
+    if [ -n "$CURRENT_CHECKSUM" ] && [ "$CURRENT_CHECKSUM" != "$STARTUP_CHECKSUM" ]; then
+      log "Script changed on disk (was $STARTUP_CHECKSUM, now $CURRENT_CHECKSUM). Restarting..."
+      rm -f "$LOCK_FILE"
+      exec bash "$SCRIPT_PATH"
+    fi
+  fi
+
   # Rebuild session map every 6 cycles (60 seconds) to pick up new sessions
   if [ $((CYCLE % 6)) -eq 1 ]; then
     build_session_map
+  fi
+
+  # --- PR Ledger sync every 6 cycles (60 seconds) ---
+  if [ $((CYCLE % 6)) -eq 3 ]; then
+    SYNC_SCRIPT="$(dirname "$SCRIPT_PATH")/pr-ledger-sync.sh"
+    if [ -f "$SYNC_SCRIPT" ]; then
+      bash "$SYNC_SCRIPT" >> /tmp/pr-ledger-sync.log 2>&1 || log "pr-ledger-sync failed"
+    fi
   fi
 
   # --- Heartbeat ---

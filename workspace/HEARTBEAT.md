@@ -210,8 +210,9 @@ For each result file:
 - Read it to get the sub-agent's outcome.
 - If Status: success and PR URL present:
   - Update memory/pipeline-state.md with new PR.
-  - Append the new PR to memory/pr-ledger.md (repo, issue, pr_url, status, date).
   - Remove the issue from memory/work-queue.md.
+  - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via dashboard-sync).
+    It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 - Delete the result file after processing.
