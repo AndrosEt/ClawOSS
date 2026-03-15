@@ -117,6 +117,8 @@ ClawOSS/
 ├── config/
 │   ├── openclaw.json           # Gateway configuration (Kimi K2.5 via OpenRouter)
 │   └── cron-jobs.json          # Scheduled job definitions (5 jobs)
+├── plugins/                   # OpenClaw plugins (compiled)
+│   └── pii-sanitizer/         # Compiled PII sanitizer (also in workspace/hooks/)
 ├── dashboard/                  # Next.js 15 Vercel monitoring app (Turso DB)
 ├── issues/                     # Known issues and limitations tracker
 ├── research/                   # Architecture research and analysis docs
@@ -277,12 +279,22 @@ Key settings in `config/openclaw.json`:
 
 The Next.js 15 Vercel dashboard provides real-time monitoring backed by a Turso (SQLite edge) database (`clawoss-cmlkevin.aws-us-east-1.turso.io`):
 
-- **Overview** — Agent status, key metrics, activity timeline, current task
-- **PR Tracker** — All submitted PRs with status, quality scores, review state
+- **Overview** — Agent status, key metrics, activity timeline, current task, pipeline status bar (heartbeats/hr, errors/hr, model, pricing, PII sanitizer status)
+- **PR Tracker** — All submitted PRs with status, quality scores, review state, build logs
 - **Health** — Token usage, cost tracking, heartbeat status, error rates
 - **Quality** — Quality score trends, by-repo breakdown, rejection analysis
 - **Logs** — Filterable log stream with infinite scroll
-- **Live Feed** — Real-time conversation stream with session picker and auto-scroll
+- **Live Feed** — Full-featured conversation monitor:
+  - Session tabs: orchestrator + per-sub-agent tabs with green pulse on active sessions
+  - View modes: unified timeline, orchestrator only, sub-agents only
+  - Main tabs: Feed / Tools / Errors / Costs
+  - Sidebar tabs: State / Gateway / Stats
+  - Tool call log with duration tracking, success/fail color-coding, search
+  - Error log with classified error types (403-filter, timeout, ENOENT, rate-limit, etc.)
+  - Cost breakdown per session with $/hour rate and K2.5 pricing
+  - Gateway status panel (port, model, sessions, heartbeat, skills)
+  - PII sanitizer indicators (header badge, per-message PII badges, filter counter)
+  - Raw JSON toggle per message, pause-on-hover, slow tool highlighting (>5s/10s)
 - **Settings** — Target repos, quality thresholds, notification config
 
 Tech stack: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Recharts, Drizzle ORM, Turso, SWR.
