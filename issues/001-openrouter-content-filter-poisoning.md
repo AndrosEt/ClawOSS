@@ -1,38 +1,45 @@
 # 001: OpenRouter Content Filter — GitHub Issue Content Poisoning
 
-**Status:** Open
-**Severity:** Medium
+**Status:** Mitigated
+**Severity:** High (upgraded from Medium — causes 403 infinite loops)
 **Component:** OpenRouter Gateway / Minimax M2.5
 
 ## Description
 
-When the agent reads GitHub issue content that contains email addresses or phone numbers, OpenRouter's content filter replaces them with `[EMAIL]` and `[PHONE]` placeholders. This polluted content then persists in the agent's session context and memory files, poisoning downstream operations.
+When the agent reads GitHub issue content that contains email addresses or phone numbers, OpenRouter's content filter either:
+1. Replaces them with `[EMAIL]` and `[PHONE]` placeholders (garbling text), OR
+2. **Blocks the entire request with a 403 error** when the PII content is in the session history
 
-For example, if an issue body contains `contact@example.com`, the agent sees `[EMAIL]` instead. If this gets written to memory files or included in PR descriptions, it produces confusing output.
+The 403 behavior is the more severe problem: once PII-containing text enters the session context, every subsequent API call fails with 403, creating an infinite loop that blocks all agent operations until the session is reset.
 
 ## Root Cause
 
-OpenRouter applies content filtering on all text passing through its API, including tool outputs and system messages. This is a platform-level behavior that cannot be disabled through ClawOSS configuration. Minimax M2.5 via OpenRouter inherits this filter regardless of the prompt.
+OpenRouter applies content filtering on all text passing through its API, including tool outputs and system messages. When `[EMAIL]` or `[PHONE]` patterns appear in the conversation history sent to the API, it triggers a 403 rejection. This is a platform-level behavior that cannot be disabled through ClawOSS configuration.
 
 ## Impact
 
-- Memory files may contain `[EMAIL]` and `[PHONE]` placeholders instead of actual content
+- **Critical:** 403 infinite loops block all agent turns until session reset
+- Memory files may contain `[EMAIL]` and `[PHONE]` placeholders
 - PR descriptions that reference issue content may include garbled filter artifacts
-- Agent's understanding of issue context is degraded when contact information is relevant
+- Agent's understanding of issue context is degraded
 - Particularly affects issues in projects that discuss email/phone functionality
 
-## Workaround
+## Mitigation Applied (commit 6a84563)
 
-- Avoid writing raw GitHub issue content directly to memory files
-- Summarize issue content rather than quoting it verbatim
-- For issues involving email/phone functionality, the agent may need to re-read the original issue via `gh issue view` each time rather than relying on cached context
+Safety rules added to `AGENTS.md`, `HEARTBEAT.md`, and `oss-discover` skill:
+- Never copy raw issue text verbatim — always summarize instead
+- Use `--json` flag with `gh` commands for structured data only
+- Skip items with PII patterns (`[EMAIL]`, `[PHONE]`)
+- Never retry 403 errors — treat as permanent failure and skip
+- If 403 occurs, the current item is poisoned — abandon and move to next
 
-## Fix Applied
+## Remaining Risk
 
-None — this is an inherent limitation of the OpenRouter platform. Direct MiniMax API access would avoid this filter but loses OpenRouter's provider fallback routing.
+The mitigation is behavioral (prompt-based), not enforced. If the agent encounters PII before these rules take effect (e.g., in a new context without AGENTS.md loaded in lightContext mode), it can still get stuck. The HEARTBEAT.md now includes these rules inline for lightContext safety.
 
 ## Related Files
 
+- `workspace/AGENTS.md` (content filter safety rules)
+- `workspace/HEARTBEAT.md` (inline safety rules for lightContext)
+- `workspace/skills/oss-discover/SKILL.md` (PII skip rules)
 - `config/openclaw.json` (model routing configuration)
-- `workspace/AGENTS.md` (memory management instructions)
-- `workspace/skills/oss-discover/SKILL.md` (issue discovery)

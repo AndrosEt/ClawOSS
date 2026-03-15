@@ -342,7 +342,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 
 | # | Issue | Status |
 |---|-------|--------|
-| 001 | OpenRouter content filter poisons sessions with `[EMAIL]`/`[PHONE]` | Open |
+| 001 | OpenRouter content filter causes 403 loops with PII content | **Mitigated** (safety rules) |
 | 002 | Stale agent processes hold session locks | Open |
 | 003 | Symlinked skills get "outside root" warnings | Open |
 | 004 | Sessions can exceed M2.5's 196K context window | Open (mitigated) |

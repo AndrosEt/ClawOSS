@@ -87,6 +87,15 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Post-Implementation Notes** added to implementation plan documenting all deviations
 - **This CHANGELOG**
 
+### Phase 11: Post-Build Fixes (ongoing)
+
+- **Content filter 403 loop prevention** — Added safety rules to AGENTS.md, HEARTBEAT.md, and oss-discover to prevent PII content from poisoning sessions (commit `6a84563`)
+- **Stale model references fixed** — Removed Haiku/Sonnet references from oss-review and safety-checker skills
+- **TOOLS.md line limit fixed** — Changed from 500 to 200 to match all other files
+- **Dashboard Live Feed documented** — Added `/live` page to README
+- **Dashboard URL updated** — Custom domain `clawoss-dashboard.vercel.app` configured
+- **19 issues tracked** — 10 fixed, 9 open (1 critical: .env secrets)
+
 ### Research Documents Created
 
 | Document | Content |
