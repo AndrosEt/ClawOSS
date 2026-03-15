@@ -1,7 +1,7 @@
 # 001: OpenRouter Content Filter — GitHub Issue Content Poisoning
 
-**Status:** Fixed (PII sanitizer hook deployed — commits f4872f9, de1505f)
-**Severity:** High (upgraded from Medium — causes 403 infinite loops)
+**Status:** Partially Fixed (tool results sanitized, but model's own output unsolvable — see #033)
+**Severity:** Critical (BLOCKING — prevents autonomous PRs via OpenRouter)
 **Component:** OpenRouter Gateway / Kimi K2.5 (originally observed with Minimax M2.5)
 
 ## Description
@@ -54,6 +54,14 @@ The PII sanitizer hook (`workspace/hooks/pii-sanitizer/handler.ts`) now strips P
 - Works regardless of whether AGENTS.md is loaded (hook-level enforcement vs prompt-level behavioral rules)
 
 The behavioral rules in AGENTS.md and HEARTBEAT.md remain as defense-in-depth.
+
+## Unsolvable Gap: Model's Own Output (#033)
+
+The PII sanitizer fixes tool results but **cannot fix the model's own generated code**. When the model writes Python decorators (`@pytest.fixture`), Java annotations (`@Override`), or any code with `@` symbols, that output enters the session history as an assistant message. No OpenClaw hook can intercept the model's streaming response before it is stored.
+
+On the next API call, the full history — including the `@`-containing assistant message — is sent to OpenRouter, which blocks it with 403.
+
+**This is fundamentally unsolvable on OpenRouter.** The solution is to use the Moonshot API directly (which has no `@` content filter). See issue #033.
 
 ## Related Files
 

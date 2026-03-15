@@ -376,7 +376,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 
 | # | Issue | Status |
 |---|-------|--------|
-| 001 | OpenRouter content filter causes 403 loops with PII content | **Fixed** (PII sanitizer hook) |
+| 001 | OpenRouter content filter causes 403 loops with PII content | Partially Fixed (tool results sanitized, model output unsolvable — see #033) |
 | 002 | Stale agent processes hold session locks | Open |
 | 003 | Symlinked skills get "outside root" warnings | Open |
 | 004 | Sessions can exceed model context window (262K for K2.5) | Open (mitigated) |
@@ -408,6 +408,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 030 | PII sanitizer plugin — permanent content filter fix | **Implemented** (fullwidth @ + PII stripping) |
 | 031 | Work queue trap — 403 kills before error handling can execute | **Mitigated** (blocklist + PII sanitizer) |
 | 032 | Telemetry gap — 403 failures not reported to dashboard | Open |
+| 033 | OpenRouter blocks model's own code output with @ symbols | Open (BLOCKING — need Moonshot API key) |
 
 ## Contributing
 
