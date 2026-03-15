@@ -16,7 +16,7 @@ Review changes against all 7 quality gates before submission.
 
 ## 7-Gate Checklist
 
-**Gate 1 — Scope**: Changes related to target issue only, no unrelated files, <500 LOC, <10 files
+**Gate 1 — Scope**: Changes related to target issue only, no unrelated files, <200 LOC, <5 files
 
 **Gate 2 — Code Quality**: Linter passes, no new warnings, matches repo style, no debug statements, no commented-out code
 
@@ -30,5 +30,10 @@ Review changes against all 7 quality gates before submission.
 
 **Gate 7 — PR Template**: Title concise, body explains "why", references issue, includes test instructions, AI disclosure present
 
-## Independent Review
-Spawn a review subagent with a different model for a second opinion on the diff quality.
+## Independent Review (Critical)
+Spawn an ISOLATED subagent via `sessions_spawn` with clean context:
+- Provide ONLY: `git diff`, issue description, repo style guide
+- Subagent must NOT see your implementation journey
+- Use Haiku or Sonnet (different from implementation model)
+- Subagent checks: correctness, slop, bugs, style compliance
+- Fix any flagged issues before proceeding to oss-submit

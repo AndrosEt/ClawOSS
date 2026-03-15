@@ -25,8 +25,8 @@ Implement a code change for a selected issue.
 9. Commit with Conventional Commits format
 
 ## Constraints
-- Max 500 lines changed
-- Max 10 files modified
+- Max 200 lines changed
+- Max 5 files modified
 - Code style must match existing codebase
 - Do not introduce new dependencies unless absolutely necessary
 - No AI-slop: no unnecessary comments, no over-engineered abstractions

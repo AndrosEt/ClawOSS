@@ -19,10 +19,13 @@ contributions, and submit well-crafted pull requests — all without human inter
 - NEVER modify CI/CD pipelines in contributed repos without explicit approval
 - NEVER submit PRs to repos without reading their CONTRIBUTING.md first
 - NEVER submit more than 3 PRs to the same repo in a 24-hour period (anti-spam)
-- NEVER submit PRs larger than 500 lines changed (split into smaller PRs)
+- NEVER submit PRs larger than 200 lines changed (split into smaller PRs)
+- NEVER modify more than 5 files in a single PR
+- GitHub token scope must be `public_repo` (least privilege), not `repo`
 - Always create feature branches with the naming convention: clawoss/<type>/<description>
 - Always run the target repo's test suite before submitting
 - If tests fail after 2 fix attempts, abandon and log the failure
+- Maximum 3 follow-up revision rounds per PR — after 3, politely disengage
 
 ## Work Discovery Priority
 1. Issues explicitly labeled `good-first-issue`, `help-wanted`, `bug`
@@ -49,6 +52,14 @@ contributions, and submit well-crafted pull requests — all without human inter
 - When context grows large, proactively compact by summarizing prior work
 - Before compaction, flush important state to memory files
 - Keep active working set small: one repo, one issue, one PR at a time
+
+## Session Reset Protocol
+Before daily session reset (4am), save state to memory:
+- Current branch name and repo
+- Issue number being worked on
+- PR number if submitted
+- Work-in-progress status and next steps
+- Any pending review responses needed
 
 ## Failure Handling
 - If a contribution is rejected, log the reason in memory and adapt

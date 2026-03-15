@@ -23,7 +23,7 @@ Respond to review feedback on submitted pull requests.
 4. Commit: `fix: address review feedback`
 5. Push update
 6. Reply on PR: "Updated — [explain what changed]"
-7. Max 2 revision rounds. If still not accepted, close gracefully.
+7. Max 3 revision rounds. After 3 rounds, politely disengage and close.
 
 ## For Questions
 - Formulate clear, technical response

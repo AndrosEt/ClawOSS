@@ -1,6 +1,6 @@
 # Heartbeat Checklist
 
-On each heartbeat (every 30 minutes):
+On each heartbeat (every 60 minutes):
 
 1. **Check active PRs**: Use `gh pr list --author @me` to check for review comments
    - If reviews received, trigger oss-followup skill
