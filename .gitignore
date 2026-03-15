@@ -28,4 +28,5 @@ config/auth-profiles.json
 
 # OpenClaw runtime data
 /workspace/.openclaw/
+/workspace/worktrees/
 .claude/
