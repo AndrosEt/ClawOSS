@@ -40,18 +40,22 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
 
-### Content Filter Safety
-- OpenRouter's content filter blocks PII patterns: emails, phone numbers, SSNs, credit card numbers
-- NEVER include raw phone numbers, email addresses, SSNs, credit card numbers, or any PII in tool results or memory files
-- When reading GitHub issues, summarize the content — do not copy raw issue text verbatim
-- If a tool result contains PII, extract only the technical details (title, labels, description summary)
-- If you get a 403 content filter error, do NOT retry — skip the item and move on
-- Sanitize ALL external text before storing: strip patterns like XXX-XX-XXXX (SSN), XXXX-XXXX-XXXX-XXXX (CC), email addresses, phone numbers
+### Content Filter Safety (CRITICAL — OpenRouter blocks emails in ANY context)
+- OpenRouter's content filter blocks PII patterns: emails, phone numbers, SSNs, credit cards
+- This applies to ALL text sent to the model — including file contents read by tools
+- NEVER read full package.json, package-lock.json, setup.py, Cargo.toml, pyproject.toml — they contain author emails
+- Use `grep` or `jq` to extract ONLY the fields you need (name, version, dependencies)
+- NEVER read full lock files (package-lock.json, yarn.lock, Gemfile.lock)
+- If you need repo metadata, use `jq '.name, .version, .scripts' package.json` not `cat package.json`
+- When cloning repos, do NOT read every file — target only the files relevant to the issue
+- If you get a 403 content filter error: IMMEDIATELY skip this task, move to the next one
+- Do NOT retry after 403 — the session is poisoned, move on
+- Sanitize ALL external text before storing in memory files
 
 ### Context Management
 - Before spawning a sub-agent, check orchestrator context with session_status
 - If orchestrator context > 60%, flush state to memory and trigger compaction before spawning
-- Sub-agents have a 600s timeout -- config: runTimeoutSeconds: 600. They complete or die, no runaway context
+- Sub-agents take as long as they need -- no hard timeout, quality over speed
 - After each heartbeat cycle, if context > 50%, write important state to memory and compact
 - NEVER start new work if context > 70% -- compact first
 
