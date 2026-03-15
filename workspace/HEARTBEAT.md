@@ -10,7 +10,13 @@ Only reply HEARTBEAT_OK if ALL of these are true:
 - oss-discover found zero new issues
 Otherwise: PICK WORK AND DO IT. Never be idle.
 
-Execute this checklist. Spawn as many sub-agents as possible (up to 5 concurrent).
+## ALWAYS KEEP 5 SUB-AGENTS ACTIVE
+Your #1 job is to keep all 5 sub-agent slots filled at ALL times.
+- If active sub-agents < 5: IMMEDIATELY discover and spawn more
+- Do NOT wait for the next heartbeat — self-wake and fill slots NOW
+- An empty slot is wasted throughput. Fill it.
+- After ANY sub-agent completes: check slots, discover if needed, spawn replacement
+- The work queue should always have 10+ items ready. If < 5, run oss-discover IMMEDIATELY.
 
 ## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
 
@@ -204,7 +210,13 @@ Run dashboard-reporter: log cycle outcome (submitted/abandoned/followup), cost, 
 Update memory/wake-state.md: increment counters.
 Remove completed/abandoned item from memory/work-queue.md.
 
-If circuit breakers OK AND work-queue.md has items AND active PRs < 5:
-  exec: openclaw system event --text "Cycle complete" --mode now
-
-Otherwise: HEARTBEAT_OK
+Count active sub-agents via sessions_list.
+If active sub-agents < 5 AND work queue has items:
+  DO NOT reply HEARTBEAT_OK. Go back to step 3 and spawn more.
+If active sub-agents < 5 AND work queue is empty:
+  Run oss-discover BROADLY (all languages, 30+ candidates).
+  Then go back to step 3 and spawn.
+ONLY reply HEARTBEAT_OK if:
+  - All 5 slots are full, OR
+  - Work queue is empty AND oss-discover found nothing AND all slots checked
+Always self-wake: exec: openclaw system event --text "cycle-complete" --mode now

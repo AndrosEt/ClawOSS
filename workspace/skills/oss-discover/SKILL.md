@@ -61,6 +61,14 @@ gh search issues --label="good-first-issue" --state=open --language=java --limit
 - Potential impact (bug fixes > docs > refactors)
 - Clear reproduction steps or acceptance criteria (required)
 
+## Fast Mode (when filling slots urgently)
+When work queue < 5 items or sub-agent slots are empty:
+- Run 3+ parallel gh search queries across different languages
+- Score quickly: stars > 10, updated < 6 months, not in pr-ledger = score 5+
+- Write 10-20 items to work queue immediately
+- Don't over-analyze — speed matters when slots are empty
+- Prioritize repos you've already successfully contributed to (higher acceptance rate)
+
 ## Anti-Spam
 Check memory/pr-ledger.md and memory/wake-state.md before selecting work.
 If at daily PR limit (10), switch to triage-only mode.
