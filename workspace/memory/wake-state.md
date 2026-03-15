@@ -1,8 +1,8 @@
 # Wake State
-consecutive_wakes: 8
+consecutive_wakes: 9
 errors_this_hour: 0
-last_error: "Daily PR limit reached: 20 submitted (max 10 per AGENTS.md)"
-last_wake: 2026-03-16T05:44:00+08:00
+last_error: "Daily PR limit reached: 20 submitted (max 10 per AGENTS.md). Entering cooldown."
+last_wake: 2026-03-16T05:46:00+08:00
 prs_today_by_repo:
   apache/mahout: 4
   windoze95/servicewow-mcp: 2
