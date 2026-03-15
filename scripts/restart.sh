@@ -104,7 +104,22 @@ else
     echo "[WARN] No dashboard-sync.sh found"
 fi
 
-# 12. Kick the agent
+# 12. Install PR ledger sync (launchd, runs every 60s)
+PLIST="$HOME/Library/LaunchAgents/com.clawoss.pr-ledger-sync.plist"
+launchctl unload "$PLIST" 2>/dev/null || true
+if [ -f "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" ]; then
+    cp "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" "$PLIST"
+elif [ -f "$PLIST" ]; then
+    : # already installed
+else
+    echo "[WARN] No pr-ledger-sync plist found"
+fi
+if [ -f "$PLIST" ]; then
+    launchctl load "$PLIST" 2>/dev/null
+    echo "[OK] PR ledger sync installed (launchd, 60s interval)"
+fi
+
+# 13. Kick the agent
 sleep 3
 openclaw system event --text "ClawOSS restart complete. Read HEARTBEAT.md. Fill all 5 sub-agent slots. Discover broadly. Go." --mode now 2>&1
 echo "[OK] Agent kicked"

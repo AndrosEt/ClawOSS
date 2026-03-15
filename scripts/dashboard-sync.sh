@@ -102,13 +102,7 @@ while true; do
     build_session_map
   fi
 
-  # --- PR Ledger sync every 6 cycles (60 seconds) ---
-  if [ $((CYCLE % 6)) -eq 3 ]; then
-    SYNC_SCRIPT="$(dirname "$SCRIPT_PATH")/pr-ledger-sync.sh"
-    if [ -f "$SYNC_SCRIPT" ]; then
-      bash "$SYNC_SCRIPT" >> /tmp/pr-ledger-sync.log 2>&1 || log "pr-ledger-sync failed"
-    fi
-  fi
+  # PR Ledger sync handled by launchd (com.clawoss.pr-ledger-sync) every 60s
 
   # --- Heartbeat ---
   LOCKS=$(ls "$DIR"/*.lock 2>/dev/null | wc -l | tr -d ' ')

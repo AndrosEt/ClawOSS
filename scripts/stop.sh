@@ -12,6 +12,15 @@ while IFS= read -r job_id; do
     openclaw cron rm "$job_id" 2>/dev/null && echo "  Removed cron: $job_id" || true
 done < <(jq -r '.[].id' "$PROJECT_DIR/config/cron-jobs.json")
 
-echo "ClawOSS cron jobs removed."
+# Stop PR ledger sync
+PLIST="$HOME/Library/LaunchAgents/com.clawoss.pr-ledger-sync.plist"
+if [ -f "$PLIST" ]; then
+    launchctl unload "$PLIST" 2>/dev/null && echo "  Stopped PR ledger sync" || true
+fi
+
+# Stop dashboard sync
+pkill -f "dashboard-sync" 2>/dev/null && echo "  Stopped dashboard sync" || true
+
+echo "ClawOSS stopped."
 echo "Note: Gateway left running (other agents may depend on it)."
 echo "To stop the gateway entirely: openclaw gateway stop"
