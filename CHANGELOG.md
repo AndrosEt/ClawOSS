@@ -198,6 +198,17 @@ This is the milestone. ClawOSS autonomously discovered an issue, implemented a f
 4. **Sub-agent with reproduce-first workflow** — failing test first, then fix
 5. **ANNOUNCE_SKIP** — clean result passing from sub-agent to orchestrator
 
+**Model switch: OpenRouter -> Kimi Code direct API:**
+- OpenRouter's content filter on `@` symbols was fundamentally unsolvable via hooks (#033)
+- Switched to Kimi Code (k2p5) direct API — no content filter, no middleman
+- Coding time for the PR: ~12 minutes autonomous
+
+**Post-PR: parallel spawning active:**
+- Up to 5 concurrent sub-agents now enabled (maxConcurrent: 5)
+- Agent immediately began discovering and triaging next targets after PR submission
+- Active work on: `apache/mahout` (#1180, #1181, #1183), `windoze95/servicewow-mcp` (#30)
+- The pipeline is running autonomously
+
 ### Research Documents Created
 
 | Document | Content |
