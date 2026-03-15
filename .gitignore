@@ -12,3 +12,7 @@ config/auth-profiles.json
 # Cloned target repos (created by sub-agents during implementation)
 /workspace/4x-game-agent/
 /workspace/voicecrew/
+
+# OpenClaw runtime data
+/workspace/.openclaw/
+.claude/
