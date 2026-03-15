@@ -1336,10 +1336,11 @@ Post-build, the primary model was switched from Minimax M2.5 to Moonshot Kimi K2
 
 ### Issues Discovered During Implementation
 
-27 issues documented in `issues/` directory:
-- 8 open issues (content filter, session locks, skill paths, context overflow, start.sh, .env secrets, workspace docs, maxConcurrent mismatch)
-- 15 fixed issues (model fallback, attachments, email filter, cron sessions, heartbeat cost, stale model refs, dashboard cost model, heartbeat prompt, oss-implement char limit, config validation)
-- 1 mitigated, 1 known, 1 completed, 1 informational
+30 issues documented in `issues/` directory:
+- 17 fixed issues (content filter #001, model fallback, attachments, email filter, cron sessions, heartbeat cost, stale model refs, dashboard cost model, dashboard URL, heartbeat prompt, oss-implement char limit, config validation, gitignore, maxConcurrent)
+- 2 implemented (stall recovery #028, PII sanitizer #030)
+- 7 open issues (session locks, skill paths, context overflow, start.sh, .env secrets, .env missing vars, hooks docs)
+- 1 known (#025), 1 completed (#021), 1 informational (#010), 1 in progress (#029)
 
 ### Verification Status
 
