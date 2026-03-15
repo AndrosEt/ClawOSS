@@ -44,7 +44,7 @@ Verify no force-push, no push to main/master, no `--force` flags.
 If target repo has required CI checks, verify our branch builds locally.
 
 ### 7. Independent Review
-Spawn an isolated Sonnet subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context). Subagent must confirm the change is correct and slop-free.
+Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context). Subagent must confirm the change is correct and slop-free.
 
 ## On Failure
 Log which check failed, abort submission, report to dashboard.

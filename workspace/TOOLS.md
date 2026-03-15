@@ -15,4 +15,4 @@
 ## Safety Rules
 - Always use `gh pr create`, never `git push` to main
 - Always run the target repo's test suite before submitting
-- Always check diff size: reject if >500 lines changed
+- Always check diff size: reject if >200 lines changed

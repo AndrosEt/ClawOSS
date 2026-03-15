@@ -351,6 +351,11 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 008 | Cron jobs need isolated sessions | **Fixed** (session targeting) |
 | 009 | Heartbeat cost optimization | **Fixed** (lightContext + M2.5 + 10min) |
 | 010 | Throughput expectations reframed | Acknowledged |
+| 011 | oss-review referenced Haiku/Sonnet for review | **Fixed** (model-agnostic wording) |
+| 012 | safety-checker referenced "Sonnet subagent" | **Fixed** (model-agnostic wording) |
+| 013 | TOOLS.md had 500 LOC limit vs 200 everywhere else | **Fixed** (standardized to 200) |
+| 014 | start.sh ignores sessionTarget from cron config | Open |
+| 015 | Dashboard reporter uses wrong fallback URL | Open |
 
 ## Contributing
 

@@ -34,6 +34,6 @@ Review changes against all 7 quality gates before submission.
 Spawn an ISOLATED subagent via `sessions_spawn` with clean context:
 - Provide ONLY: `git diff`, issue description, repo style guide
 - Subagent must NOT see your implementation journey
-- Use Haiku or Sonnet (different from implementation model)
+- Use a fresh session with clean context (no implementation history)
 - Subagent checks: correctness, slop, bugs, style compliance
 - Fix any flagged issues before proceeding to oss-submit
