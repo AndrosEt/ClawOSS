@@ -104,16 +104,17 @@ Run: gh pr list --author @me --state open --json number,title,reviewDecision,sta
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
 Count active sub-agents via sessions_list (exclude main session and stale sessions >30min).
-Read memory/work-queue.md:
+Read memory/work-queue.md and memory/wake-state.md prs_today_by_repo.
 - If active sub-agents >= 5: skip to step 6 (check results).
 - If active sub-agents < 5 AND work queue has items:
   Pick the next task (urgent first, then top item with score >= 5).
+  BEFORE spawning, check per-repo limit: if repo already has 3 PRs today, skip to next item.
+  Also ensure different repos across concurrent sub-agents when possible.
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
 - Queue empty AND queue has < 10 items --> run oss-discover (fast: 3 repos, 5 issues, score >= 5). If nothing, HEARTBEAT_OK.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
-Check memory/wake-state.md prs_today_by_repo. If selected repo is at daily limit, skip to next item.
 
 ## 4. Triage (in main session, < 3 min)
 1. oss-triage: Confirm open, unassigned, estimate complexity.
