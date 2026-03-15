@@ -1,6 +1,6 @@
 # 001: OpenRouter Content Filter — GitHub Issue Content Poisoning
 
-**Status:** Mitigated
+**Status:** Fixed (PII sanitizer hook deployed — commits f4872f9, de1505f)
 **Severity:** High (upgraded from Medium — causes 403 infinite loops)
 **Component:** OpenRouter Gateway / Kimi K2.5 (originally observed with Minimax M2.5)
 
@@ -41,9 +41,19 @@ Safety rules added to `AGENTS.md`, `HEARTBEAT.md`, and `oss-discover` skill:
 - Never retry 403 errors — treat as permanent failure and skip
 - If 403 occurs, the current item is poisoned — abandon and move to next
 
-## Remaining Risk
+## K2.5 Model Impact
 
-The mitigation is behavioral (prompt-based), not enforced. If the agent encounters PII before these rules take effect (e.g., in a new context without AGENTS.md loaded in lightContext mode), it can still get stuck. The HEARTBEAT.md now includes these rules inline for lightContext safety.
+The [PHONE]/[EMAIL] content filter issue was originally observed with Minimax M2.5. Per throughput-critic: the M2.5 content filter behavior does NOT apply to Kimi K2.5 (different model family). However, the OpenRouter platform-level content filtering may still apply regardless of model. The behavioral rules and PII sanitizer plugin (#030) are retained as defense-in-depth.
+
+## Permanent Fix: PII Sanitizer Hook (#030)
+
+The PII sanitizer hook (`workspace/hooks/pii-sanitizer/handler.ts`) now strips PII at the `tool_result_persist` level — below the agent's control. Key design:
+- Replaces all `@` with fullwidth `＠` (U+FF20) — prevents OpenRouter from matching email patterns
+- Strips phone numbers, IPv4 addresses, SSNs, and credit card numbers
+- Only sanitizes tool RESULTS (file contents, exec output) — never modifies the agent's own writes
+- Works regardless of whether AGENTS.md is loaded (hook-level enforcement vs prompt-level behavioral rules)
+
+The behavioral rules in AGENTS.md and HEARTBEAT.md remain as defense-in-depth.
 
 ## Related Files
 

@@ -17,7 +17,15 @@ The primary model in `config/openclaw.json` was switched from `openrouter/minima
 | Output cost | $1.10/MTok | $2.20/MTok |
 | Context window | 196K tokens | 262K tokens |
 | SWE-bench Verified | 80.2% | 76.8% |
-| Key strength | Cost efficiency | Native multimodal, agentic tool-calling, larger context |
+| Architecture | Dense transformer | MoE — 1T total params / 32B active params |
+| Key strength | Cost efficiency | Native multimodal (MoonViT), agentic tool-calling, larger context |
+
+## K2.5 Architecture Notes
+
+- **Mixture of Experts (MoE)**: 1 trillion total parameters, 32 billion active parameters per forward pass. This explains the cost efficiency — only a fraction of parameters are activated per token.
+- **MoonViT vision encoder**: Native multimodal capability. Can analyze screenshots attached to GitHub issues.
+- **Content filter**: The M2.5 `[PHONE]`/`[EMAIL]` content filter behavior does NOT apply to K2.5 (different model family). However, OpenRouter platform-level filtering may still apply regardless of model. The PII sanitizer hook (#030) provides defense-in-depth.
+- **OpenClaw support**: First-class Moonshot/Kimi provider handling with thinking mode normalization — no custom adapter needed.
 
 ## Impact
 

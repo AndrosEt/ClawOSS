@@ -127,7 +127,7 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Cloned repos gitignored** — Issue #022: sub-agents clone target repos into `workspace/`. Added `workspace/4x-game-agent/` to `.gitignore`. First autonomous contribution target: `sonpiaz/4x-game-agent#9` (template matching tests).
 - **Model switch confirmed user-directed** — K2.5 switch was explicitly requested by user, not benchmark-driven. Benchmarks pending throughput-critic review.
 - **Stall recovery documented** — Issue #028: sub-agent stall detection, kill, retry (max 2), skip. Already implemented in commits `13d0aa3` and `6d85a5a`.
-- **28 issues tracked** — 16 fixed, 1 implemented, 1 mitigated, 7 open, 1 known, 1 informational, 1 completed
+- **30 issues tracked** — 17 fixed, 2 implemented, 7 open, 1 known, 1 informational, 1 completed
 
 ### V6 Release — Autonomous Operation Begins
 
@@ -150,14 +150,15 @@ V6 is the culmination of 13 build phases. After this release, ClawOSS runs witho
 - Anti-spam protections (3 PRs/repo/day, 10 total/day, 200 LOC max)
 - BillionClaw GitHub identity with AI disclosure in all PRs
 
-**Post-V6 stabilization fixes (10 commits after initial V6):**
+**Post-V6 stabilization fixes (12+ commits after initial V6):**
 - Content filter hardening: avoid reading files containing PII patterns
 - Sub-agent concurrency aligned to maxConcurrent: 5 (no hard timeout)
 - Work queue reordering and repo blocklisting
 - Race condition prevention (default:true in agent config)
 - Cloned repo gitignore patterns
 - Dashboard URL canonicalization
-- 28 issues documented (16 fixed)
+- **PII sanitizer hook deployed** (commits `f4872f9`, `de1505f`) — strips emails (fullwidth @ replacement), phone numbers, IPs, SSNs, credit card numbers from tool results at hook level. Permanently fixes issue #001. Uses `tool_result_persist` event so agent's own writes are never modified.
+- 30 issues documented (17 fixed, 2 implemented)
 
 **First autonomous activity observed:**
 - Agent confirmed running on K2.5

@@ -111,7 +111,8 @@ ClawOSS/
 │   │   └── requesting-code-review/   # (superpowers) Code review workflow
 │   ├── hooks/                  # OpenClaw event hooks (automatic)
 │   │   ├── dashboard-reporter/ # Posts telemetry after each agent turn
-│   │   └── audit-logger/       # Logs all actions to dashboard audit trail
+│   │   ├── audit-logger/       # Logs all actions to dashboard audit trail
+│   │   └── pii-sanitizer/      # Strips PII from tool results (prevents 403s)
 │   └── memory/                 # Persistent agent memory
 ├── config/
 │   ├── openclaw.json           # Gateway configuration (Kimi K2.5 via OpenRouter)
@@ -207,8 +208,9 @@ Hooks run automatically on OpenClaw events (unlike skills, which are invoked by 
 |------|--------|-------------|
 | **dashboard-reporter** | `agent_end`, `after_tool_call` | Posts heartbeats, token metrics, and conversation messages to the dashboard after each agent turn |
 | **audit-logger** | `command:new`, `agent_end`, `after_tool_call` | Logs all agent actions to the dashboard audit trail for debugging |
+| **pii-sanitizer** | `tool_result_persist` | Strips emails (via fullwidth @), phone numbers, IPs, SSNs, and credit card numbers from tool results before they enter session context — permanently prevents OpenRouter 403 loops |
 
-Both hooks are fire-and-forget with 10s timeouts — they never block agent work.
+Dashboard hooks are fire-and-forget with 10s timeouts — they never block agent work. The PII sanitizer runs synchronously on tool results before persistence.
 
 ## Quality Gates
 
@@ -243,7 +245,7 @@ Key settings in `config/openclaw.json`:
 | Compaction memory flush | Enabled at 150K tokens | Pre-compaction state preservation |
 | Post-compaction sections | Architecture, Safety, Context Rot | Key sections preserved after compaction |
 | Tool profile | `coding` | Full filesystem + runtime access |
-| Sub-agent concurrency | 1 | Serialized execution, one implementation at a time |
+| Sub-agent concurrency | 5 | Up to 5 parallel sub-agents for different tasks |
 | sessions_spawn attachments | `enabled` | Required for passing context to sub-agents |
 
 ### Workspace Files
@@ -374,7 +376,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 
 | # | Issue | Status |
 |---|-------|--------|
-| 001 | OpenRouter content filter causes 403 loops with PII content | **Mitigated** (safety rules) |
+| 001 | OpenRouter content filter causes 403 loops with PII content | **Fixed** (PII sanitizer hook) |
 | 002 | Stale agent processes hold session locks | Open |
 | 003 | Symlinked skills get "outside root" warnings | Open |
 | 004 | Sessions can exceed model context window (262K for K2.5) | Open (mitigated) |
@@ -403,7 +405,7 @@ See the [`issues/`](issues/) directory for detailed tracking. Summary:
 | 027 | maxConcurrent mismatch across config and docs (5 vs 1) | **Fixed** (aligned to 5, no timeout) |
 | 028 | Sub-agent stall recovery | **Implemented** (detect, kill, retry, skip after 2) |
 | 029 | Heartbeat not executing full loop — replies HEARTBEAT_OK immediately | In Progress |
-| 030 | PII sanitizer plugin — permanent content filter fix | Pending |
+| 030 | PII sanitizer plugin — permanent content filter fix | **Implemented** (fullwidth @ + PII stripping) |
 
 ## Contributing
 
