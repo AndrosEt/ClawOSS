@@ -208,11 +208,18 @@ Check ALL active sub-agents via sessions_list.
 List memory/subagent-result-*.md files to find completed results.
 For each result file:
 - Read it to get the sub-agent's outcome.
-- If Status: success and PR URL present:
-  - Update memory/pipeline-state.md with new PR.
-  - Remove the issue from memory/work-queue.md.
-  - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via dashboard-sync).
-    It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
+- If Status: success — VALIDATE before counting:
+  - Check that the result file contains a PR URL (starts with https://github.com/ and contains /pull/)
+  - If PR URL is MISSING or EMPTY:
+    - Do NOT count as a submitted PR
+    - Log as "incomplete — no PR URL" in memory/work-queue.md
+    - Re-queue the issue for retry (once). If already retried, mark as failed.
+    - Delete the result file.
+  - If PR URL is PRESENT and valid:
+    - Update memory/pipeline-state.md with new PR.
+    - Remove the issue from memory/work-queue.md.
+    - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via launchd).
+      It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 - Delete the result file after processing.
