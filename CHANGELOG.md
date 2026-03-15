@@ -128,6 +128,42 @@ All notable changes to the ClawOSS project documented chronologically.
 - **Stall recovery documented** — Issue #028: sub-agent stall detection, kill, retry (max 2), skip. Already implemented in commits `13d0aa3` and `6d85a5a`.
 - **28 issues tracked** — 16 fixed, 1 implemented, 1 mitigated, 7 open, 1 known, 1 informational, 1 completed
 
+### V6 Release — Autonomous Operation Begins
+
+**Date:** 2026-03-16
+**Status:** DEPLOYED — agent running autonomously on Kimi K2.5
+
+V6 is the culmination of 13 build phases. After this release, ClawOSS runs without human intervention until it either submits its first merged PR or fails. We observe and learn.
+
+**What shipped in V6:**
+- Kimi K2.5 via OpenRouter (262K context, $0.45/$2.20 per MTok)
+- v5 orchestrator + sub-agent architecture (maxConcurrent: 5, fresh contexts)
+- 9-step heartbeat loop (10min interval, lightContext mode)
+- Stall recovery with automatic retry (max 2 attempts per task, then skip)
+- Reproduce-first TDD workflow (every PR requires before/after test evidence)
+- 15 skills (10 custom + 5 superpowers from obra/superpowers)
+- Content filter safety (PII sanitization, 403 loop prevention)
+- Circuit breakers (consecutive wakes, error rate, context usage thresholds)
+- Autonomous drive behavioral contract ("idle is failure")
+- Dashboard at `clawoss-dashboard.vercel.app` (Turso DB, live feed, cost tracking)
+- Anti-spam protections (3 PRs/repo/day, 10 total/day, 200 LOC max)
+- BillionClaw GitHub identity with AI disclosure in all PRs
+
+**Post-V6 stabilization fixes (10 commits after initial V6):**
+- Content filter hardening: avoid reading files containing PII patterns
+- Sub-agent concurrency aligned to maxConcurrent: 5 (no hard timeout)
+- Work queue reordering and repo blocklisting
+- Race condition prevention (default:true in agent config)
+- Cloned repo gitignore patterns
+- Dashboard URL canonicalization
+- 28 issues documented (16 fixed)
+
+**First autonomous activity observed:**
+- Agent confirmed running on K2.5
+- Discovered issues across multiple repos
+- Spawned sub-agents for `sonpiaz/4x-game-agent#9` (template matching tests)
+- Work queue populated and actively draining
+
 ### Research Documents Created
 
 | Document | Content |
