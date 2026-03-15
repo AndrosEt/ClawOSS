@@ -45,7 +45,7 @@
           "model": "openrouter/moonshotai/kimi-k2.5",
           "session": "main",
           "target": "none",
-          "prompt": "Read HEARTBEAT.md. Follow it strictly. Do not infer old tasks. If nothing needs attention, reply HEARTBEAT_OK.",
+          "prompt": "Read HEARTBEAT.md. Execute ALL steps 0 through 6 in order. Do NOT stop after checking PRs — you MUST check the work queue and spawn a sub-agent if work is available. Only reply HEARTBEAT_OK if the work queue is empty AND no PRs need attention.",
           "lightContext": true
         }
       }
