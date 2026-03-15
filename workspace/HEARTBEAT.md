@@ -146,7 +146,9 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
   task: "Fix <repo>#<issue>: <title>.
     Read the attached repo-conventions.md and issue-details.md.
     Follow the REPRODUCE-FIRST workflow (oss-implement skill):
-    1. Clone repo, create branch clawoss/<type>/<desc>.
+    1. Create isolated workspace: WORKDIR=/tmp/clawoss-<issue>-$(date +%s)
+       mkdir -p $WORKDIR && cd $WORKDIR
+       Clone repo INTO this directory. All work happens here.
     2. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
        Record the failure output as evidence.
     3. IMPLEMENT: Write the MINIMAL fix to make the failing test pass.
@@ -157,6 +159,8 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     6. SUBMIT: Commit, push, create PR with reproduction evidence
        (before/after test output in PR description).
     7. Do NOT wait for remote CI. Submit and report result.
+    8. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
+       This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
     Use image to analyze any screenshots attached to the issue.
@@ -166,6 +170,7 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     - Files changed
     - Test results (before/after)
     - Error details (if failed)
+    Then run: rm -rf $WORKDIR
     Then reply: ANNOUNCE_SKIP"
   label: "<repo>#<issue>"
   attachments: [repo-conventions.md, issue-details.md]
@@ -185,6 +190,13 @@ If web_search results were gathered during triage, include a summary in the atta
 - Result file must include: status, PR URL, files changed, test results, or error details
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 
+### Disk Cleanup (non-negotiable)
+- Sub-agents clone repos to /tmp/clawoss-<issue>-<timestamp>/ — isolated per task
+- After PR submit or task abandon, sub-agent MUST rm -rf its workdir
+- Orchestrator runs cleanup of stale workdirs (>60 min old) every cycle in step 6
+- NEVER clone to /tmp/clawoss-workdir (shared dir causes conflicts between sub-agents)
+- Expected disk: /tmp/clawoss-* should be <2GB total during peak (5 active sub-agents)
+
 ### Stale Session Cleanup
 - At the start of each heartbeat, check sessions_list for any sessions older than 30 minutes
 - If a stale session exists (>30 min old, not the main orchestrator session): ignore it
@@ -203,6 +215,8 @@ For each result file:
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 - Delete the result file after processing.
+- Run disk cleanup: find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} +
+  This catches any workdirs left behind by crashed/stalled sub-agents.
 For sub-agents still running (no result file yet): leave them running, check next cycle.
 
 ## 7. Report & Loop

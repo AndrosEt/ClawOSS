@@ -71,7 +71,9 @@ WAKEEOF
 echo "[OK] Wake state reset"
 
 # 8. Create required directories
-mkdir -p /tmp/clawoss-workdir
+# Sub-agents create their own /tmp/clawoss-<issue>-<timestamp>/ dirs
+# Clean up any stale ones from previous runs
+find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} + 2>/dev/null
 mkdir -p "$HOME/.openclaw/logs"
 mkdir -p "$PROJECT_DIR/workspace/memory/repos"
 mkdir -p "$PROJECT_DIR/workspace/memory/issues"
