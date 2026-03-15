@@ -29,7 +29,7 @@ While `.env` is listed in `.gitignore` and should not be committed, the file exi
 
 1. Rotate both keys immediately if they are real
 2. Update `.env` to match `.env.example` format with all required variables
-3. Add `DASHBOARD_URL=https://dashboard-plum-one-37.vercel.app`
+3. Add `DASHBOARD_URL=https://clawoss-dashboard.vercel.app`
 4. Add `CLAW_API_KEY=<generated-secret>`
 5. Fix `GITHUB_EMAIL` to noreply format
 
