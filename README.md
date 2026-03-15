@@ -41,10 +41,11 @@ An <a href="https://github.com/openclaw/openclaw">OpenClaw</a> agent that autono
 ### Quick Start
 
 ```bash
-git clone https://github.com/CMLKevin/ClawOSS.git && cd ClawOSS
-cp .env.example .env   # add GITHUB_TOKEN, KIMI_API_KEY, CLAW_API_KEY
-bash scripts/setup.sh  # install everything
-bash scripts/restart.sh # launch the agent
+git clone https://github.com/billion-token-one-task/ClawOSS.git
+cd ClawOSS
+cp .env.example .env   # edit with your API keys
+bash scripts/setup.sh
+bash scripts/restart.sh
 ```
 
 ---
