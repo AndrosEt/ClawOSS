@@ -205,12 +205,12 @@ This is the milestone. ClawOSS autonomously discovered an issue, implemented a f
 - Switched to Kimi Code (k2p5) direct API — no content filter, no middleman
 - Coding time for the PR: ~12 minutes autonomous
 
-### Phase 14: Autonomous Operation — 17 PRs in Day 1
+### Phase 14: Autonomous Operation — 30 PRs Across 22 Repos
 
-**Date:** 2026-03-16 (same day as first PR)
-**Status:** RUNNING — agent autonomously submitting PRs across 11 repos
+**Date:** 2026-03-13 to 2026-03-16
+**Status:** RUNNING — 30 PRs submitted, 1 MERGED, across 22 distinct repositories
 
-After the first PR, the agent scaled to full 5-concurrent-sub-agent mode and submitted 16 more PRs without human intervention. Highlights:
+The agent has been submitting PRs autonomously since March 13. Dashboard dynamic PR discovery (replacing hardcoded target repos) revealed the full scope of contributions. Highlights:
 
 **Operational improvements:**
 - **`scripts/restart.sh`** — Comprehensive restart script: loads .env, sets git identity, authenticates gh, links workspace, deploys config with env vars, cleans sessions, resets wake state, starts gateway, starts dashboard sync, kicks agent (commit `abd08db`)
@@ -218,38 +218,52 @@ After the first PR, the agent scaled to full 5-concurrent-sub-agent mode and sub
 - **Disk cleanup** — Sub-agents now clone to isolated `/tmp/clawoss-<issue>-<timestamp>/` dirs; orchestrator sweeps stale dirs (>60min) every cycle (commit `d303cc4`)
 - **oss-discover trimmed** — From 4076 to 1377 chars to fit 2000-char validation limit
 
-**All 17 PRs submitted on Day 1:**
+**All 30 PRs submitted (Mar 13-16):**
 
-| # | PR | Repo | Issue | Description |
-|---|-----|------|-------|-------------|
-| 1 | [#1191](https://github.com/apache/mahout/pull/1191) | apache/mahout | #1184 | Parquet reader test coverage (+359/-2, 11 tests) |
-| 2 | [#1192](https://github.com/apache/mahout/pull/1192) | apache/mahout | #1183 | QDP coverage |
-| 3 | [#1193](https://github.com/apache/mahout/pull/1193) | apache/mahout | #1181 | QDP coverage |
-| 4 | [#1194](https://github.com/apache/mahout/pull/1194) | apache/mahout | #1180 | QDP coverage |
-| 5 | [#33](https://github.com/windoze95/servicewow-mcp/pull/33) | windoze95/servicewow-mcp | #30 | Service fix |
-| 6 | [#41](https://github.com/windoze95/nullfeed-backend/pull/41) | windoze95/nullfeed-backend | #33 | Backend fix |
-| 7 | [#10](https://github.com/sonpiaz/4x-game-agent/pull/10) | sonpiaz/4x-game-agent | #8 | Game agent fix |
-| 8 | [#34](https://github.com/windoze95/servicewow-mcp/pull/34) | windoze95/servicewow-mcp | #29 | Service fix |
-| 9 | [#11](https://github.com/Nexal-AI/voicecrew/pull/11) | Nexal-AI/voicecrew | #5 | VoiceCrew fix |
-| 10 | [#61754](https://github.com/ray-project/ray/pull/61754) | ray-project/ray | #50718 | Ray distributed computing |
-| 11 | [#56](https://github.com/whoisjayd/yt-study/pull/56) | whoisjayd/yt-study | #22 | Cookie auth for YouTube transcripts |
-| 12 | [#49516](https://github.com/apache/arrow/pull/49516) | apache/arrow | #49503 | Apache Arrow fix |
-| 13 | [#4007](https://github.com/Shopify/ruby-lsp/pull/4007) | Shopify/ruby-lsp | #3759 | Ruby LSP fix |
-| 14 | [#1090](https://github.com/autokey/autokey/pull/1090) | autokey/autokey | #1088 | X11 resource leak fix (+2 lines) |
-| 15 | [#3291](https://github.com/jenkinsci/warnings-ng-plugin/pull/3291) | jenkinsci/warnings-ng-plugin | #3233 | Double HTML escaping fix (C++ Lint) |
-| 16 | [#168](https://github.com/itdove/devaiflow/pull/168) | itdove/devaiflow | #162 | Enable daf note in Claude Code sessions |
-| 17 | [#1091](https://github.com/autokey/autokey/pull/1091) | autokey/autokey | #1089 | Game controller input support |
+| # | PR | Repo | Status | Date | Description |
+|---|-----|------|--------|------|-------------|
+| 1 | [#291](https://github.com/GLips/Figma-Context-MCP/pull/291) | GLips/Figma-Context-MCP | open | 03-13 | Figma MCP integration |
+| 2 | [#269](https://github.com/darrenhinde/OpenAgentsControl/pull/269) | darrenhinde/OpenAgentsControl | open | 03-13 | Agent control framework |
+| 3 | [#1394](https://github.com/manaflow-ai/cmux/pull/1394) | manaflow-ai/cmux | open | 03-13 | CMUX fix |
+| 4 | [#490](https://github.com/mistralai/mistral-vibe/pull/490) | mistralai/mistral-vibe | open | 03-13 | Mistral AI |
+| 5 | [#431](https://github.com/moltis-org/moltis/pull/431) | moltis-org/moltis | open | 03-13 | Moltis fix |
+| 6 | [#4648](https://github.com/pydantic/pydantic-ai/pull/4648) | pydantic/pydantic-ai | closed | 03-13 | Pydantic AI |
+| 7 | [#2166](https://github.com/badlogic/pi-mono/pull/2166) | badlogic/pi-mono | **MERGED** | 03-14 | Pi-mono fix |
+| 8 | [#417](https://github.com/can1357/oh-my-pi/pull/417) | can1357/oh-my-pi | open | 03-14 | Oh-my-pi |
+| 9 | [#1444](https://github.com/manaflow-ai/cmux/pull/1444) | manaflow-ai/cmux | open | 03-14 | CMUX fix |
+| 10 | [#1446](https://github.com/manaflow-ai/cmux/pull/1446) | manaflow-ai/cmux | open | 03-14 | CMUX fix |
+| 11 | [#435](https://github.com/moltis-org/moltis/pull/435) | moltis-org/moltis | open | 03-14 | Moltis fix |
+| 12 | [#1191](https://github.com/apache/mahout/pull/1191) | apache/mahout | open | 03-15 | Parquet reader tests (+359/-2) |
+| 13 | [#1192](https://github.com/apache/mahout/pull/1192) | apache/mahout | open | 03-15 | QDP coverage |
+| 14 | [#1193](https://github.com/apache/mahout/pull/1193) | apache/mahout | open | 03-15 | QDP coverage |
+| 15 | [#1194](https://github.com/apache/mahout/pull/1194) | apache/mahout | open | 03-15 | QDP coverage |
+| 16 | [#49516](https://github.com/apache/arrow/pull/49516) | apache/arrow | open | 03-15 | Apache Arrow fix |
+| 17 | [#17660](https://github.com/anomalyco/opencode/pull/17660) | anomalyco/opencode | open | 03-15 | Light mode Zellij fix |
+| 18 | [#1090](https://github.com/autokey/autokey/pull/1090) | autokey/autokey | open | 03-15 | X11 resource leak fix |
+| 19 | [#1091](https://github.com/autokey/autokey/pull/1091) | autokey/autokey | open | 03-15 | Game controller input |
+| 20 | [#168](https://github.com/itdove/devaiflow/pull/168) | itdove/devaiflow | open | 03-15 | Enable daf note in Claude Code |
+| 21 | [#3291](https://github.com/jenkinsci/warnings-ng-plugin/pull/3291) | jenkinsci/warnings-ng-plugin | open | 03-15 | Double HTML escaping fix |
+| 22 | [#11](https://github.com/Nexal-AI/voicecrew/pull/11) | Nexal-AI/voicecrew | open | 03-15 | VoiceCrew fix |
+| 23 | [#61754](https://github.com/ray-project/ray/pull/61754) | ray-project/ray | open | 03-15 | Ray distributed computing |
+| 24 | [#4007](https://github.com/Shopify/ruby-lsp/pull/4007) | Shopify/ruby-lsp | open | 03-15 | Ruby LSP fix |
+| 25 | [#10](https://github.com/sonpiaz/4x-game-agent/pull/10) | sonpiaz/4x-game-agent | open | 03-15 | Game agent fix |
+| 26 | [#56](https://github.com/whoisjayd/yt-study/pull/56) | whoisjayd/yt-study | open | 03-15 | Cookie auth for YouTube |
+| 27 | [#57](https://github.com/whoisjayd/yt-study/pull/57) | whoisjayd/yt-study | open | 03-15 | Track Google consent 500s |
+| 28 | [#33](https://github.com/windoze95/servicewow-mcp/pull/33) | windoze95/servicewow-mcp | open | 03-15 | Service fix |
+| 29 | [#34](https://github.com/windoze95/servicewow-mcp/pull/34) | windoze95/servicewow-mcp | open | 03-15 | Service fix |
+| 30 | [#41](https://github.com/windoze95/nullfeed-backend/pull/41) | windoze95/nullfeed-backend | open | 03-15 | Backend fix |
 
-**Repos contributed to (11):** apache/mahout, apache/arrow, ray-project/ray, Shopify/ruby-lsp, jenkinsci/warnings-ng-plugin, autokey/autokey, windoze95/servicewow-mcp, windoze95/nullfeed-backend, sonpiaz/4x-game-agent, Nexal-AI/voicecrew, whoisjayd/yt-study, itdove/devaiflow, anomalyco/opencode
+**Repos contributed to (22):** apache/mahout, apache/arrow, anomalyco/opencode, autokey/autokey, badlogic/pi-mono, can1357/oh-my-pi, darrenhinde/OpenAgentsControl, GLips/Figma-Context-MCP, itdove/devaiflow, jenkinsci/warnings-ng-plugin, manaflow-ai/cmux, mistralai/mistral-vibe, moltis-org/moltis, Nexal-AI/voicecrew, pydantic/pydantic-ai, ray-project/ray, Shopify/ruby-lsp, sonpiaz/4x-game-agent, whoisjayd/yt-study, windoze95/servicewow-mcp, windoze95/nullfeed-backend
+
+**First merge: badlogic/pi-mono#2166** — Accepted and merged by maintainer on 2026-03-14.
 
 **Notable contributions:**
-- **jenkinsci/warnings-ng-plugin#3291** — Fixed double HTML escaping where "C++ Lint" displayed as "C&#43;&#43; Lint". Removed premature escaping from ToolNameRegistry, letting Jelly templates handle it at the presentation layer.
+- **jenkinsci/warnings-ng-plugin#3291** — Fixed double HTML escaping where "C++ Lint" displayed as "C&#43;&#43; Lint". Root cause: ToolNameRegistry was HTML-escaping names, then Jelly templates escaped again.
 - **autokey/autokey#1090** — Fixed X11 resource leak on restart: added `__ungrabAllHotkeys()` call before closing display connection. 2-line fix.
+- **anomalyco/opencode#17660** — Fixed light mode detection in Zellij terminal multiplexer by adding COLORFGBG env var and TERM_PROGRAM pattern detection.
 - **whoisjayd/yt-study#56** — Added cookie-based authentication for YouTube transcript fetching, with 276 tests passing.
 - **ray-project/ray#61754** — Contributed to Ray, a major distributed computing framework (83k+ stars).
-- **apache/arrow#49516** — Contributed to Apache Arrow, a cross-language development platform for in-memory data.
-
-**5 sub-agents still in progress:** itdove/devaiflow#162, autokey/autokey#1089, whoisjayd/yt-study#55, Shopify/ruby-lsp#3760, anomalyco/opencode#4464
+- **pydantic/pydantic-ai#4648** — Contributed to Pydantic AI, the Python AI framework by the Pydantic team.
 
 ### Research Documents Created
 

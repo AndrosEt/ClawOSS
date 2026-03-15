@@ -18,32 +18,36 @@ ClawOSS configures an [OpenClaw](https://github.com/openclaw/openclaw) agent to 
 
 ---
 
-### Day 1: 17 PRs Across 11 Repos
+### Autonomous Results
 
 ```
   ┌─────────────────────────────────────────────────────────────────────┐
   │                                                                     │
-  │   17 PULL REQUESTS SUBMITTED  ·  DAY 1  ·  ZERO HUMAN INTERVENTION │
+  │   30 PULL REQUESTS  ·  22 REPOS  ·  1 MERGED  ·  FULLY AUTONOMOUS │
   │                                                                     │
-  │   Repos ....  11 distinct repositories                              │
-  │   Range ....  apache/mahout to jenkinsci to ray-project             │
-  │   Languages   Rust, Python, Java, TypeScript, Ruby                  │
+  │   Period ....  Mar 13-16, 2026 (4 days)                             │
+  │   Languages   Rust, Python, Java, TypeScript, Ruby, Go             │
   │   Model ....  Kimi Code k2p5 (direct API)                           │
   │   Mode .....  5 concurrent sub-agents                               │
   │                                                                     │
   │   ┌──────────────────────────────────────────────────────────────┐  │
-  │   │  HIGHLIGHT: jenkinsci/warnings-ng-plugin#3291                │  │
-  │   │  Fixed double HTML escaping (C++ Lint -> C&#43;&#43; Lint)  │  │
-  │   │  Root cause: ToolNameRegistry + Jelly escape-by-default      │  │
+  │   │  FIRST MERGE: badlogic/pi-mono#2166                          │  │
+  │   │  Accepted and merged by maintainer — zero human assistance   │  │
   │   └──────────────────────────────────────────────────────────────┘  │
   │                                                                     │
-  │   apache/mahout ···· #1191 #1192 #1193 #1194  (4 PRs, Parquet)    │
-  │   autokey/autokey ·· #1090 #1091  (X11 leak fix + controllers)     │
-  │   ray-project/ray ·· #61754  (distributed computing, 83k stars)    │
-  │   apache/arrow ····· #49516  (in-memory data platform)             │
-  │   Shopify/ruby-lsp · #4007  (Ruby language server)                 │
-  │   jenkinsci ········ #3291  (warnings-ng-plugin, HTML escaping)    │
-  │   + 6 more across windoze95, sonpiaz, Nexal-AI, whoisjayd, itdove │
+  │   apache/mahout ········· #1191 #1192 #1193 #1194  (Parquet)       │
+  │   apache/arrow ·········· #49516  (in-memory data platform)        │
+  │   ray-project/ray ······· #61754  (distributed computing, 83k+)   │
+  │   Shopify/ruby-lsp ······ #4007  (Ruby language server)            │
+  │   jenkinsci ············· #3291  (double HTML escaping fix)        │
+  │   pydantic/pydantic-ai ·· #4648  (Python AI framework)            │
+  │   mistralai/mistral-vibe  #490   (Mistral AI)                      │
+  │   autokey/autokey ······· #1090 #1091  (X11 leak + controllers)   │
+  │   manaflow-ai/cmux ····· #1394 #1444 #1446  (3 PRs)              │
+  │   + 12 more across Figma-Context-MCP, OpenAgentsControl,          │
+  │     moltis, oh-my-pi, servicewow-mcp, nullfeed-backend, etc.      │
+  │                                                                     │
+  │   Status: 28 open · 1 merged · 1 closed                            │
   │                                                                     │
   └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -574,14 +578,15 @@ ClawOSS is honest about what autonomous AI contribution can achieve today. The p
 ### Actual vs Expected Throughput
 
 ```
-    EXPECTED              ACTUAL DAY 1
-    ────────              ──────────────
-    Week 1-2     1-2      ████████████████████████████████████  17 PRs
-    Week 3-4     3-5                                            (on day 1)
-    Month 2+     5-10
+    EXPECTED              ACTUAL (4 DAYS)
+    ────────              ───────────────
+    Week 1-2     1-2      ████████████████████████████████████  30 PRs
+    Week 3-4     3-5      ██████████████████████████████████░░  22 repos
+    Month 2+     5-10     █████████████████░░░░░░░░░░░░░░░░░░  1 merged
     Month 3+     10-15
 
-    Day 1 output across 11 repos, 5 languages, 5 concurrent sub-agents
+    30 PRs in 4 days across 22 repos, 6 languages, 5 concurrent sub-agents
+    First merge: badlogic/pi-mono#2166
 ```
 
 ### Cost Projections (GLM-5 via OpenRouter)
