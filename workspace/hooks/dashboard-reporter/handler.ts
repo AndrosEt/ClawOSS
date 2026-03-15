@@ -14,6 +14,10 @@ let lastSkillName: string | null = null;
 let lastRepoName: string | null = null;
 let lastIssueName: string | null = null;
 const reposUsed = new Set<string>();
+const subagentMeta = new Map<
+  string,
+  { repo: string | null; issue: string | null; task: string }
+>();
 
 async function postNonBlocking(
   path: string,
@@ -262,8 +266,157 @@ const handler = async (event: {
         lastIssueName = `#${issueMatch[1]}`;
       }
 
-      // Stream tool call to live conversation feed
+      // Detect sub-agent lifecycle events and relay their conversations
       const toolName = event.toolName || "unknown";
+
+      // When orchestrator spawns a sub-agent, log it and extract repo/issue
+      if (toolName === "sessions_spawn" && event.result) {
+        try {
+          const spawnResult =
+            typeof event.result === "string"
+              ? JSON.parse(event.result)
+              : event.result;
+          const childKey =
+            (spawnResult as Record<string, string>)?.childSessionKey || null;
+          if (childKey) {
+            // Extract repo and issue from the spawn task text
+            const taskText =
+              typeof params === "object" &&
+              "task" in (params as Record<string, unknown>)
+                ? String((params as Record<string, string>).task)
+                : "";
+            const taskRepoMatch = taskText.match(
+              /([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+)#(\d+)/
+            );
+            const taskRepo = taskRepoMatch ? taskRepoMatch[1] : lastRepoName;
+            const taskIssue = taskRepoMatch
+              ? `#${taskRepoMatch[2]}`
+              : lastIssueName;
+
+            // Store mapping so we can tag relayed messages later
+            subagentMeta.set(childKey, {
+              repo: taskRepo,
+              issue: taskIssue,
+              task: taskText.slice(0, 500),
+            });
+
+            await postConversation(
+              {
+                messages: [
+                  {
+                    sessionId: childKey,
+                    role: "system",
+                    content: `Sub-agent spawned. Task: ${taskText.slice(0, 500) || "(unknown)"}`,
+                    timestamp: ts,
+                    metadata: {
+                      agent_id: AGENT_ID,
+                      event: "subagent_spawn",
+                      parent_session: sessionId,
+                      child_session: childKey,
+                      repo: taskRepo,
+                      issue: taskIssue,
+                    },
+                  },
+                ],
+              },
+              apiKey
+            );
+          }
+        } catch {
+          // Parse failure — not critical
+        }
+      }
+
+      // When orchestrator reads sub-agent history, relay those messages
+      if (toolName === "sessions_history" && event.result) {
+        try {
+          const historyResult =
+            typeof event.result === "string"
+              ? JSON.parse(event.result)
+              : event.result;
+          const hist = historyResult as {
+            sessionKey?: string;
+            messages?: Array<{
+              role: string;
+              content: unknown;
+            }>;
+          };
+          const childKey = hist?.sessionKey || null;
+          const childMessages = hist?.messages || [];
+
+          if (childKey && childMessages.length > 0) {
+            // Look up repo/issue for this sub-agent
+            const meta = subagentMeta.get(childKey);
+            const childRepo = meta?.repo || lastRepoName;
+            const childIssue = meta?.issue || lastIssueName;
+
+            const relayMsgs: Record<string, unknown>[] = [];
+            for (const cm of childMessages.slice(-20)) {
+              const role = cm.role;
+              let content = "";
+
+              if (typeof cm.content === "string") {
+                content = cm.content.slice(0, 3000);
+              } else if (Array.isArray(cm.content)) {
+                const parts: string[] = [];
+                for (const block of cm.content as Array<Record<string, unknown>>) {
+                  if (block.type === "text" && typeof block.text === "string") {
+                    parts.push(block.text.slice(0, 1000));
+                  } else if (block.type === "toolCall") {
+                    parts.push(
+                      `[TOOL] ${block.name || "?"}(${JSON.stringify(block.arguments || {}).slice(0, 200)})`
+                    );
+                  } else if (block.type === "toolResult") {
+                    const resultContent = block.content || block.text || "";
+                    const resultText =
+                      typeof resultContent === "string"
+                        ? resultContent
+                        : Array.isArray(resultContent)
+                        ? (resultContent as Array<Record<string, string>>)
+                            .filter((b) => b.type === "text")
+                            .map((b) => b.text || "")
+                            .join("\n")
+                        : JSON.stringify(resultContent);
+                    parts.push(`[RESULT] ${resultText.slice(0, 500)}`);
+                  }
+                }
+                content = parts.join("\n").slice(0, 3000);
+              }
+
+              if (!content.trim()) continue;
+
+              // Map OpenClaw roles to dashboard roles
+              let dashRole: string;
+              if (role === "assistant") dashRole = "assistant";
+              else if (role === "user") dashRole = "user";
+              else if (role === "toolResult") dashRole = "tool_result";
+              else dashRole = "system";
+
+              relayMsgs.push({
+                sessionId: childKey,
+                role: dashRole,
+                content,
+                timestamp: ts,
+                metadata: {
+                  agent_id: AGENT_ID,
+                  source: "subagent_relay",
+                  parent_session: sessionId,
+                  repo: childRepo,
+                  issue: childIssue,
+                },
+              });
+            }
+
+            if (relayMsgs.length > 0) {
+              await postConversation({ messages: relayMsgs }, apiKey);
+            }
+          }
+        } catch {
+          // Parse failure — not critical
+        }
+      }
+
+      // Stream tool call to live conversation feed
       const paramsSummary = params
         ? JSON.stringify(params, null, 2).slice(0, 2000)
         : "";

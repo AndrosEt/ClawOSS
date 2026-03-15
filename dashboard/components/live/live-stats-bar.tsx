@@ -5,56 +5,85 @@ import { formatTokens } from "@/lib/utils";
 import { DEFAULT_COST_MODEL } from "@/lib/cost-models";
 import type { ConversationMessage } from "@/lib/types";
 
-// Kimi K2.5 pricing (from centralized cost model)
 const INPUT_COST_PER_TOKEN = DEFAULT_COST_MODEL.inputCostPerToken;
 const OUTPUT_COST_PER_TOKEN = DEFAULT_COST_MODEL.outputCostPerToken;
 
 interface LiveStatsBarProps {
   messages: ConversationMessage[];
   isConnected: boolean;
+  lastHeartbeat?: string | null;
+  errorsLastHour?: number;
 }
 
-export function LiveStatsBar({ messages, isConnected }: LiveStatsBarProps) {
+export function LiveStatsBar({
+  messages,
+  isConnected,
+  lastHeartbeat,
+  errorsLastHour = 0,
+}: LiveStatsBarProps) {
   const stats = useMemo(() => {
     const totalMessages = messages.length;
     const assistantMsgs = messages.filter((m) => m.role === "assistant").length;
     const toolCalls = messages.filter((m) => m.role === "tool_call").length;
-    const toolResults = messages.filter((m) => m.role === "tool_result").length;
     const thinkingMsgs = messages.filter((m) => m.role === "thinking").length;
-    const totalTokens = messages.reduce((sum, m) => sum + (m.tokenCount || 0), 0);
-    const totalDuration = messages.reduce((sum, m) => sum + (m.durationMs || 0), 0);
+    const totalTokens = messages.reduce(
+      (sum, m) => sum + (m.tokenCount || 0),
+      0
+    );
+    const totalDuration = messages.reduce(
+      (sum, m) => sum + (m.durationMs || 0),
+      0
+    );
     const sessions = new Set(messages.map((m) => m.sessionId)).size;
     const errors = messages.filter(
-      (m) => m.role === "tool_result" && (m.content?.startsWith("ERROR:") || (m.metadata as Record<string, unknown>)?.error)
+      (m) =>
+        m.role === "tool_result" &&
+        (m.content?.startsWith("ERROR:") ||
+          (m.metadata as Record<string, unknown>)?.error)
     ).length;
 
-    // Estimate cost (rough: assume 60% input, 40% output split on tokens)
     const inputTokens = Math.round(totalTokens * 0.6);
     const outputTokens = totalTokens - inputTokens;
-    const estimatedCost = inputTokens * INPUT_COST_PER_TOKEN + outputTokens * OUTPUT_COST_PER_TOKEN;
+    const estimatedCost =
+      inputTokens * INPUT_COST_PER_TOKEN +
+      outputTokens * OUTPUT_COST_PER_TOKEN;
 
-    // Calculate messages per minute
     let msgsPerMin = 0;
     if (totalMessages >= 2) {
-      const timestamps = messages.map((m) => {
-        const ts = typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp;
-        return ts.getTime();
-      }).filter((t) => !isNaN(t));
+      const timestamps = messages
+        .map((m) => {
+          const ts =
+            typeof m.timestamp === "string"
+              ? new Date(m.timestamp)
+              : m.timestamp;
+          return ts.getTime();
+        })
+        .filter((t) => !isNaN(t));
       if (timestamps.length >= 2) {
-        const span = Math.max(timestamps[timestamps.length - 1] - timestamps[0], 1);
-        msgsPerMin = (totalMessages / (span / 60000));
+        const span = Math.max(
+          timestamps[timestamps.length - 1] - timestamps[0],
+          1
+        );
+        msgsPerMin = totalMessages / (span / 60000);
       }
     }
 
-    // Token burn rate (tokens per minute)
     let tokenBurnRate = 0;
     if (totalTokens > 0 && messages.length >= 2) {
-      const timestamps = messages.map((m) => {
-        const ts = typeof m.timestamp === "string" ? new Date(m.timestamp) : m.timestamp;
-        return ts.getTime();
-      }).filter((t) => !isNaN(t));
+      const timestamps = messages
+        .map((m) => {
+          const ts =
+            typeof m.timestamp === "string"
+              ? new Date(m.timestamp)
+              : m.timestamp;
+          return ts.getTime();
+        })
+        .filter((t) => !isNaN(t));
       if (timestamps.length >= 2) {
-        const span = Math.max(timestamps[timestamps.length - 1] - timestamps[0], 1);
+        const span = Math.max(
+          timestamps[timestamps.length - 1] - timestamps[0],
+          1
+        );
         tokenBurnRate = totalTokens / (span / 60000);
       }
     }
@@ -63,7 +92,6 @@ export function LiveStatsBar({ messages, isConnected }: LiveStatsBarProps) {
       totalMessages,
       assistantMsgs,
       toolCalls,
-      toolResults,
       thinkingMsgs,
       totalTokens,
       totalDuration,
@@ -75,33 +103,90 @@ export function LiveStatsBar({ messages, isConnected }: LiveStatsBarProps) {
     };
   }, [messages]);
 
+  // Compute staleness
+  const stalenessLabel = useMemo(() => {
+    if (!lastHeartbeat) return null;
+    const hbTime = new Date(lastHeartbeat).getTime();
+    if (isNaN(hbTime)) return null;
+    const diffMs = Date.now() - hbTime;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHrs = Math.floor(diffMin / 60);
+    if (diffHrs < 24) return `${diffHrs}h ${diffMin % 60}m ago`;
+    return `${Math.floor(diffHrs / 24)}d ago`;
+  }, [lastHeartbeat]);
+
+  const isStale = useMemo(() => {
+    if (!lastHeartbeat) return true;
+    const diffMs = Date.now() - new Date(lastHeartbeat).getTime();
+    return diffMs > 15 * 60 * 1000; // 15 min
+  }, [lastHeartbeat]);
+
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b bg-muted/30 text-xs font-mono overflow-x-auto">
+      {/* Connection status */}
       <div className="flex items-center gap-1.5">
         <span
           className={`h-2 w-2 rounded-full ${
-            isConnected ? "bg-green-500 animate-pulse" : "bg-gray-500"
+            isConnected
+              ? "bg-green-500 animate-pulse"
+              : isStale
+              ? "bg-red-500"
+              : "bg-yellow-500"
           }`}
         />
-        <span className="text-muted-foreground">
-          {isConnected ? "Live" : "Idle"}
+        <span
+          className={
+            isConnected
+              ? "text-green-400"
+              : isStale
+              ? "text-red-400"
+              : "text-yellow-400"
+          }
+        >
+          {isConnected ? "LIVE" : isStale ? "STALE" : "IDLE"}
         </span>
       </div>
+
+      {/* Last heartbeat */}
+      {stalenessLabel && (
+        <>
+          <span className="text-muted-foreground">|</span>
+          <span
+            className={isStale ? "text-red-400" : "text-muted-foreground"}
+          >
+            <span className="text-muted-foreground/60">hb:</span>{" "}
+            {stalenessLabel}
+          </span>
+        </>
+      )}
+
       <span className="text-muted-foreground">|</span>
+
+      {/* Message counts */}
       <span>
-        <span className="text-muted-foreground">msgs:</span> {stats.totalMessages}
+        <span className="text-muted-foreground">msgs:</span>{" "}
+        {stats.totalMessages}
       </span>
       <span>
-        <span className="text-muted-foreground">turns:</span> {stats.assistantMsgs}
+        <span className="text-muted-foreground">turns:</span>{" "}
+        {stats.assistantMsgs}
       </span>
       <span>
-        <span className="text-muted-foreground">tools:</span> {stats.toolCalls}
+        <span className="text-muted-foreground">tools:</span>{" "}
+        {stats.toolCalls}
       </span>
-      {stats.errors > 0 && (
-        <span className="text-red-400">
-          <span className="text-red-400/60">errs:</span> {stats.errors}
+
+      {/* Errors - always show, red when > 0 */}
+      {(stats.errors > 0 || errorsLastHour > 0) && (
+        <span className="text-red-400 font-bold">
+          <span className="text-red-400/60">errs:</span>{" "}
+          {stats.errors + errorsLastHour}
         </span>
       )}
+
+      {/* Token metrics */}
       {stats.totalTokens > 0 && (
         <>
           <span className="text-muted-foreground">|</span>
@@ -113,26 +198,33 @@ export function LiveStatsBar({ messages, isConnected }: LiveStatsBarProps) {
             <span className="text-muted-foreground">burn:</span>{" "}
             {formatTokens(Math.round(stats.tokenBurnRate))}/min
           </span>
-          <span>
-            <span className="text-muted-foreground">cost:</span>{" "}
-            ${stats.estimatedCost.toFixed(4)}
+          <span className="text-emerald-400">
+            <span className="text-emerald-400/60">cost:</span> $
+            {stats.estimatedCost.toFixed(4)}
           </span>
         </>
       )}
+
+      {/* Tool time */}
       {stats.totalDuration > 0 && (
         <span>
           <span className="text-muted-foreground">tool-time:</span>{" "}
           {(stats.totalDuration / 1000).toFixed(1)}s
         </span>
       )}
+
+      {/* Rate */}
       {stats.msgsPerMin > 0 && (
         <span>
           <span className="text-muted-foreground">rate:</span>{" "}
           {stats.msgsPerMin.toFixed(1)}/min
         </span>
       )}
+
+      {/* Sessions */}
       <span>
-        <span className="text-muted-foreground">sessions:</span> {stats.sessions}
+        <span className="text-muted-foreground">sessions:</span>{" "}
+        {stats.sessions}
       </span>
     </div>
   );

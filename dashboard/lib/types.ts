@@ -151,6 +151,9 @@ export interface ConversationSession {
   lastMessage: Date;
   messageCount: number;
   isActive: boolean;
+  repo: string | null;
+  issue: string | null;
+  isSubagent: boolean;
 }
 
 export interface WorkQueueItem {

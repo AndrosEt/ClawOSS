@@ -8,6 +8,7 @@ import { LiveStatsBar } from "@/components/live/live-stats-bar";
 import { ToolAnalytics } from "@/components/live/tool-analytics";
 import { SessionDetail } from "@/components/live/session-detail";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
+import { ErrorAlertBanner } from "@/components/live/error-alert-banner";
 import { MessageFilters, type RoleFilter } from "@/components/live/message-filters";
 import {
   useConversation,
@@ -39,6 +40,10 @@ export default function LivePage() {
   const isConnected = connectionData?.connection?.state === "connected";
   const agentState = stateData?.state || null;
 
+  const lastHeartbeat = connectionData?.connection?.lastHeartbeat || null;
+  const errorsLastHour = connectionData?.pipeline?.errorsLastHour || 0;
+  const connectionState = connectionData?.connection?.state || "unknown";
+
   // Find the active session object
   const activeSession = selectedSession
     ? sessions.find((s) => s.sessionId === selectedSession)
@@ -65,7 +70,17 @@ export default function LivePage() {
   return (
     <div className="flex flex-col h-screen">
       <Header title="Live Feed" />
-      <LiveStatsBar messages={allMessages} isConnected={isConnected} />
+      <ErrorAlertBanner
+        errorsLastHour={errorsLastHour}
+        lastHeartbeat={lastHeartbeat}
+        connectionState={connectionState}
+      />
+      <LiveStatsBar
+        messages={allMessages}
+        isConnected={isConnected}
+        lastHeartbeat={lastHeartbeat}
+        errorsLastHour={errorsLastHour}
+      />
       <MessageFilters
         activeFilter={roleFilter}
         onFilterChange={setRoleFilter}

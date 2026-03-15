@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
 import { conversationMessages } from "@/lib/schema";
-import { desc, eq, gte, sql, and } from "drizzle-orm";
+import { desc, eq, gte, sql, and, type SQL } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
@@ -13,6 +13,8 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 500);
     const after = searchParams.get("after"); // ISO timestamp for polling
     const sessionsOnly = searchParams.get("sessions") === "true";
+    const repo = searchParams.get("repo");
+    const issue = searchParams.get("issue");
 
     // Return list of sessions with message counts
     if (sessionsOnly) {
@@ -22,6 +24,10 @@ export async function GET(request: Request) {
           firstMessage: sql<number>`MIN(timestamp)`,
           lastMessage: sql<number>`MAX(timestamp)`,
           messageCount: sql<number>`COUNT(*)`,
+          // Extract repo/issue from the first message's metadata (sub-agent spawn messages)
+          repo: sql<string | null>`MAX(json_extract(metadata, '$.repo'))`,
+          issue: sql<string | null>`MAX(json_extract(metadata, '$.issue'))`,
+          event: sql<string | null>`MAX(json_extract(metadata, '$.event'))`,
         })
         .from(conversationMessages)
         .groupBy(conversationMessages.sessionId)
@@ -36,6 +42,9 @@ export async function GET(request: Request) {
           lastMessage: new Date(s.lastMessage * 1000).toISOString(),
           messageCount: s.messageCount,
           isActive: s.lastMessage * 1000 > fiveMinutesAgo,
+          repo: s.repo || null,
+          issue: s.issue || null,
+          isSubagent: s.sessionId.includes("subagent:"),
         })),
       });
     }
@@ -47,6 +56,17 @@ export async function GET(request: Request) {
     }
     if (after) {
       conditions.push(gte(conversationMessages.timestamp, new Date(after)));
+    }
+    // Filter by repo/issue in metadata JSON (for sub-agent conversations)
+    if (repo) {
+      conditions.push(
+        sql`json_extract(${conversationMessages.metadata}, '$.repo') = ${repo}`
+      );
+    }
+    if (issue) {
+      conditions.push(
+        sql`json_extract(${conversationMessages.metadata}, '$.issue') = ${issue}`
+      );
     }
 
     const messages = await db

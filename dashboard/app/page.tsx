@@ -6,9 +6,12 @@ import { MetricCards } from "@/components/overview/metric-cards";
 import { ActivityTimeline } from "@/components/overview/activity-timeline";
 import { CurrentTaskCard } from "@/components/overview/current-task-card";
 import { RecentPRsList } from "@/components/overview/recent-prs-list";
+import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
+import { useAgentState } from "@/lib/hooks/use-agent-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function EmptyState() {
@@ -37,6 +40,7 @@ function EmptyState() {
 export default function OverviewPage() {
   const { data, isLoading } = useAgentStatus();
   const { data: connectionData } = useConnectionStatus();
+  const { data: stateData, isLoading: stateLoading } = useAgentState();
 
   const hasData = connectionData?.hasAnyData ||
     (data?.stats && (data.stats.totalPRs > 0 || data.stats.tokensUsedToday > 0)) ||
@@ -73,11 +77,58 @@ export default function OverviewPage() {
           costToday={data?.stats?.costToday || 0}
         />
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <ActivityTimeline items={data?.recentActivity || []} />
-          <div className="space-y-6">
-            <CurrentTaskCard task={data?.currentTask || null} />
-            <RecentPRsList prs={data?.recentPRs || []} />
+        {/* Pipeline status bar */}
+        {connectionData && (
+          <Card className="bg-muted/30">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-4 text-xs font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${
+                    connectionData.connection.state === "connected"
+                      ? "bg-green-500 animate-pulse"
+                      : connectionData.connection.state === "degraded"
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
+                  }`} />
+                  <span className="text-muted-foreground">Pipeline</span>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                    {connectionData.connection.state}
+                  </Badge>
+                </div>
+                <span className="text-muted-foreground">|</span>
+                <span>
+                  <span className="text-muted-foreground">heartbeats/hr:</span>{" "}
+                  {connectionData.pipeline.heartbeatsLastHour}
+                </span>
+                <span>
+                  <span className="text-muted-foreground">errors/hr:</span>{" "}
+                  <span className={connectionData.pipeline.errorsLastHour > 0 ? "text-red-400" : ""}>
+                    {connectionData.pipeline.errorsLastHour}
+                  </span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">model:</span>{" "}
+                  Kimi K2.5
+                </span>
+                <span>
+                  <span className="text-muted-foreground">pricing:</span>{" "}
+                  $0.45/$2.20/M
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2 space-y-6">
+            <ActivityTimeline items={data?.recentActivity || []} />
+            <div className="grid gap-6 md:grid-cols-2">
+              <CurrentTaskCard task={data?.currentTask || null} />
+              <RecentPRsList prs={data?.recentPRs || []} />
+            </div>
+          </div>
+          <div>
+            <AgentStatePanel state={stateData?.state || null} isLoading={stateLoading} />
           </div>
         </div>
       </div>

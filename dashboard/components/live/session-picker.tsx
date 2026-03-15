@@ -36,6 +36,19 @@ export function SessionPicker({
             typeof session.lastMessage === "string"
               ? new Date(session.lastMessage)
               : session.lastMessage;
+          const isSubagent =
+            session.isSubagent || session.sessionId.includes("subagent:");
+          const displayName = isSubagent
+            ? "sub:" + session.sessionId.split(":").pop()?.slice(0, 8) + "..."
+            : session.sessionId.length > 16
+            ? session.sessionId.slice(0, 16) + "..."
+            : session.sessionId;
+          const prLabel =
+            session.repo && session.issue
+              ? `${session.repo}${session.issue}`
+              : session.repo
+              ? session.repo
+              : null;
           return (
             <Button
               key={session.sessionId}
@@ -47,10 +60,11 @@ export function SessionPicker({
               onClick={() => onSelectSession(session.sessionId)}
             >
               <div className="flex items-center gap-2 w-full">
+                {isSubagent && (
+                  <span className="text-[9px] text-yellow-400">{"~>"}</span>
+                )}
                 <span className="font-mono truncate flex-1 text-left">
-                  {session.sessionId.length > 16
-                    ? session.sessionId.slice(0, 16) + "..."
-                    : session.sessionId}
+                  {displayName}
                 </span>
                 {session.isActive && (
                   <Badge
@@ -60,7 +74,22 @@ export function SessionPicker({
                     LIVE
                   </Badge>
                 )}
+                {isSubagent && (
+                  <Badge
+                    variant="outline"
+                    className="text-[8px] h-3 px-1 text-yellow-400 border-yellow-400/30"
+                  >
+                    SUB
+                  </Badge>
+                )}
               </div>
+              {prLabel && (
+                <div className="w-full">
+                  <span className="text-[9px] text-cyan-400 font-mono truncate block">
+                    {prLabel}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2 w-full text-muted-foreground">
                 <span>{session.messageCount} msgs</span>
                 <span>{formatRelativeTime(last)}</span>
