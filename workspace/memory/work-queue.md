@@ -1,5 +1,13 @@
 # Work Queue
 
+## In Progress
+| priority | repo | issue | title | score | notes |
+|----------|------|-------|-------|-------|-------|
+| 1 | lukilabs/craft-agents-oss | 414 | OAuth browser window never opens on Windows | 7 | bug |
+| 2 | crosspoint-reader/crosspoint-reader | 1403 | Lines getting broken after apostrophes | 6 | bug |
+| 3 | fluxerapp/fluxer | 702 | Voice channels are options when forwarding | 6 | bug |
+| 4 | Xian55/WowClassicGrindBot | 788 | Assist Focus doesn't work | 6 | bug |
+
 ## Completed (20 PRs)
 | repo | issue | pr | completed |
 |------|-------|-----|-----------|
@@ -27,7 +35,9 @@
 ## Skipped (Assigned)
 | repo | issue | reason |
 |------|-------|--------|
-| apache/mahout | 1182 | Already assigned to yehfelareborn |
+| apache/mahout | 1182 | Already assigned |
+| auto-silent/app | 22 | Assigned to itsha123 |
+| rackaracka123/terraforming-mars | 417 | Assigned to saffronjam |
 
 ## Abandoned
 | repo | issue | reason |
