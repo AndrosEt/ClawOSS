@@ -164,7 +164,7 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
     Use image to analyze any screenshots attached to the issue.
-    IMPORTANT: When finished, write results to /Users/kevinlin/clawOSS/workspace/memory/subagent-result-<repo>-<issue>.md:
+    IMPORTANT: When finished, write results to memory/subagent-result-<repo>-<issue>.md (relative to workspace root):
     - Status: success/failure
     - PR URL (if created)
     - Files changed

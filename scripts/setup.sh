@@ -3,103 +3,142 @@ set -euo pipefail
 
 echo "=== ClawOSS Setup ==="
 
-# Check prerequisites
-command -v openclaw >/dev/null 2>&1 || { echo "Error: openclaw CLI not found. Install from https://github.com/openclaw/openclaw"; exit 1; }
-command -v gh >/dev/null 2>&1 || { echo "Error: gh CLI not found. Install from https://cli.github.com"; exit 1; }
-command -v node >/dev/null 2>&1 || { echo "Error: node not found"; exit 1; }
-
+# Auto-detect paths
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+WORKSPACE_DIR="$PROJECT_DIR/workspace"
+
+# Check prerequisites
+echo "Checking prerequisites..."
+command -v openclaw >/dev/null 2>&1 || { echo "Error: openclaw not found. Install: npm i -g openclaw"; exit 1; }
+command -v gh >/dev/null 2>&1 || { echo "Error: gh not found. Install: brew install gh"; exit 1; }
+command -v node >/dev/null 2>&1 || { echo "Error: node not found. Install Node.js"; exit 1; }
+command -v python3 >/dev/null 2>&1 || { echo "Error: python3 not found. Install Python 3"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "Error: jq not found. Install: brew install jq"; exit 1; }
+echo "[OK] All prerequisites found"
 
 # Load .env for API keys
 if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
-    echo "Loaded .env"
+    set -a; source "$PROJECT_DIR/.env"; set +a
+    echo "[OK] Loaded .env"
 else
-    echo "Warning: .env not found. Copy .env.example to .env and fill in values."
+    echo "Error: .env not found. Run: cp .env.example .env && edit .env"
     exit 1
 fi
 
-# Verify OpenRouter API key
-if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-    echo "Error: OPENROUTER_API_KEY not set in .env"
+# Validate required env vars
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+    echo "Error: GITHUB_TOKEN not set in .env"
     exit 1
 fi
-echo "OpenRouter API key configured"
-
-# Configure git identity for BillionClaw
-git config --global user.name "BillionClaw"
-git config --global user.email "billionclaw+clawoss@users.noreply.github.com"
-echo "Git identity set to BillionClaw <billionclaw+clawoss@users.noreply.github.com>"
-
-# Check gh auth — prompt interactive login if not authenticated
-if gh auth status 2>/dev/null; then
-    echo "GitHub CLI already authenticated"
-else
-    echo "GitHub CLI not authenticated. Starting interactive login..."
-    echo "Log in as BillionClaw (https://github.com/BillionClaw)"
-    gh auth login
-fi
-
-# Verify gh auth
-if gh auth status 2>/dev/null; then
-    echo "GitHub CLI authenticated"
-else
-    echo "Error: gh CLI authentication failed. Run 'gh auth login' manually."
+if [ -z "${KIMI_API_KEY:-}" ] && [ -z "${OPENROUTER_API_KEY:-}" ]; then
+    echo "Error: Set KIMI_API_KEY or OPENROUTER_API_KEY in .env"
     exit 1
+fi
+echo "[OK] API keys configured"
+
+# Configure git identity
+GITHUB_USERNAME="${GITHUB_USERNAME:-BillionClaw}"
+GITHUB_EMAIL="${GITHUB_EMAIL:-billionclaw+clawoss@users.noreply.github.com}"
+git config --global user.name "$GITHUB_USERNAME"
+git config --global user.email "$GITHUB_EMAIL"
+echo "[OK] Git identity: $GITHUB_USERNAME <$GITHUB_EMAIL>"
+
+# Authenticate GitHub CLI
+if gh auth status >/dev/null 2>&1; then
+    echo "[OK] GitHub CLI already authenticated"
+else
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+        echo "[OK] GitHub CLI authenticated via token"
+    else
+        echo "GitHub CLI not authenticated. Starting interactive login..."
+        gh auth login
+    fi
 fi
 
 # Create workspace symlink
-WORKSPACE_DIR="$HOME/.openclaw/workspace"
+OPENCLAW_DIR="$HOME/.openclaw"
+mkdir -p "$OPENCLAW_DIR"
+WORKSPACE_LINK="$OPENCLAW_DIR/workspace"
 
-if [ -L "$WORKSPACE_DIR" ]; then
-    echo "Workspace symlink already exists"
-elif [ -d "$WORKSPACE_DIR" ]; then
-    echo "Warning: $WORKSPACE_DIR exists and is a directory. Backing up..."
-    mv "$WORKSPACE_DIR" "${WORKSPACE_DIR}.backup.$(date +%Y%m%d%H%M%S)"
-fi
-
-ln -sf "$PROJECT_DIR/workspace" "$WORKSPACE_DIR"
-echo "Linked workspace: $WORKSPACE_DIR -> $PROJECT_DIR/workspace"
-
-# Copy config (don't symlink — needs local customization)
-mkdir -p "$HOME/.openclaw"
-if [ ! -f "$HOME/.openclaw/openclaw.json" ]; then
-    cp "$PROJECT_DIR/config/openclaw.json" "$HOME/.openclaw/openclaw.json"
-    echo "Copied openclaw.json to $HOME/.openclaw/"
+if [ -L "$WORKSPACE_LINK" ] && [ "$(readlink "$WORKSPACE_LINK")" = "$WORKSPACE_DIR" ]; then
+    echo "[OK] Workspace already linked"
+elif [ -L "$WORKSPACE_LINK" ] || [ -d "$WORKSPACE_LINK" ]; then
+    mv "$WORKSPACE_LINK" "${WORKSPACE_LINK}.backup.$(date +%s)"
+    ln -sf "$WORKSPACE_DIR" "$WORKSPACE_LINK"
+    echo "[OK] Workspace linked (old backed up)"
 else
-    echo "openclaw.json already exists — skipping (check config/openclaw.json for updates)"
+    ln -sf "$WORKSPACE_DIR" "$WORKSPACE_LINK"
+    echo "[OK] Workspace linked"
 fi
 
-# Register the clawoss agent
-if openclaw agents list 2>/dev/null | grep -q "^- clawoss "; then
-    echo "Agent 'clawoss' already registered"
-else
-    echo "Registering agent 'clawoss'..."
-    openclaw agents add clawoss \
-        --workspace "$PROJECT_DIR/workspace" \
-        --model "openrouter/moonshotai/kimi-k2.5" \
-        --non-interactive
-    echo "Agent 'clawoss' registered"
+# Deploy config with path substitution
+echo "Deploying config..."
+sed \
+    -e "s|__WORKSPACE_PATH__|$WORKSPACE_DIR|g" \
+    -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
+    -e "s|__HOME_DIR__|$HOME|g" \
+    "$PROJECT_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
+
+# Inject env vars into deployed config
+python3 -c "
+import json
+with open('$OPENCLAW_DIR/openclaw.json') as f: c = json.load(f)
+c.setdefault('env', {})
+c['env']['KIMI_API_KEY'] = '${KIMI_API_KEY:-}'
+c['env']['OPENROUTER_API_KEY'] = '${OPENROUTER_API_KEY:-}'
+c['env']['GITHUB_TOKEN'] = '${GITHUB_TOKEN:-}'
+c['env']['DASHBOARD_URL'] = '${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}'
+c['env']['CLAW_API_KEY'] = '${CLAW_API_KEY:-clawoss-dashboard-key-2024}'
+c['env'] = {k:v for k,v in c['env'].items() if v}
+with open('$OPENCLAW_DIR/openclaw.json', 'w') as f: json.dump(c, f, indent=2)
+" 2>/dev/null
+echo "[OK] Config deployed with env vars"
+
+# Install PR ledger sync launchd plist
+PLIST_SRC="$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist"
+PLIST_DST="$HOME/Library/LaunchAgents/com.clawoss.pr-ledger-sync.plist"
+if [ -f "$PLIST_SRC" ]; then
+    launchctl unload "$PLIST_DST" 2>/dev/null || true
+    sed \
+        -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
+        -e "s|__HOME_DIR__|$HOME|g" \
+        "$PLIST_SRC" > "$PLIST_DST"
+    launchctl load "$PLIST_DST" 2>/dev/null || true
+    echo "[OK] PR ledger sync installed (launchd, 60s interval)"
 fi
 
-# Symlink ClawOSS skills into OpenClaw skills directory
-echo "Linking ClawOSS skills..."
-mkdir -p "$HOME/.openclaw/skills"
-for skill in "$PROJECT_DIR/workspace/skills"/*/; do
+# Install PII sanitizer plugin
+PLUGIN_SRC="$PROJECT_DIR/plugins/pii-sanitizer"
+PLUGIN_DST="$OPENCLAW_DIR/extensions/clawoss-pii-sanitizer"
+if [ -d "$PLUGIN_SRC" ]; then
+    mkdir -p "$PLUGIN_DST"
+    cp -f "$PLUGIN_SRC/index.js" "$PLUGIN_DST/index.js"
+    echo "[OK] PII sanitizer plugin installed"
+fi
+
+# Symlink skills
+echo "Linking skills..."
+mkdir -p "$OPENCLAW_DIR/skills"
+for skill in "$WORKSPACE_DIR/skills"/*/; do
+    [ ! -d "$skill" ] && continue
     name=$(basename "$skill")
-    ln -sf "$skill" "$HOME/.openclaw/skills/$name"
+    ln -sf "$skill" "$OPENCLAW_DIR/skills/$name"
     echo "  Linked: $name"
 done
 
 # Create working directories
-mkdir -p /tmp/clawoss-workdir
-mkdir -p "$HOME/.openclaw/logs"
+mkdir -p "$OPENCLAW_DIR/logs"
+mkdir -p "$WORKSPACE_DIR/memory/repos"
+mkdir -p "$WORKSPACE_DIR/memory/issues"
+echo "[OK] Directories ready"
 
 echo ""
 echo "=== Setup Complete ==="
+echo "  Project: $PROJECT_DIR"
+echo "  Workspace: $WORKSPACE_DIR"
+echo ""
 echo "Next steps:"
-echo "  1. Edit ~/.openclaw/openclaw.json with your API keys"
-echo "  2. Run: npm run start"
+echo "  bash scripts/restart.sh    # Start the agent"
+echo "  openclaw logs              # Watch agent output"

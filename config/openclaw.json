@@ -31,7 +31,7 @@
         "id": "clawoss",
         "default": true,
         "name": "ClawOSS",
-        "workspace": "/Users/kevinlin/clawOSS/workspace",
+        "workspace": "__WORKSPACE_PATH__",
         "model": "kimi-coding/k2p5",
         "tools": {
           "profile": "coding"

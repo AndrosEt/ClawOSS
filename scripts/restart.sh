@@ -15,9 +15,11 @@ else
 fi
 
 # 2. Set git identity
-git config --global user.name "BillionClaw"
-git config --global user.email "billionclaw+clawoss@users.noreply.github.com"
-echo "[OK] Git identity: BillionClaw"
+GITHUB_USERNAME="${GITHUB_USERNAME:-BillionClaw}"
+GITHUB_EMAIL="${GITHUB_EMAIL:-billionclaw+clawoss@users.noreply.github.com}"
+git config --global user.name "$GITHUB_USERNAME"
+git config --global user.email "$GITHUB_EMAIL"
+echo "[OK] Git identity: $GITHUB_USERNAME"
 
 # 3. Authenticate GitHub CLI
 if [ -n "${GITHUB_TOKEN:-}" ]; then
@@ -37,8 +39,12 @@ else
     echo "[OK] Workspace already linked"
 fi
 
-# 5. Deploy config
-yes | cp -f "$PROJECT_DIR/config/openclaw.json" "$HOME/.openclaw/openclaw.json" 2>/dev/null
+# 5. Deploy config (substitute path placeholders)
+sed \
+    -e "s|__WORKSPACE_PATH__|$PROJECT_DIR/workspace|g" \
+    -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
+    -e "s|__HOME_DIR__|$HOME|g" \
+    "$PROJECT_DIR/config/openclaw.json" > "$HOME/.openclaw/openclaw.json"
 # Re-inject env vars (they're not in the repo config)
 python3 -c "
 import json
@@ -108,7 +114,10 @@ fi
 PLIST="$HOME/Library/LaunchAgents/com.clawoss.pr-ledger-sync.plist"
 launchctl unload "$PLIST" 2>/dev/null || true
 if [ -f "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" ]; then
-    cp "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" "$PLIST"
+    sed \
+        -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
+        -e "s|__HOME_DIR__|$HOME|g" \
+        "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" > "$PLIST"
 elif [ -f "$PLIST" ]; then
     : # already installed
 else

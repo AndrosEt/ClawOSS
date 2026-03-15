@@ -11,7 +11,7 @@
     <key>ProgramArguments</key>
     <array>
       <string>/bin/bash</string>
-      <string>/Users/kevinlin/clawOSS/scripts/pr-ledger-sync-wrapper.sh</string>
+      <string>__PROJECT_DIR__/scripts/pr-ledger-sync-wrapper.sh</string>
     </array>
 
     <key>StartInterval</key>
@@ -28,9 +28,9 @@
     <key>EnvironmentVariables</key>
     <dict>
       <key>HOME</key>
-      <string>/Users/kevinlin</string>
+      <string>__HOME_DIR__</string>
       <key>PATH</key>
-      <string>/opt/homebrew/bin:/usr/local/bin:/Users/kevinlin/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin</string>
+      <string>/opt/homebrew/bin:/usr/local/bin:__HOME_DIR__/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin</string>
     </dict>
   </dict>
 </plist>
