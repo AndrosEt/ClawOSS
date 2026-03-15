@@ -23,8 +23,7 @@
       },
       "subagents": {
         "model": "openrouter/moonshotai/kimi-k2.5",
-        "maxConcurrent": 1,
-        "runTimeoutSeconds": 600
+        "maxConcurrent": 5
       }
     },
     "list": [

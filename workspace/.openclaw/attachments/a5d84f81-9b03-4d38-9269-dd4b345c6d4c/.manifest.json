@@ -1,0 +1,17 @@
+{
+  "relDir": ".openclaw/attachments/a5d84f81-9b03-4d38-9269-dd4b345c6d4c",
+  "count": 2,
+  "totalBytes": 2386,
+  "files": [
+    {
+      "name": "repo-conventions.md",
+      "bytes": 1014,
+      "sha256": "f7bee1af4b4c3ed920dcc28ab921b5fd934d185197fcee01eb7ec8c85035615a"
+    },
+    {
+      "name": "issue-details.md",
+      "bytes": 1372,
+      "sha256": "27c76eb9845799dd3e3c6fae005f2bf95d8b81e05b6e09392fdd137b727c976c"
+    }
+  ]
+}

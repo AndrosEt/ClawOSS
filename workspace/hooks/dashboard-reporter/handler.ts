@@ -1,4 +1,4 @@
-const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://dashboard-plum-one-37.vercel.app";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://clawoss-dashboard.vercel.app";
 const AGENT_ID = "clawoss";
 const GITHUB_USERNAME = "BillionClaw";
 // Kimi K2.5 pricing: $0.45/M input, $2.20/M output
@@ -10,6 +10,10 @@ let accumulatedOutputTokens = 0;
 let accumulatedDurationMs = 0;
 let toolCallCount = 0;
 let startTime = Date.now();
+let lastSkillName: string | null = null;
+let lastRepoName: string | null = null;
+let lastIssueName: string | null = null;
+const reposUsed = new Set<string>();
 
 async function postNonBlocking(
   path: string,
@@ -78,6 +82,100 @@ async function postConversation(
   }
 }
 
+// Post agent state snapshot (work queue, pipeline, repos, skill)
+async function postState(apiKey: string): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+
+    // Try to read work queue and pipeline state from workspace memory files
+    let workQueue: unknown[] = [];
+    let pipelineState: Record<string, unknown> = {};
+
+    try {
+      const fs = await import("fs");
+      const wqPath = `${process.cwd()}/workspace/memory/work-queue.md`;
+      const psPath = `${process.cwd()}/workspace/memory/pipeline-state.md`;
+
+      // Parse work queue markdown table
+      try {
+        const wqContent = fs.readFileSync(wqPath, "utf-8");
+        const lines = wqContent.split("\n").filter(
+          (l: string) =>
+            l.includes("|") &&
+            !l.startsWith("priority") &&
+            !l.startsWith("--") &&
+            !l.startsWith("#") &&
+            !l.startsWith("<!--")
+        );
+        workQueue = lines
+          .map((line: string) => {
+            const parts = line.split("|").map((p: string) => p.trim());
+            return {
+              priority: parts[0] || "MEDIUM",
+              repo: parts[1] || "",
+              issue: parts[2] || "",
+              title: parts[3] || "",
+              solvabilityScore: parseInt(parts[4]) || 0,
+              discovered: parts[5] || "",
+            };
+          })
+          .filter((item: { repo: string }) => item.repo);
+      } catch {
+        // File may not exist yet
+      }
+
+      // Parse pipeline state
+      try {
+        const psContent = fs.readFileSync(psPath, "utf-8");
+        const statsMatch = psContent.match(/submitted:\s*(\d+)/);
+        const mergedMatch = psContent.match(/merged:\s*(\d+)/);
+        const rejectedMatch = psContent.match(/rejected:\s*(\d+)/);
+        const abandonedMatch = psContent.match(/abandoned:\s*(\d+)/);
+        pipelineState = {
+          activePRs: [],
+          statsToday: {
+            submitted: statsMatch ? parseInt(statsMatch[1]) : 0,
+            merged: mergedMatch ? parseInt(mergedMatch[1]) : 0,
+            rejected: rejectedMatch ? parseInt(rejectedMatch[1]) : 0,
+            abandoned: abandonedMatch ? parseInt(abandonedMatch[1]) : 0,
+          },
+        };
+      } catch {
+        // File may not exist yet
+      }
+    } catch {
+      // fs import may fail in some environments
+    }
+
+    await fetch(`${DASHBOARD_URL}/api/ingest/state`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        currentSkill: lastSkillName,
+        currentRepo: lastRepoName,
+        currentIssue: lastIssueName,
+        workQueue,
+        pipelineState,
+        activeRepos: Array.from(reposUsed),
+        metadata: {
+          agent_id: AGENT_ID,
+          tool_calls: toolCallCount,
+          model: "moonshotai/kimi-k2.5",
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+  } catch {
+    // Silently ignore state posting failures
+  }
+}
+
 const handler = async (event: {
   type: string;
   action: string;
@@ -93,6 +191,7 @@ const handler = async (event: {
   error?: string;
   assistantMessage?: string;
   userMessage?: string;
+  skillName?: string;
 }) => {
   const apiKey = process.env.CLAW_API_KEY;
   if (!apiKey) {
@@ -104,8 +203,37 @@ const handler = async (event: {
   const ts = event.timestamp?.toISOString() || new Date().toISOString();
 
   try {
+    // Track skill name if provided
+    if (event.skillName) {
+      lastSkillName = event.skillName;
+    }
+
+    // Stream user messages to conversation feed
+    if (event.type === "user_message" || event.action === "user_message") {
+      if (event.userMessage) {
+        await postConversation(
+          {
+            messages: [
+              {
+                sessionId,
+                role: "user",
+                content: event.userMessage.slice(0, 5000),
+                timestamp: ts,
+                metadata: { agent_id: AGENT_ID },
+              },
+            ],
+          },
+          apiKey
+        );
+      }
+      return;
+    }
+
     // After a tool call: accumulate metrics + stream tool call to conversation feed
-    if (event.type === "after_tool_call" || event.action === "after_tool_call") {
+    if (
+      event.type === "after_tool_call" ||
+      event.action === "after_tool_call"
+    ) {
       toolCallCount++;
       if (event.durationMs) {
         accumulatedDurationMs += event.durationMs;
@@ -116,6 +244,22 @@ const handler = async (event: {
         const paramStr = JSON.stringify(params);
         accumulatedInputTokens += Math.ceil(paramStr.length / 4);
         accumulatedOutputTokens += Math.ceil(paramStr.length / 8);
+      }
+
+      // Track repos from tool params
+      const paramStr = JSON.stringify(params);
+      const repoMatch = paramStr.match(
+        /(?:repos?|repository)['":\s]+([a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+)/i
+      );
+      if (repoMatch) {
+        reposUsed.add(repoMatch[1]);
+        lastRepoName = repoMatch[1];
+      }
+
+      // Track issue numbers
+      const issueMatch = paramStr.match(/#(\d+)/);
+      if (issueMatch) {
+        lastIssueName = `#${issueMatch[1]}`;
       }
 
       // Stream tool call to live conversation feed
@@ -133,7 +277,7 @@ const handler = async (event: {
           toolCallId: event.toolCallId || null,
           durationMs: event.durationMs || null,
           timestamp: ts,
-          metadata: { agent_id: AGENT_ID },
+          metadata: { agent_id: AGENT_ID, skill: lastSkillName },
         },
       ];
 
@@ -174,7 +318,7 @@ const handler = async (event: {
       return;
     }
 
-    // On agent_end: flush accumulated metrics + stream completion to conversation
+    // On agent_end: flush accumulated metrics + stream completion + post state
     if (event.type === "agent_end" || event.action === "agent_end") {
       const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
 
@@ -189,7 +333,11 @@ const handler = async (event: {
           content: event.assistantMessage.slice(0, 5000),
           timestamp: ts,
           tokenCount: accumulatedOutputTokens || null,
-          metadata: { agent_id: AGENT_ID, event: "agent_end" },
+          metadata: {
+            agent_id: AGENT_ID,
+            event: "agent_end",
+            skill: lastSkillName,
+          },
         });
       }
 
@@ -222,6 +370,8 @@ const handler = async (event: {
           tool_calls: toolCallCount,
           uptime_seconds: uptimeSeconds,
           had_error: !!event.error,
+          repos: Array.from(reposUsed),
+          skill: lastSkillName,
         },
       });
 
@@ -229,19 +379,24 @@ const handler = async (event: {
         await postConversation({ messages: convMessages }, apiKey);
       }
 
-      // Send heartbeat
+      // Post agent state snapshot (work queue, pipeline, repos, skill)
+      await postState(apiKey);
+
+      // Send heartbeat with enriched metadata
       await postNonBlocking(
         "/api/ingest/heartbeat",
         {
           agent_id: AGENT_ID,
           github_username: GITHUB_USERNAME,
           status: event.error ? "degraded" : "alive",
-          currentTask: null,
+          currentTask: lastSkillName || null,
           uptimeSeconds,
           metadata: {
             session_key: sessionId,
             tool_calls: toolCallCount,
             model: "moonshotai/kimi-k2.5",
+            repos: Array.from(reposUsed),
+            skill: lastSkillName,
           },
         },
         apiKey
@@ -279,7 +434,7 @@ const handler = async (event: {
         toolCallCount = 0;
       }
 
-      // Log agent completion
+      // Log agent completion with enriched metadata
       await postNonBlocking(
         "/api/ingest/logs",
         {
@@ -289,19 +444,27 @@ const handler = async (event: {
               source: "hook:dashboard-reporter",
               message: event.error
                 ? `Agent run ended with error: ${event.error}`
-                : `Agent run completed (${toolCallCount} tool calls, ${uptimeSeconds}s)`,
+                : `Agent run completed (${toolCallCount} tool calls, ${uptimeSeconds}s, repos: ${Array.from(reposUsed).join(", ") || "none"})`,
               timestamp: ts,
               metadata: {
                 event: "agent_end",
                 agent_id: AGENT_ID,
                 session_key: sessionId,
                 run_id: event.runId || null,
+                repos: Array.from(reposUsed),
+                skill: lastSkillName,
               },
             },
           ],
         },
         apiKey
       );
+
+      // Reset state tracking for next run
+      lastSkillName = null;
+      lastRepoName = null;
+      lastIssueName = null;
+      reposUsed.clear();
     }
   } catch (err) {
     // Never let telemetry errors disrupt agent work

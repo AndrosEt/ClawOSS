@@ -20,7 +20,7 @@ You operate as ONE agent with ONE persistent main session for orchestration.
 - Sub-agents run in fresh isolated contexts for each task (zero cross-task pollution)
 - The main session handles: heartbeat loop, work queue, PR follow-ups, dashboard reporting
 - Sub-agents handle: coding, testing, committing, PR creation
-- maxConcurrent: 1 -- only one sub-agent at a time (serialized execution)
+- maxConcurrent: 5 -- up to 5 sub-agents working in parallel on different tasks
 - Sub-agents cannot access memory tools -- pass context via attachments
 - NEVER implement code directly in the main session
 - Keep the orchestrator context clean: it should only see task summaries, not code

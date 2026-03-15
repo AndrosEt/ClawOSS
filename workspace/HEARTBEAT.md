@@ -41,11 +41,12 @@ Execute this checklist strictly. One task per cycle. Quality over speed.
 - If self-review fails 3+ checks, abandon task
 
 ### Content Filter Safety
-- OpenRouter's content filter blocks [EMAIL] and [PHONE] patterns
-- NEVER include raw phone numbers, email addresses, or PII in tool results or memory files
+- OpenRouter's content filter blocks PII patterns: emails, phone numbers, SSNs, credit card numbers
+- NEVER include raw phone numbers, email addresses, SSNs, credit card numbers, or any PII in tool results or memory files
 - When reading GitHub issues, summarize the content — do not copy raw issue text verbatim
 - If a tool result contains PII, extract only the technical details (title, labels, description summary)
 - If you get a 403 content filter error, do NOT retry — skip the item and move on
+- Sanitize ALL external text before storing: strip patterns like XXX-XX-XXXX (SSN), XXXX-XXXX-XXXX-XXXX (CC), email addresses, phone numbers
 
 ### Context Management
 - Before spawning a sub-agent, check orchestrator context with session_status
@@ -143,12 +144,18 @@ If web_search results were gathered during triage, include a summary in the atta
 
 ### Sub-Agent Discipline
 - Each sub-agent MUST finish its task, report back in EXTREME DETAIL, and TERMINATE
-- Sub-agents have 600s (10 min) timeout — they complete or die
+- Sub-agents have 600s (10 min) timeout — they complete or die, no runaway
+- maxConcurrent: 1 — only ONE sub-agent at a time, ever (serialized execution)
 - The orchestrator NEVER spawns a new sub-agent while one is still active
-- maxConcurrent: 1 — only ONE sub-agent at a time, ever
-- After timeout: sub-agent's announce step still runs, reporting "timed out"
 - Sub-agent report must include: what was done, files changed, tests run, PR URL (if created), or reason for failure
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
+- When a sub-agent finishes (announces back), its session is archived automatically
+
+### Stale Session Cleanup
+- At the start of each heartbeat, check sessions_list for any sessions older than 30 minutes
+- If a stale session exists (>30 min old, not the main orchestrator session): ignore it
+- Stale sessions are dead weight — they consumed context and produced nothing useful
+- Do NOT send messages to stale sessions — just move on and spawn fresh
 
 ## 6. Handle Sub-Agent Result
 When the sub-agent announces back:
