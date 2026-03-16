@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ClawOSS V9 Full Restart Script
+# ClawOSS V10 Full Restart Script
 # THE canonical way to restart ClawOSS from scratch.
 # Safe to run multiple times — idempotent.
 #
@@ -7,7 +7,7 @@
 # legitimately fail (process kills, gateway stop, launchctl unload).
 # Each step handles its own errors explicitly.
 
-echo "=== ClawOSS V9 Full Restart ==="
+echo "=== ClawOSS V10 Full Restart ==="
 echo ""
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -289,7 +289,7 @@ errors_this_hour: 0
 last_error: none
 last_wake: none
 WAKEEOF
-echo "[OK] Wake state reset (V9 — no rate-limit fields)"
+echo "[OK] Wake state reset (V10)"
 
 # ── 9. Create required directories ───────────────────────────────────
 mkdir -p "$HOME/.openclaw/logs"
@@ -375,24 +375,26 @@ fi
 # ── 16. Kick the agent ───────────────────────────────────────────────
 sleep 3
 if openclaw system event \
-    --text "ClawOSS V9 restart complete. Execute HEARTBEAT.md steps 0-7. Scout + 5 impl/followup slots. Follow-ups FIRST, then trusted repos, then discovery. No rate limits — ship quality PRs. Rework rejected PRs, never close. Sign CLAs when prompted. Go." \
+    --text "ClawOSS V10 restart. Execute HEARTBEAT.md steps 0-7. 3 always-on subagents (scout + PR monitor + PR analyst) + 7 impl/followup = 10 slots. Use P(merge) scoring — only work on issues with P(merge) >= 30. Follow-ups FIRST. Rework rejected PRs. Sign CLAs. Use scripts/ for all checks." \
     --mode now 2>&1; then
-    echo "[OK] Agent kicked (V9)"
+    echo "[OK] Agent kicked (V10)"
 else
     echo "[WARN] Agent wake event failed — agent will wake on next heartbeat timer"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
-echo "=== ClawOSS V9 Running ==="
+echo "=== ClawOSS V10 Running ==="
 echo "  Model: kimi-coding/k2p5 (Kimi Code direct API)"
 echo "  Dashboard: https://clawoss-dashboard.vercel.app"
-echo "  Slots: 1 scout (always-on) + 5 implementation/follow-up"
+echo "  Slots: 3 always-on (scout + PR monitor + PR analyst) + 7 impl/followup = 10"
+echo "  Heartbeat: 5m"
 echo "  Logs: openclaw logs"
 echo "  PRs: gh search prs --author BillionClaw --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
-echo "V9 features: no rate limits, rework-not-close, always-on scout,"
-echo "lock-file dedup, mandatory health checks, CLA auto-signing."
+echo "V10 features: P(merge) scoring, codebase direction analysis, 3 always-on subagents,"
+echo "rework-not-close, lock-file dedup, mandatory health checks, CLA auto-signing,"
+echo "16 reusable scripts in scripts/, blocklist hard gates."
 echo ""
 echo "The agent runs independently via OpenClaw gateway — no manual intervention needed."
