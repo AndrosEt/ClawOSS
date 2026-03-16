@@ -54,10 +54,10 @@ Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementati
 - Understand the repo architecture BEFORE writing any code
 - Every code change must include a test proving the bug existed and is now fixed
 - Every PR description must include ROOT CAUSE ANALYSIS: what was broken, WHY it was broken, how this fixes it
-- Commit messages: Conventional Commits format -- fix(scope): description (type MUST be "fix")
+- Commit messages: Conventional Commits format -- {type}(scope): description (type = fix, docs, or test — must match contribution)
 - Code style must match the target repo's existing conventions
 - No AI-slop: no unnecessary comments, no over-engineering, no "I" statements
-- No scope creep: fix ONLY the reported bug, nothing else
+- No scope creep: address ONLY the reported issue, nothing else
 - Multi-file fixes are fine when the root cause demands it -- correctness over minimalism
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
@@ -181,47 +181,10 @@ comments requesting code changes since our last push:
 - Update pr-followup-state.md: status = merged
 - Log success. Continue.
 
-### 2c. Write Follow-up Context File
-For each PR that needs a sub-agent, write a context file:
+### 2c. Write Follow-up Context & Spawn Sub-Agent
+For each PR needing a sub-agent, write context to `memory/subagent-inputs/followup-{repo}-{pr}.md`
+with PR details, review comments (inline + general), and diff summary (first 200 lines).
 
-```bash
-# File: memory/subagent-inputs/followup-{repo}-{pr}.md
-```
-
-Contents:
-```markdown
-# Follow-up Context: {owner}/{repo}#{pr}
-
-## PR Details
-- URL: {pr_url}
-- Number: {pr_number}
-- Branch: {branch_name}
-- Repo: {owner}/{repo}
-- Original Issue: #{issue_number}
-- Classification: {changes_requested|comment_only|ci_failing}
-- Revision Round: {round}
-
-## Review Comments
-
-### Inline Comments (file-level)
-{for each inline comment:}
-- File: {path}
-- Line: {line}
-- Reviewer: {login}
-- Comment ID: {id}
-- Body: {body}
-
-### General Comments
-{for each general comment:}
-- Reviewer: {login}
-- Comment ID: {id}
-- Body: {body}
-
-## Diff Summary
-{output of gh pr diff {number} --repo {owner}/{repo} | head -200}
-```
-
-### 2d. Spawn Follow-up Sub-Agent
 Read the spawn template from `templates/subagent-followup.md`.
 Substitute the variables: `{owner}`, `{repo}`, `{pr}`, `{branch}`, `{round}`, `{number}`.
 Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
@@ -267,6 +230,7 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 - If active sub-agents < 5 AND work queue has items:
   Pick the next task (urgent first, then top item with score >= 5).
   BEFORE spawning, apply these filters:
+  a0. **BLACKLIST GATE (FIRST -- before ANY tokens):** Read `memory/repo-blacklist.md`. If repo is listed: SKIP. Remove from queue. No exceptions.
   a. **DEDUP GATE (3 checks — must pass ALL):**
      - SKIP if issue number + repo name already appears in memory/pr-ledger.md
        (Note: pr-ledger entries may have empty issue fields — match on BOTH repo name
@@ -289,88 +253,24 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
      `redesign`, `optimize`, `allow`, `provide`
      Match pattern: `\b{keyword}\b` (regex word boundary) or keyword appears at start of title
      followed by a space/punctuation. Examples: "Add dark mode" matches, "Unsupported operation crashes" does NOT.
-  g. **REPO HEALTH GATE (MANDATORY — check before spending tokens):**
-     Before triaging or spawning, verify the repo is worth our tokens. A merged PR is the ONLY
-     output that matters — skip repos where our PR will rot unreviewed.
-     Run these quick checks via `gh api` (cached in memory/repos/ — reuse if checked within 7 days):
-     ```bash
-     # 1. Last commit date
-     LAST_COMMIT=$(gh api repos/{owner}/{repo}/commits?per_page=1 --jq '.[0].commit.committer.date')
-     # 2. Open PR count (proxy for maintainer bandwidth)
-     OPEN_PRS=$(gh api "repos/{owner}/{repo}/pulls?state=open&per_page=1" -i 2>/dev/null | grep -i 'link:' | grep -o 'page=[0-9]*' | tail -1 | cut -d= -f2)
-     # If no pagination header, count directly:
-     # OPEN_PRS=$(gh api "repos/{owner}/{repo}/pulls?state=open&per_page=100" --jq 'length')
-     # 3. Merges in last 30 days (external contributors only)
-     THIRTY_DAYS_AGO=$(date -v-30d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d "30 days ago" +%Y-%m-%dT00:00:00Z)
-     RECENT_MERGES=$(gh api "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=50" \
-       --jq "[.[] | select(.merged_at != null and .merged_at > \"$THIRTY_DAYS_AGO\")] | length")
-     EXTERNAL_MERGES=$(gh api "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=30" \
-       --jq '[.[] | select(.merged_at != null)] | [.[] | select(.author_association != "OWNER" and .author_association != "MEMBER" and .author_association != "COLLABORATOR")] | length')
-     ```
-     **HARD SKIP the repo (remove issue from queue) if ANY:**
-     - No commits in 6+ months (dead repo — `LAST_COMMIT` older than 180 days)
-     - 50+ open PRs (overwhelmed maintainers — our PR will be ignored)
-     - Zero PRs merged in last 30 days (no merge velocity at all)
-     - Zero external contributor PRs merged in last 30 closed PRs (only merges from maintainers)
-     Write "SKIP: repo health fail — [reason]" and move to next queue item.
-     **PREFER repos with:**
-     - `good-first-issue` or `help-wanted` labels on the issue (+2 to priority)
-     - External merge rate > 30% (they actually merge outside contributions)
-     - Recent merges from non-maintainers (proven track record)
-     - Active development (commits within last week)
-     Cache the health check result in memory/repos/{owner}-{repo}.md for 7 days.
+  g. **REPO HEALTH GATE:** Run `bash scripts/repo-health-check.sh {owner}/{repo}`.
+     Exit 1 = SKIP (remove from queue). Use cached results from memory/repos/ if < 7 days old.
+     Prefer repos with `good-first-issue`/`help-wanted` labels (+2 priority).
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
-- Queue has < 5 items --> run oss-discover with MERGE-OPTIMIZED scope:
-  **AUTONOMOUS DISCOVERY — use CRITERIA to find repos, not a hardcoded list.**
-  The agent must learn to find high-merge-probability repos on its own using these search strategies:
-  **Tier 0 (ALWAYS first):** Search for agentic AI / LLM repos by CRITERIA:
-  - `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>500`
-  - Repo description/topics containing: agent, agentic, llm, rag, embedding, vector, prompt, chain,
-    tool-use, inference, transformer, fine-tuning, copilot, chatbot
-  - Search for bugs, docs fixes, typos in repos matching these criteria
-  **Tier 1:** Search high-star repos (500+) with `good-first-issue`/`help-wanted` labels.
-  These signal maintainer willingness to merge external contributions — highest merge probability.
-  **Tier 2:** General bug/docs/typo searches with `stars:>500 sort:reactions-+1-desc`.
-  Use `created:>YYYY-MM-DD` (3 days ago) for bugs, 2 weeks for docs/typos.
-  **REPO HEALTH VERIFICATION (mandatory before queuing):**
-  Before adding ANY issue, verify the repo via `gh api`:
-  - Recent commits (<2 weeks) — not abandoned
-  - External contributor PRs merged in last 30 days — they accept outside work
-  - Review rate >50% — maintainers actually review PRs
-  - Open PRs <50 — not overwhelmed
-  Cache results in memory/repos/ for 7 days.
-  Target 20-30 candidates per discovery cycle. Diversify across repos — max 3 per repo.
-  Score >= 5 to enter queue. If nothing found, HEARTBEAT_OK.
-  **SCOUT SPAWNING:** If work queue has < 5 items AND active sub-agents < 5, consider
-  spawning a scout sub-agent (templates/subagent-scout.md) to find new repos to target.
-  Scouts count against the 5-slot limit but replenish the work queue for future cycles.
+- Queue has < 5 items --> run oss-discover (see skill for search strategy: Tier 0 niche AI repos,
+  Tier 1 good-first-issue/help-wanted, Tier 2 general bugs). Health-verify before queuing.
+  Target 20-30 candidates. Score >= 5 to enter queue. If nothing found, HEARTBEAT_OK.
+  Consider spawning a scout sub-agent (templates/subagent-scout.md) if slots available.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 
 ## 4. Triage (in main session, < 3 min)
 
-### 4-ZERO. Health Gate (FIRST — before spending any triage tokens)
-Run the DETERMINISTIC health check script — do NOT rely on LLM judgment for repo health:
-   ```bash
-   bash scripts/repo-health-check.sh {owner}/{repo}
-   ```
-   Exit code 0 = healthy (pass), exit code 1 = skip (fail). The script outputs JSON with metrics.
-   Use cached results from memory/repos/ if < 7 days old (skip the script call).
-   **The script checks ALL of these (binary pass/fail):**
-   - Stars >= 500
-   - Last push < 2 weeks
-   - Merged PRs in last 30 days > 0
-   - Avg merge time <= 14 days
-   - Open PRs < 50
-   - Review rate > 50%
-   - External contributor merges tracked
-   - Anti-AI/anti-bot policy (CONTRIBUTING.md, README, maintainer comments)
-   - Niche fit detection (agentic AI repos get bonus)
-   The script outputs JSON with all metrics including `avg_merge_days` and composite `score`.
-   If the script returns exit code 1: remove from queue, cache the failure, go to step 3.
-   If JSON contains `"blacklist": true`: add to `memory/repo-blacklist.md` permanently.
-   Save the JSON output to `memory/repos/{owner}_{repo}.md` for 7-day caching.
+### 4-ZERO. Health Gate
+Run `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 0 = pass, exit 1 = skip.
+Use cached results from memory/repos/ if < 7 days old. On failure: remove from queue, cache, go to step 3.
+Save JSON output to `memory/repos/{owner}_{repo}.md`.
 
 ### 4a. Contribution Type Assessment
 Determine the contribution type:
@@ -379,47 +279,24 @@ Determine the contribution type:
 - **Typo fix**: Typo in code/docs/comments, has typo label
 - **Test addition**: Missing tests, has test label, uncovered code paths
 
-**TITLE KEYWORD HARD REJECT — auto-skip if title matches ANY keyword as a WHOLE WORD
-  (word boundary match `\b{keyword}\b`, case-insensitive):**
-  `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`,
-  `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
-  `redesign`, `optimize`, `allow`, `provide`
-  **This is a HARD GATE — no exceptions.** Match on WORD BOUNDARIES only.
-  "Add dark mode" matches `add`. "Unsupported operation crashes" does NOT match `support`.
+**TITLE KEYWORD HARD REJECT** (`\b{keyword}\b`, case-insensitive): `add`, `extend`, `enable`,
+  `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`,
+  `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
 
-**LABEL HARD REJECT — auto-skip if labeled:** `enhancement`, `feature`, `feature-request`,
-  `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`,
-  `chore`, `performance`, `optimization`
-  (Note: `docs`, `documentation`, `typo`, `test` labels are VALID contribution types.)
-
-If not a valid contribution type: remove from queue, go to step 3.
+**LABEL HARD REJECT:** `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`,
+  `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
+  (Note: `docs`, `documentation`, `typo`, `test` labels are VALID.)
 
 ### 4b. Quality Gate
-1. oss-triage: Confirm open, unassigned, estimate complexity.
-2. If too complex or closed, remove from queue, go to step 3.
-3. SKIP issues that fail any of these:
-   - **Must be an actionable contribution** (bug fix, docs fix, typo fix, or test addition)
-   - For bug fixes: must have clear reproduction steps or error details
-   - Must be well-scoped (not vague without a specific change)
-   - Must NOT be labeled "wontfix", "duplicate", "invalid"
-   - Prefer issues with maintainer engagement
-   - **Prefer issues created in the last 3 days (freshest get highest priority)**
-   - Skip issues older than 30 days entirely — too stale
+Run oss-triage: confirm open, unassigned, actionable (bug/docs/typo/test), well-scoped.
+Prefer issues < 3 days old. Skip > 30 days. Skip "wontfix"/"duplicate"/"invalid".
 
 ### 4c. Merge-Optimized Scoring
-Score the issue. Additional merge-optimization bonuses:
-- **+5** for docs/typo fixes (near-guaranteed merge)
-- **+3** for test additions (high merge rate)
-- **+5** for repos with avg merge time < 3 days
-- **+3** for repos with review rate > 80%
-- **+2** for `good-first-issue` or `help-wanted` label
-- **-5** for repos with avg merge time > 14 days
-- **SKIP** repos with 0 merges in 30 days
-- **SKIP** repos with > 50 open PRs
++5 docs/typo, +3 tests, +5 fast-merge repos (<3d), +3 review rate >80%, +2 good-first-issue/help-wanted.
+-5 slow repos (>14d merge). SKIP if 0 merges in 30d or >50 open PRs.
 
 ### 4d. Quick Research
-If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning.
-If issue has screenshot attachments, use image tool to analyze them.
+Use web_search for upstream context, CVEs. Use image tool for screenshots.
 
 ## 5. Spawn Implementation Sub-Agent
 Read the spawn template from `templates/subagent-implementation.md`.
@@ -444,20 +321,9 @@ If web_search results were gathered during triage, include a summary in the atta
 - Result file must use YAML frontmatter format from templates/subagent-result-schema.md
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 
-### Disk Cleanup (self-cleanup only)
-- Implementation sub-agents clone repos to /tmp/clawoss-<issue>-<timestamp>/ — isolated per task
-- Follow-up sub-agents clone repos to /tmp/clawoss-followup-<pr>-<timestamp>/ — isolated per PR
-- After PR submit or task abandon, the sub-agent MUST rm -rf its OWN workdir
-- **ONLY the sub-agent that created a workspace may delete it** — no external cleanup
-- The orchestrator NEVER deletes /tmp/clawoss-* directories — active sub-agents may be working in them
-- NEVER clone to /tmp/clawoss-workdir (shared dir causes conflicts between sub-agents)
-- Expected disk: /tmp/clawoss-* should be <2GB total during peak (5 active sub-agents)
-
-### Stale Session Cleanup
-- At the start of each heartbeat, check sessions_list for any sessions older than 30 minutes
-- If a stale session exists (>30 min old, not the main orchestrator session): ignore it
-- Stale sessions are dead weight — they consumed context and produced nothing useful
-- Do NOT send messages to stale sessions — just move on and spawn fresh
+### Cleanup
+- Sub-agents clean their own `/tmp/clawoss-*` workspaces. Orchestrator NEVER deletes them.
+- Stale sessions (>30 min, no activity): ignore them, spawn fresh. Handled in step 1.
 
 ## 6. Handle Sub-Agent Results
 Check ALL active sub-agents via sessions_list.

@@ -29,6 +29,9 @@ Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
 
 2. CONFIRM ACTIONABLE: Verify this is a real bug, docs issue, typo, or test gap.
    If it's a large feature request or refactor, ABANDON.
+   **ANTI-AI CHECK:** Scan CONTRIBUTING.md and README.md for anti-AI/anti-bot policies
+   ("no ai", "no bot", "ban ai/bot", "prohibit ai/bot", "do not use ai/llm/chatgpt",
+   "ai-generated not accepted"). If found: ABANDON. failure_reason: "anti_ai_policy".
 
 3. DEEP COMPREHENSION (do NOT skip this):
    a. Read the repo's architecture: directory structure, key modules, how components connect.
@@ -118,6 +121,8 @@ Use image to analyze any screenshots attached to the issue.
 
 When finished, write results to `memory/subagent-result-{repo}-{issue}.md`
 using the format defined in `templates/subagent-result-schema.md`.
+
+**pr_category MUST be set** on success: `bug_fix`, `docs`, `typo`, `test`, `dep_update`, `dead_code`, or `other`.
 
 **failure_reason MUST use a standard category** from the taxonomy in the schema.
 Common implementation failures: `cannot_reproduce`, `too_complex`, `tests_fail_after_fix`,

@@ -221,7 +221,36 @@ if [ -n "$CONTRIBUTING" ]; then
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
 fi
 
-# ─── 8. Niche fit (agentic AI) — uses REPO_DATA already fetched ───
+# ─── 8. Anti-AI / Anti-Bot Policy Detection (HARD GATE) ───
+ANTI_AI=false
+if [ -n "$CONTRIBUTING" ]; then
+  CONTRIB_TEXT=$(echo "$CONTRIBUTING" | base64 -d 2>/dev/null || echo "")
+  if echo "$CONTRIB_TEXT" | grep -qiE '(no\s+(ai|bot|automated|machine|llm)|ban.*(ai|bot|automated)|prohibit.*(ai|bot|automated)|do\s+not\s+use\s+(ai|bot|llm|chatgpt|copilot)|ai[- ]generated.*(code|pr|pull|contribution).*not\s+(accept|allow|welcome)|bot[- ]generated.*not\s+(accept|allow|welcome)|we\s+do\s+not\s+accept.*(ai|bot|automated|llm)|auto(mated|matic)\s+(pr|pull|contribution).*not\s+(accept|allow|welcome))'; then
+    ANTI_AI=true
+  fi
+fi
+if [ "$ANTI_AI" = false ]; then
+  README_CONTENT=$(gh api "repos/${REPO}/contents/README.md" --jq '.content' 2>/dev/null || echo "")
+  if [ -n "$README_CONTENT" ]; then
+    README_TEXT=$(echo "$README_CONTENT" | base64 -d 2>/dev/null | head -200 || echo "")
+    if echo "$README_TEXT" | grep -qiE '(no\s+(ai|bot|automated|machine|llm)|ban.*(ai|bot|automated)|prohibit.*(ai|bot|automated)|do\s+not\s+use\s+(ai|bot|llm|chatgpt|copilot)|ai[- ]generated.*(code|pr|pull|contribution).*not\s+(accept|allow|welcome)|bot[- ]generated.*not\s+(accept|allow|welcome)|we\s+do\s+not\s+accept.*(ai|bot|automated|llm))'; then
+      ANTI_AI=true
+    fi
+  fi
+fi
+if [ "$ANTI_AI" = false ]; then
+  MAINT_COMMENTS=$(gh api "repos/${REPO}/issues/comments?sort=created&direction=desc&per_page=30" \
+    --jq '[.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | .body] | join("\n")' 2>/dev/null || echo "")
+  if echo "$MAINT_COMMENTS" | grep -qiE '(no\s+(ai|bot|automated)|ban.*(ai|bot)|stop.*submit.*(ai|bot|automated)|reject.*(ai|bot|automated)|spam.*(ai|bot)|do\s+not\s+want\s+(ai|bot|llm))'; then
+    ANTI_AI=true
+  fi
+fi
+if [ "$ANTI_AI" = true ]; then
+  reasons+=("anti-AI/anti-bot policy detected")
+  fail "anti-AI/anti-bot policy detected" "repo_health_fail: anti-AI policy — repo explicitly bans AI/bot contributions"
+fi
+
+# ─── 9. Niche fit (agentic AI) ───
 REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
 
 NICHE_FIT=false
@@ -233,7 +262,7 @@ for kw in agent agentic llm "large language model" rag "retrieval augmented" emb
   fi
 done
 
-# ─── 9. Bot-friendly signals ───
+# ─── 10. Bot-friendly signals ───
 HAS_CI=$(gh api "repos/${REPO}/contents/.github/workflows" --jq 'length' 2>/dev/null || echo "0")
 if [ "$HAS_CI" -gt 0 ]; then
   score=$((score + 1))
@@ -282,7 +311,8 @@ cat <<ENDJSON
     "has_ci": $([ "$HAS_CI" -gt 0 ] && echo true || echo false),
     "has_contributing": ${HAS_CONTRIBUTING},
     "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false),
-    "anti_ai_policy": false
+    "anti_ai_policy": ${ANTI_AI},
+    "blacklist": ${ANTI_AI}
   }
 }
 ENDJSON
