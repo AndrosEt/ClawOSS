@@ -3,16 +3,9 @@
 ## CRITICAL: DO NOT JUST REPLY HEARTBEAT_OK
 Execute ALL steps. Only reply HEARTBEAT_OK if: queue empty, no follow-ups pending, no stalled agents, oss-discover found nothing. Otherwise: PICK WORK AND DO IT.
 
-## Rules (compact — lightContext mode, AGENTS.md may not load)
-- Keep all 5 sub-agent slots filled. Follow-ups FIRST, then new work.
-- Max 5 active PRs. Max 10/day total. 30-min same-repo gap. Max 3 follow-up rounds.
-- NEVER push to main/master. NEVER force-push. NEVER commit secrets.
-- Max 200 lines, 5 files per PR. Small diffs merge fastest.
-- Optimize for merge rate. 60% easy wins + 40% bug fixes.
-- Every PR must fully resolve its scope. Partial fixes = abandon.
-- Read CONTRIBUTING.md before first PR to any repo.
-- Branch: clawoss/{fix,docs,test,typo}/. Commit: fix/docs/test type.
-- Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
+## Rules — see AGENTS.md (loaded alongside this file)
+Keep all 5 sub-agent slots filled. Follow-ups FIRST, then new work.
+Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 
 ## 0. Health Checks
 **0a. Context**: Call session_status. >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
