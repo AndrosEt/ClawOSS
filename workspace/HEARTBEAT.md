@@ -251,8 +251,22 @@ After spawning (or skipping) each follow-up:
 Then continue to step 3. Do NOT go directly to step 6.
 
 ## 3. Merge Staging Files & Pick Work (up to 5 concurrent tasks)
+
+### 3-ZERO. DAILY PR LIMIT HARD GATE (check FIRST — before anything else in step 3)
+Read memory/wake-state.md and check `prs_today` total.
+**If prs_today >= 10: STOP. Reply HEARTBEAT_OK immediately.**
+Do NOT spawn any new implementation sub-agents. Do NOT discover new issues.
+Follow-up sub-agents (step 2) are exempt — responding to reviewers is not submitting new PRs.
+This gate is NON-NEGOTIABLE. 10 PRs/day is the hard ceiling. No exceptions.
+
+### 3a. Merge Staging Files
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
+**DEDUP when merging:** Before adding any item from staging to the work queue, check if an item
+with the same issue URL already exists in work-queue.md. If it does, skip the duplicate.
+Also remove any duplicate entries already in work-queue.md (same issue URL appearing twice).
+
+### 3b. Count and Pick
 Count active sub-agents via sessions_list (exclude main session and stale sessions >30min).
 **Include both follow-up and implementation sub-agents in the count.**
 Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr-ledger.md.
@@ -260,10 +274,21 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 - If active sub-agents < 5 AND work queue has items:
   Pick the next task (urgent first, then top item with score >= 5).
   BEFORE spawning, apply these filters:
-  a. SKIP if issue already appears in memory/pr-ledger.md (never submit two PRs for same issue)
+  a. **DEDUP GATE (3 checks — must pass ALL):**
+     - SKIP if issue number + repo name already appears in memory/pr-ledger.md
+       (Note: pr-ledger entries may have empty issue fields — match on BOTH repo name
+       AND issue number. If either field is empty in the ledger row, match on the other.)
+     - SKIP if we already have an OPEN PR for this repo:
+       `gh pr list --author @me --repo {owner}/{repo} --state open --json number,title`
+       If any open PR exists for the same repo, SKIP to avoid piling PRs.
+     - SKIP if issue URL appears anywhere in memory/subagent-result-*.md files
+       (a sub-agent is already working on it or already attempted it)
   b. SKIP if repo already has 3 PRs today (per-repo daily limit)
   c. Prefer different repos across concurrent sub-agents when possible
   d. **BUG GATE: SKIP if the issue is NOT a bug report** — feature requests, enhancements, refactors, and improvements are out of scope. Check labels and title for bug indicators.
+  e. **TITLE KEYWORD HARD REJECT: SKIP if title contains** `add`, `extend`, `enable`, `improve`,
+     `document`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`,
+     `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
@@ -281,7 +306,17 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 1. **BUG GATE (mandatory first check):**
    - Is this a bug report? Look for: error messages, stack traces, "expected vs actual", regression reports, crash logs.
    - Does it have bug-related labels? (`bug`, `defect`, `regression`, `crash`, `error`)
-   - **REJECT immediately if:** labeled `enhancement`/`feature`/`refactor`/`improvement`, title says "add"/"implement"/"support"/"new", no concrete broken behavior described, is a discussion/RFC/proposal.
+   - **TITLE KEYWORD HARD REJECT — auto-skip if title contains ANY of these (case-insensitive):**
+     `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
+     `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+     `redesign`, `optimize`, `allow`, `provide`
+     **This is a HARD GATE — no exceptions, no override by labels.** These keywords indicate
+     feature requests, enhancements, or refactors, not bugs. Even if the issue has a `bug` label,
+     if the title contains these words, SKIP IT.
+   - **LABEL HARD REJECT — auto-skip if labeled:** `enhancement`, `feature`, `feature-request`,
+     `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`,
+     `chore`, `performance`, `optimization`, `docs`, `documentation`
+   - **REJECT if:** no concrete broken behavior described, is a discussion/RFC/proposal.
    - If not a confirmed bug: remove from queue, go to step 3.
 2. oss-triage: Confirm open, unassigned, estimate complexity.
 3. If too complex or closed, remove from queue, go to step 3.

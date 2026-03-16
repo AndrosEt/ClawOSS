@@ -31,7 +31,7 @@ echo "Registering cron jobs..."
 EXISTING_CRONS=$(openclaw cron list --json 2>/dev/null | jq -r '.jobs[] | select(.agentId == "'"$AGENT_ID"'") | .name' 2>/dev/null || true)
 while IFS= read -r job; do
     name=$(echo "$job" | jq -r '.id')
-    schedule=$(echo "$job" | jq -r '.schedule')
+    schedule=$(echo "$job" | jq -r '.schedule.expr')
     payload=$(echo "$job" | jq -r '.payload')
 
     if echo "$EXISTING_CRONS" | grep -q "^${name}$"; then

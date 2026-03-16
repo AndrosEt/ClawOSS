@@ -111,7 +111,7 @@ Follow-up sub-agents get PRIORITY over implementation sub-agents:
 - NEVER submit PRs larger than 200 lines changed (split into smaller PRs)
 - NEVER modify more than 5 files in a single PR
 - GitHub token scope must be `public_repo` (least privilege), not `repo`
-- Always create feature branches with the naming convention: clawoss/<type>/<description>
+- Always create branches with the naming convention: clawoss/fix/<description> (type MUST be "fix" — we only fix bugs)
 - Always run the target repo's test suite before submitting
 - If tests fail after 2 fix attempts, abandon and log the failure
 - Maximum 3 follow-up revision rounds per PR — after 3, politely disengage

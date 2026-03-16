@@ -43,11 +43,13 @@ Verify branch matches: `clawoss/fix/<description>`
 **For bug fixes, type MUST be `fix`.** Other types (feat, refactor, docs) indicate a non-bug PR — abort.
 Valid types for ClawOSS: fix (only)
 
-### 5. Anti-Spam Limits
-Check memory for today's submissions:
-- This repo: must be < 3 PRs today
-- All repos: must be < 10 PRs today
-- Last PR to this repo: must be > 30 minutes ago
+### 5. Anti-Spam Limits (HARD GATE — no exceptions)
+Check memory/wake-state.md for today's submissions:
+- **All repos: must be < 10 PRs today. If >= 10: ABORT IMMEDIATELY.** This is a hard ceiling.
+- This repo: must be < 3 PRs today. If >= 3: ABORT.
+- Last PR to this repo: must be > 30 minutes ago. If < 30 min: ABORT.
+- **Also verify:** Run `gh pr list --author @me --repo {owner}/{repo} --state open` — if we
+  already have an open PR for this repo, ABORT (avoid piling multiple PRs on one repo).
 
 ### 6. No Dangerous Commands
 Verify no force-push, no push to main/master, no `--force` flags.

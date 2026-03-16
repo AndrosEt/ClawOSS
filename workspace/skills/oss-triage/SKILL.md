@@ -9,8 +9,29 @@ user-invocable: true
 Assess GitHub issues for contribution feasibility. **Only bugs pass triage.** Feature requests, refactors, and enhancements are rejected immediately.
 
 ## Step 0: Bug Gate (MANDATORY — do this FIRST)
-Before any other assessment, determine if this is a genuine bug report:
+Before any other assessment, determine if this is a genuine bug report.
 
+### 0a. Title Keyword Hard Reject (FIRST CHECK — no exceptions)
+**Auto-SKIP if the issue title contains ANY of these keywords (case-insensitive):**
+`add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
+`implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+`redesign`, `optimize`, `allow`, `provide`
+
+**This is a HARD GATE. No override by labels, score, or any other factor.**
+These keywords indicate feature requests, enhancements, or refactors — not bugs.
+Even if the issue has a `bug` label, if the title contains these words, SKIP IT.
+Write "SKIP: title keyword reject — title contains '[keyword]'" and move on.
+
+### 0b. Label Hard Reject
+**Auto-SKIP if labeled with ANY of these:**
+`enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`,
+`question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`,
+`docs`, `documentation`
+
+If the issue has ANY of these labels AND no `bug`/`defect`/`regression`/`crash` label, SKIP.
+Write "SKIP: non-bug label — has '[label]'" and move on.
+
+### 0c. Bug Confirmation
 **IS a bug** (proceed to Step 1):
 - Reports incorrect behavior ("X does Y but should do Z")
 - Contains error messages, stack traces, or crash logs
@@ -20,15 +41,13 @@ Before any other assessment, determine if this is a genuine bug report:
 - Labeled `bug`, `defect`, `regression`, `crash`, `error`
 
 **NOT a bug** (SKIP immediately):
-- Requests new functionality ("add support for X", "implement Y")
-- Asks for improvements ("make X faster", "improve Y experience")
-- Proposes refactoring ("rewrite X", "restructure Y", "clean up Z")
-- Architectural changes ("migrate to X", "replace Y with Z")
-- Enhancement requests ("support X format", "add option for Y")
+- Requests new functionality
+- Asks for improvements without describing broken behavior
+- Proposes refactoring or architectural changes
 - Discussion/RFC/proposal issues
 - Documentation improvements (unless documenting incorrect behavior)
 - Performance optimizations without a concrete correctness bug
-- Labeled `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`
+- No concrete broken behavior described anywhere in the issue
 
 If the issue fails the Bug Gate, write "SKIP: not a bug — [reason]" and move on. Do NOT proceed further.
 

@@ -98,7 +98,18 @@ Score each candidate 1-14 based on:
 
 Minimum score 5 to enter work queue.
 
+## Title Keyword Hard Reject (apply to EVERY candidate — no exceptions)
+**Auto-SKIP if the issue title contains ANY of these keywords (case-insensitive):**
+`add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
+`implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+`redesign`, `optimize`, `allow`, `provide`
+
+**This is a HARD GATE applied BEFORE scoring.** These keywords indicate feature requests,
+enhancements, or refactors — not bugs. Even if the issue has a `bug` label, if the title
+contains these words, DISCARD IT. Do not add to queue. Do not score.
+
 ## Filters
+- **Title keyword hard reject (above) — applied first, before any other filter**
 - Stars > 10, recent commits (<6mo), not archived, max 3 issues per repo
 - Skip if in pr-ledger.md. At daily limit (10 PRs)? Triage-only.
 - MUST be a bug report — not a feature request, not a refactor, not an improvement
