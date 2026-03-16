@@ -49,11 +49,35 @@ Search GitHub using topic tags and description keywords — do NOT rely on a fix
 - Always verify repo health before queuing — new discoveries haven't been vetted yet
 
 ### Known High-Value Repos (supplement, not replace, criteria search)
-These are examples of repos matching our criteria. The agent should discover more autonomously:
-langchain-ai/langchain, langchain-ai/langgraph, run-llama/llama_index, microsoft/autogen,
-microsoft/semantic-kernel, crewAIInc/crewAI, deepset-ai/haystack, stanfordnlp/dspy,
-chroma-core/chroma, qdrant/qdrant, vllm-project/vllm, ollama/ollama, BerriAI/litellm,
-instructor-ai/instructor, openai/openai-python
+These are verified high-star, actively-maintained repos in our niche. The agent should discover more autonomously.
+Always run `scripts/repo-health-check.sh` before targeting — this list is not a bypass.
+
+**Agent Frameworks & Orchestration (highest value):**
+langchain-ai/langchain, langchain-ai/langgraph, crewAIInc/crewAI, microsoft/autogen,
+microsoft/semantic-kernel, deepset-ai/haystack, stanfordnlp/dspy, langgenius/dify,
+langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0, google/adk-python,
+CopilotKit/CopilotKit, elizaOS/eliza, SWE-agent/SWE-agent
+
+**LLM Inference & Serving:**
+ollama/ollama, vllm-project/vllm, BerriAI/litellm, hiyouga/LlamaFactory,
+unslothai/unsloth, mudler/LocalAI, janhq/jan, dottxt-ai/outlines, NVIDIA-NeMo/NeMo
+
+**RAG & Document Processing:**
+run-llama/llama_index, infiniflow/ragflow, microsoft/graphrag, HKUDS/LightRAG,
+Unstructured-IO/unstructured, firecrawl/firecrawl, labring/FastGPT
+
+**Vector Databases & Search:**
+chroma-core/chroma, qdrant/qdrant, milvus-io/milvus, weaviate/weaviate,
+meilisearch/meilisearch, lancedb/lancedb
+
+**AI SDKs & Developer Tools:**
+openai/openai-python, instructor-ai/instructor, vercel/ai, pydantic/pydantic,
+gradio-app/gradio, streamlit/streamlit, marimo-team/marimo, continuedev/continue,
+Portkey-AI/gateway, tensorzero/tensorzero, browser-use/browser-use
+
+**High-Impact General (Python/TS, massive star counts):**
+fastapi/fastapi, huggingface/transformers, open-webui/open-webui, ray-project/ray,
+khoj-ai/khoj, OpenHands/OpenHands
 
 ## Priority Queries
 
