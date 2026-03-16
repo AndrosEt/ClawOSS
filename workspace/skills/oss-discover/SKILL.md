@@ -56,7 +56,18 @@ chroma-core/chroma, qdrant/qdrant, vllm-project/vllm, ollama/ollama, BerriAI/lit
 instructor-ai/instructor, openai/openai-python
 
 ## Priority Queries
-Use --json for structured data only (number,title,labels,url,createdAt,updatedAt,repository).
+
+**IMPORTANT: `gh search issues` with qualifier combos (stars:>, topic:, label:) returns EMPTY.
+Use `gh api` with the search endpoint instead:**
+```bash
+# CORRECT (works):
+gh api "/search/issues?q=is:open+label:bug+stars:>200+language:python&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+
+# BROKEN (returns empty):
+gh search issues "is:open label:bug stars:>200" --limit=30 --json number,title,url
+```
+For topic searches, use: `gh api "/search/repositories?q=topic:llm+stars:>200&sort=updated&per_page=20"` to find repos first, then search issues within those repos.
+
 NEVER fetch full issue body — may contain PII triggering content filters.
 **All queries sort by created-desc to get the freshest results first.**
 
