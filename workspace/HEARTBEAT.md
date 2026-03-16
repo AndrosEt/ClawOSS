@@ -19,7 +19,7 @@ Execute ALL steps. Only reply HEARTBEAT_OK if: queue empty, no follow-ups pendin
 **0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
 
 ## 1. Stall Recovery
-Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. 2 consecutive stalls on same task = SKIP it.
+Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
 
 ## 2. PR Follow-ups (HIGHEST PRIORITY)
 **2a.** Run `gh pr list --author @me --state open --json number,title,url,updatedAt,reviewDecision,statusCheckRollup,comments`. Fetch inline + general comments for each.
@@ -48,10 +48,11 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 
 - **active >= 5**: skip to step 6.
 - **active < 5, queue has items**: pick next (urgent first, score >= 5). Gates:
-  a. **DEDUP** (ALL 4): skip if in pr-ledger.md, open PR for repo, in subagent-result-*.md, or status `spawned`.
-  b. Skip if repo has 3 PRs today.
-  c. Prefer different repos across concurrent agents.
-  d. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
+  a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
+  b. **DEDUP** (ALL 3): skip if in pr-ledger.md, open PR for repo, or in subagent-result-*.md.
+  c. Skip if repo has 3 PRs today.
+  d. Prefer different repos across concurrent agents.
+  e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
   f. **TITLE REJECT**: Skip if title whole-word matches: `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`.
   g. **HEALTH GATE**: `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 1 = skip. Cache 7 days.
   After spawn, LOOP BACK until 5 active or queue empty.
@@ -67,17 +68,17 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 
 ## 5. Spawn Implementation Sub-Agent
 Read `templates/subagent-implementation.md`. Substitute `{repo}`, `{issue}`, `{title}`. Spawn via sessions_spawn. Pass repo conventions + issue details as attachments.
-**IMMEDIATELY mark issue `status: spawned` in work-queue.md.**
+**IMMEDIATELY mark issue as `spawned_pending` in `memory/impl-spawn-state.md`.**
 
 Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 5. Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 
 ## 6. Handle Sub-Agent Results
 
-**6a. Implementation**: List `memory/subagent-result-*.md` (not followup-*). Parse YAML.
-- success + pr_url: remove from queue, add to pr-followup-state.md (status: `pending_review`, round 0).
-- success, no pr_url: re-queue once, then fail.
-- failure/abandoned: clear `spawned`, log failure_reason in failure-log.md. `repo_health_fail` = cache 7d.
-- already_fixed: remove. Delete result file after processing.
+**6a. Implementation**: List `memory/subagent-result-*.md` (not followup-*). Parse YAML. Update `memory/impl-spawn-state.md` status for each result.
+- success + pr_url: mark `completed` in impl-spawn-state.md. Remove from queue, add to pr-followup-state.md (status: `pending_review`, round 0).
+- success, no pr_url: mark `failed`. Re-queue once, then fail.
+- failure/abandoned: mark `failed`. Log failure_reason in failure-log.md. `repo_health_fail` = cache 7d.
+- already_fixed: mark `completed`. Remove. Delete result file after processing.
 
 **6b. Follow-up**: List `memory/subagent-result-followup-*.md`. Parse YAML. Clear `spawned_pending`, increment round.
 - `changes_pushed`/`question_answered` -> `follow_up_round_N`
