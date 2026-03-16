@@ -1,20 +1,20 @@
 ---
 name: oss-triage
-description: "Triage GitHub bug reports: confirm it's a real bug (not a feature request), assess reproducibility, estimate fix complexity, check repo health (merge velocity, review rate). REJECT non-bug issues and issues in unhealthy repos."
+description: "Triage GitHub issues: confirm contribution type (bug/docs/typo/test), assess feasibility, check repo health (merge velocity, review rate). Merge-optimized scoring: +5 docs/typo, +3 tests, +5 fast merge repos. REJECT issues in unhealthy repos."
 user-invocable: true
 ---
 
-# OSS Bug Triage (Merge-Optimized)
+# OSS Issue Triage (Merge-Optimized)
 
-Assess GitHub issues for contribution feasibility. **Only bugs in healthy repos pass triage.**
-Feature requests, refactors, enhancements, and issues in abandoned/unresponsive repos are rejected immediately.
+Assess GitHub issues for contribution feasibility. **Optimize for merge probability.**
+A merged typo fix > an unreviewed bug fix. Issues in abandoned/unresponsive repos
+are rejected immediately. We accept bug fixes, docs fixes, typo fixes, and test additions.
 
-## Step 0: Bug Gate (MANDATORY — do this FIRST)
-Before any other assessment, determine if this is a genuine bug report.
+## Step 0: Pre-Checks (MANDATORY — do these FIRST)
 
 ### 0a. Title Keyword Hard Reject (FIRST CHECK — no exceptions)
 **Auto-SKIP if the issue title matches ANY keyword as a WHOLE WORD (case-insensitive, word boundary `\b{keyword}\b`):**
-`add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
+`add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`,
 `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
 `redesign`, `optimize`, `allow`, `provide`
 
@@ -25,158 +25,168 @@ Before any other assessment, determine if this is a genuine bug report.
 - "Document parser throws TypeError" -> does NOT match `document` as substring -> KEEP
 
 **This is a HARD GATE. No override by labels, score, or any other factor.**
-These keywords indicate feature requests, enhancements, or refactors — not bugs.
-Write "SKIP: title keyword reject — title contains '[keyword]'" and move on.
 
 ### 0b. Label Hard Reject
 **Auto-SKIP if labeled with ANY of these:**
 `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`,
-`question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`,
-`docs`, `documentation`
+`question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
 
-If the issue has ANY of these labels AND no `bug`/`defect`/`regression`/`crash` label, SKIP.
-Write "SKIP: non-bug label — has '[label]'" and move on.
+If the issue has ANY of these labels AND no `bug`/`defect`/`regression`/`crash`/`docs`/`documentation`/`typo`/`test` label, SKIP.
 
-### 0c. Bug Confirmation
-**IS a bug** (proceed to Step 0d):
-- Reports incorrect behavior ("X does Y but should do Z")
-- Contains error messages, stack traces, or crash logs
-- Describes a regression ("X worked in v1.2 but broke in v1.3")
-- Has reproduction steps showing something is broken
-- Reports data corruption, incorrect output, or unexpected exceptions
-- Labeled `bug`, `defect`, `regression`, `crash`, `error`
-
-**NOT a bug** (SKIP immediately):
-- Requests new functionality
-- Asks for improvements without describing broken behavior
-- Proposes refactoring or architectural changes
-- Discussion/RFC/proposal issues
-- Documentation improvements (unless documenting incorrect behavior)
-- Performance optimizations without a concrete correctness bug
-- No concrete broken behavior described anywhere in the issue
-
-If the issue fails the Bug Gate, write "SKIP: not a bug — [reason]" and move on. Do NOT proceed further.
-
-### 0d. Repo Health Gate (MANDATORY — check BEFORE scoring)
+### 0c. Repo Health Gate (MANDATORY — check BEFORE spending triage tokens)
 **We only contribute to repos that will actually review and merge our work.**
 
-Quick-check the repo health (use cached results from `memory/repos/` if available and < 7 days old):
+Run `scripts/repo-health-check.sh {owner}/{repo}` or quick-check via `gh api`
+(use cached results from `memory/repos/` if available and < 7 days old):
 
 ```bash
-# 1. Last commit — SKIP if no commits in 2 weeks
+# 1. Stars — SKIP if < 500
+gh api repos/{owner}/{repo} --jq '.stargazers_count'
+
+# 2. Last commit — SKIP if no commits in 2 weeks
 gh api repos/{owner}/{repo} --jq '.pushed_at'
 
-# 2. Merge velocity — SKIP if avg > 14 days or 0 merges in 30 days
+# 3. Merge velocity — SKIP if avg > 14 days or 0 merges in 30 days
 gh pr list --repo {owner}/{repo} --state merged --json mergedAt,createdAt --limit 10
 
-# 3. Review rate — SKIP if < 50% of PRs get review
+# 4. Review rate — SKIP if < 50% of PRs get review
 gh pr list --repo {owner}/{repo} --state all --json comments,reviews --limit 20
 
-# 4. Open PR backlog — SKIP if 50+ open PRs
+# 5. Open PR backlog — SKIP if 50+ open PRs
 gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
-
-# 5. Stars + contributors — SKIP if < 50 stars or < 5 contributors
-gh api repos/{owner}/{repo} --jq '.stargazers_count'
 ```
 
 **HARD SKIP if ANY of these are true:**
+- Stars < 500
 - No commits in last 2 weeks
 - 0 merged PRs in last 30 days
 - Avg merge time > 14 days
 - Review rate < 50%
 - 50+ open PRs
-- < 50 stars or < 5 contributors
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
-## Step 1: Read & Analyze
+## Step 1: Contribution Type Assessment
+
+Determine the contribution type (in order of merge probability):
+
+### Documentation/Typo Fix (highest merge probability)
+- Issue describes incorrect/outdated documentation
+- Issue reports typos in code, docs, comments, or error messages
+- Has labels: `docs`, `documentation`, `typo`
+- These are near-guaranteed merges and should be prioritized
+
+### Test Addition (high merge probability)
+- Issue requests tests for uncovered code paths
+- Has labels: `test`, `testing`, `test-coverage`
+- Tests that demonstrate existing bugs are especially valuable
+
+### Bug Fix (standard merge probability)
+- Reports incorrect behavior ("X does Y but should do Z")
+- Contains error messages, stack traces, or crash logs
+- Describes a regression ("X worked in v1.2 but broke in v1.3")
+- Has reproduction steps showing something is broken
+- Has labels: `bug`, `defect`, `regression`, `crash`, `error`
+
+### NOT a Valid Contribution (SKIP)
+- Requests new functionality
+- Asks for improvements without describing a concrete change
+- Proposes refactoring or architectural changes
+- Discussion/RFC/proposal issues
+- Performance optimizations without a correctness bug
+- No concrete actionable change described
+
+If not a valid contribution type: "SKIP: not actionable — [reason]". Do NOT proceed.
+
+## Step 2: Read & Analyze
 1. Read issue body and all comments thoroughly
 2. Check labels and metadata
-3. Look for bug indicators:
-   - Stack traces or error logs (strong signal)
-   - "Expected vs actual" descriptions (strong signal)
-   - Reproduction steps (strong signal)
-   - Regression reports with version numbers (strong signal)
-   - Screenshots showing broken UI/behavior (moderate signal)
+3. Look for actionability signals:
+   - For bugs: stack traces, error logs, reproduction steps, "expected vs actual"
+   - For docs: specific incorrect content identified, correct content known
+   - For typos: specific location of typo identified
+   - For tests: specific code path identified, test approach clear
 
-## Step 2: Assess Complexity
-- **Simple**: single-file fix, clear repro steps, well-defined scope, obvious root cause
-- **Medium**: 2-5 files, requires understanding component interactions, but bug is reproducible
-- **Complex**: architectural changes, cross-cutting concerns, unclear root cause, hard to reproduce
+## Step 3: Assess Complexity
+- **Simple**: single-file fix, clear scope, obvious fix
+- **Medium**: 2-5 files, requires understanding component interactions
+- **Complex**: architectural changes, cross-cutting concerns, unclear approach
 
-## Step 3: Evaluate Feasibility
-1. Check memory for similar past issues or prior attempts
-2. Evaluate success probability based on:
-   - Bug clarity and specificity (has repro steps? has stack trace?)
-   - Repo's CI/test infrastructure quality (can we run tests?)
-   - Our prior track record with this repo
-   - Whether the expected behavior is clearly defined
-   - Whether existing tests cover the area (easier to verify fix)
+For docs/typo fixes, almost everything is **Simple**.
+For test additions, most are **Simple** to **Medium**.
 
 ## Step 4: Completeness Check
-Before approving a bug for implementation, assess whether we can **fully resolve** it:
-- Can the bug be completely fixed, not just partially addressed?
-- Is the scope clear enough that we'll know when it's done?
-- **If the bug is too complex to fix completely: SKIP it.** A partial fix is worse than no fix — it wastes maintainer review time and may cause confusion.
-- One excellent, complete fix is worth more than five shallow ones.
+Can we FULLY resolve this in a clean, mergeable PR?
+- For bug fixes: Can the bug be completely fixed? Is the scope clear?
+- For docs fixes: Is the correct information known? Can we verify it?
+- For typo fixes: Is the fix trivial and unambiguous?
+- For test additions: Is the code path clear? Will the test be reliable?
 
-## Bug Quality Score
-Score each bug 1-20:
+**If the contribution is too complex to complete: SKIP it.** A partial fix wastes maintainer time.
 
-### Recency (most important)
+## Merge-Optimized Quality Score
+Score each issue 1-25:
+
+### Contribution Type (merge probability — MOST important)
+- **+5** Documentation/typo fix (near-guaranteed merge)
+- **+3** Test addition (high merge rate)
+- **+2** Bug fix with `good-first-issue`/`help-wanted` label
+- **+1** Bug fix (standard)
+
+### Recency
 - **+5** Created in the last 3 days (fresh — we're first responders)
 - **+2** Created 3-7 days ago (recent)
 - **+0** Created 7-14 days ago (acceptable)
 - **-3** Created 14-30 days ago (getting stale — low priority)
-- **SKIP** Created > 30 days ago (do NOT attempt — too stale)
+- **SKIP** Created > 30 days ago
 
-### Niche Fit (golden niche = agentic AI repos — highest ROI)
+### Niche Fit (agentic AI repos = highest ROI)
 - **+5** Repo is in the agentic AI / LLM niche (langchain, autogen, crewai, llama-index,
   semantic-kernel, haystack, dspy, chromadb, qdrant, vllm, ollama, litellm, instructor,
   openai-python, or matches keywords: agent, llm, rag, embedding, vector, inference)
 - **+3** Repo has 1000+ stars (high-impact, visible contribution)
-- **+1** Repo has 200-1000 stars (medium impact)
+- **+1** Repo has 500-1000 stars
 
-### Repo Health (merge probability — from step 0d)
+### Repo Health (merge velocity — from step 0d)
 - **+5** Repo avg merge time < 3 days (fast reviewers — highest merge chance)
 - **+3** Repo avg merge time < 7 days (responsive)
 - **+0** Repo avg merge time < 14 days (acceptable)
-- **-5** Repo avg merge time > 14 days (should have been filtered at 0d)
+- **-5** Repo avg merge time > 14 days (should have been filtered)
 - **+3** Repo review rate > 80% (very responsive maintainers)
 - **-3** Repo review rate 50-60% (barely passing)
 
-### Bug Signals
-- **+3** Has clear reproduction steps
-- **+2** Has stack trace or error message
-- **+2** Has "expected vs actual" description
-- **+1** Labeled `bug` or `defect` by maintainer (confirmed bug)
+### Actionability Signals
+- **+3** Has clear scope and known fix approach
+- **+2** Has stack trace or error message (for bugs)
+- **+2** Has "expected vs actual" description (for bugs)
+- **+1** Labeled by maintainer (confirmed valid issue)
 - **+1** Has maintainer engagement (comments from repo owners)
-- **+1** Repo has good CI/test infrastructure
-- **+2** Has `good-first-issue` or `help-wanted` label (maintainers seeking help)
+- **+2** Has `good-first-issue` or `help-wanted` label
 
 ### Negative Signals
-- **-2** Vague description, no repro steps
+- **-2** Vague description, unclear scope
 - **-2** Might be a feature request disguised as a bug
-- **-2** Bug seems too complex to fully resolve (would result in partial fix)
+- **-2** Too complex to fully resolve
 - **-1** Repo has history of rejecting external PRs
 - **-5** Repo has 0 merged PRs in last 30 days (should have been filtered)
 - **-3** Repo has 30+ open PRs (reviewer overwhelmed)
+- **SKIP** Repo failed health gate
 
 Minimum score 5 to attempt.
 
 ## Decision
-- **Attempt**: Simple/medium bugs with score >= 5, in healthy repos (merge time < 14d, review rate > 50%), created recently (< 2 weeks), clear repro steps, can be FULLY resolved, high fix probability
-- **Skip**: Non-bugs, stale issues (> 1 month), complex issues that can't be fully resolved, unclear requirements, unhealthy repos (0 merges in 30d, 50+ open PRs, < 50 stars), score < 5
-- **Defer**: Medium bugs that need more context — revisit after learning more about repo (but only if < 2 weeks old)
+- **Attempt**: Score >= 5, in healthy repo (merge time < 14d, review rate > 50%), created recently (< 2 weeks), clear scope, can be fully resolved
+- **Skip**: Score < 5, unhealthy repo, stale (> 30 days), too complex, unclear scope
+- **Defer**: Medium issues that need more context — revisit only if < 2 weeks old
 
 ## Output
 Write triage assessment to memory with:
-- Issue URL, repo, complexity rating
-- Bug Gate result: PASS (confirmed bug) or FAIL (not a bug)
-- **Repo Health Gate result: PASS or FAIL (with reason)**
-- **Repo health metrics: merge velocity, review rate, open PR count**
+- Issue URL, repo, **contribution type** (bug/docs/typo/test)
+- Blacklist check result: PASS or FAIL
+- Repo Health Gate result: PASS or FAIL (with reason)
+- Repo health metrics: merge velocity, review rate, open PR count, stars
 - Issue age and recency assessment
 - Completeness assessment: can this be fully resolved? (yes/no/uncertain)
-- Bug quality score with breakdown
+- **Merge-optimized quality score** with breakdown
 - Recommended action (attempt/skip/defer)
 - Reasoning for the decision

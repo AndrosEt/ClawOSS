@@ -1,6 +1,6 @@
 ---
 name: repo-analyzer
-description: "Analyze repo health and conventions BEFORE queuing any issue. MANDATORY health gate: last commit <2wk, merge time <14d, review rate >50%, open PRs <50, stars >=50, contributors >=5. Skip repos that fail. Cache results."
+description: "Analyze repo health and conventions BEFORE queuing any issue. MANDATORY health gate: stars >=500, last commit <2wk, merge time <14d, review rate >50%, open PRs <50. Use scripts/repo-health-check.sh for automation."
 user-invocable: true
 ---
 
@@ -8,6 +8,13 @@ user-invocable: true
 
 **We only contribute to repos that will actually review and merge our work.**
 The repo health gate is MANDATORY — run it BEFORE any other analysis.
+
+## Quick Check (use the script)
+For fast automated health checks, run:
+```bash
+scripts/repo-health-check.sh {owner}/{repo}
+```
+Exit 0 = healthy, exit 1 = skip. Outputs JSON with metrics and composite score.
 
 ## Repo Health Gate (run FIRST — before queuing ANY issue)
 
@@ -52,7 +59,7 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count}'
 gh api repos/{owner}/{repo}/contributors --jq 'length'
 ```
-- **SKIP** if < 50 stars — low-impact repo, not worth our time
+- **SKIP** if < 500 stars — low-impact repo, not worth our time (raised from 50)
 - **SKIP** if < 5 contributors — bus-factor risk, single maintainer may vanish
 
 ### 6. Niche Fit (golden niche = agentic AI repos)
@@ -72,8 +79,9 @@ A repo is in the golden niche if its name, description, or topics match any of:
 
 Scoring:
 - **+3 score** if repo is in the golden niche (agentic AI)
+- **+3 score** if repo has 5000+ stars (very high-impact)
 - **+2 score** if repo has 1000+ stars (high-impact)
-- **+1 score** if repo has 200-1000 stars (medium impact)
+- **+1 score** if repo has 500-1000 stars (medium impact)
 
 Set `niche_fit: true/false` in the output. Niche repos get priority in the work queue.
 
@@ -84,15 +92,15 @@ Check for presence of:
 - `.github/workflows/` or CI config — **+1 score** (automated testing)
 - Active issue labeling (> 50% of recent issues have labels) — **+1 score**
 - `good-first-issue` or `help-wanted` labels in use — **+2 score** (actively seeking contributions)
-- Anti-AI-PR policy in CONTRIBUTING.md — **SKIP permanently**
 
 ### Health Gate Summary
 A repo **MUST pass ALL** of these to be eligible:
-1. Last commit within 2 weeks
-2. Avg merge time < 14 days AND at least 1 merged PR in last 30 days
-3. Review rate > 50%
-4. Open PR count < 50
-5. Stars >= 50 AND contributors >= 5
+1. Stars >= 500
+2. Last commit within 2 weeks
+3. Avg merge time < 14 days AND at least 1 merged PR in last 30 days
+4. Review rate > 50%
+5. Open PR count < 50
+6. Contributors >= 5
 
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
 Write "SKIP: repo health gate failed — {reason}" and cache the result.

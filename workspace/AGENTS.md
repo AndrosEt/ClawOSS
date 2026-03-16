@@ -300,7 +300,7 @@ The following skills from obra/superpowers are installed and should be used:
 ## Quality Standards (All PRs)
 - **We only contribute to repos that will actually review our work** — check repo health before starting
 - **Repo must have 500+ stars** — no personal projects, no toy repos
-- **Repo must NOT be on the blacklist** (`memory/repo-blacklist.md`)
+- **Repo must pass the health gate** (see Repo Requirements)
 - Every PR must pass the target repo's CI
 - Every PR must reference the original issue (Fixes #N) when applicable
 - Code style must match the target repo's existing conventions (detect via linters, editorconfig)
