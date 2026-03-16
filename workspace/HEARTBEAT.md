@@ -6,6 +6,7 @@ Execute ALL steps. Only reply HEARTBEAT_OK if: queue empty, no follow-ups pendin
 ## Rules — see AGENTS.md (loaded alongside this file)
 Keep all 7 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
+**NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
 
 ## 0. Health Checks
 **0a. Quick status snapshot**: `bash /Users/kevinlin/clawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
@@ -149,8 +150,9 @@ Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter 
 - `failure` -> `pending_review` (retry next cycle)
 - Round 3: `disengaged`, leave PR open for maintainer. Delete result file.
 
-## 7. Report & Loop
+## 7. Report, Cleanup & Loop
 Run dashboard-reporter. Update wake-state.md. Remove completed/abandoned from queue.
+**Memory cleanup** (every cycle): delete processed subagent-result-*.md files, remove stale work-queue items (>30 days), prune closed PRs from pipeline-state.md. Archive important patterns to MEMORY.md if significant events occurred (merge, ban, new trusted repo).
 If < 5 active AND queue has items: go to step 3. If queue empty: run oss-discover, then step 3.
 HEARTBEAT_OK only if all slots full OR queue empty + discovery found nothing.
 Self-wake: `exec: openclaw system event --text "cycle-complete" --mode now`

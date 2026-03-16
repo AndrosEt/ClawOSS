@@ -1,6 +1,6 @@
 # V10 Monitor Status Report
 
-**Timestamp**: 2026-03-17 03:05 (UTC+8) -- Fresh respawn
+**Timestamp**: 2026-03-17 03:10 (UTC+8)
 **Agent**: clawoss (main session)
 **Model**: kimi-coding/k2p5 (200k ctx)
 
@@ -8,21 +8,35 @@
 
 ## Executive Summary
 
-Agent is running but in a **low-throughput state**. Only 3 impl subagents active with 5 slots free. Three unprocessed result files awaiting orchestrator pickup. Gateway timeout on subagent announce is **recurring but transient** (retries eventually succeed). The scripts PATH issue is **still broken** -- gate checks silently skipped. Dashboard reports merge rate critical at 3.4% and is issuing "follow up first" directives.
+Agent is **DORMANT** -- cron next fire at 08:00 CST (~5 hours away). No heartbeat cycles will run until then. A **new critical error** appeared at 03:06: `"Channel is required (no configured channels detected)"` -- subagent completion announcements now fail with a hard config error, not just timeouts. Scripts PATH still broken. Dashboard reports merge rate critical at 3.4%.
 
 ## Agent Health
 
 | Metric | Value |
 |--------|-------|
 | Gateway | Running, cron armed every 60s |
+| Main session | DORMANT (next cron at 08:00 CST) |
 | Consecutive wakes | 3 |
-| Errors this hour | 0 |
+| Errors this hour | 0 (stale counter) |
 | Last wake | 02:57 |
 | Dashboard healthy | FALSE (merge rate 3.4%) |
 
+## NEW CRITICAL: "Channel is required" Error (03:06)
+
+Starting at 19:06 UTC (03:06 CST), a new error appeared in logs:
+```
+announce queue drain failed for agent:clawoss:main:acct:default
+Error: Channel is required (no configured channels detected)
+```
+This fires repeatedly (attempts 1-5 with exponential backoff: 2s, 4s, 8s, 16s, 32s). The agent config (`~/.openclaw/openclaw.json`) has no `channels` key in the agent definition -- only `id: "clawoss"`.
+
+**Impact**: Subagent completion announcements fail entirely. The orchestrator can never learn that subagents finished, creating permanent zombie slots. This is WORSE than the earlier gateway timeouts -- those eventually succeeded on retry, but this is a hard config error that will fail on every attempt.
+
+**Fix needed**: Add a `channels` configuration to the agent definition in `~/.openclaw/openclaw.json`. Need to check OpenClaw docs for the correct format.
+
 ## Slot Capacity
 
-**Active: 5/10 (3 impl + 2 always-on)**
+**Active: 5/10 (3 impl + 2 always-on) -- BUT orchestrator dormant**
 
 **Current subagents:**
 | Issue | Repo | Status | Notes |
@@ -31,17 +45,15 @@ Agent is running but in a **low-throughput state**. Only 3 impl subagents active
 | mem0ai/mem0#4364 | mem0 | **completed** (result file unprocessed) | PR #4366 submitted |
 | mastra-ai/mastra#14323 | mastra | **skipped** (result file unprocessed) | Superseded by existing PR |
 | thinkst/canarytokens-docker#200 | canarytokens-docker | running | Spawned 02:51 |
-| mastra-ai/mastra#14338 | mastra | running (stale?) | Spawned 02:34, 30+ min no update |
+| mastra-ai/mastra#14338 | mastra | running (stale?) | Spawned 02:34, 35+ min no update |
 
 **Always-on subagents:**
 - scout-tier0: running (spawned 02:38)
 - pr-monitor: running (spawned 02:37)
 
-**Free impl slots**: 5 (but 3 result files pending processing)
-
-## RESOLVED: Zombie Slot Capacity (was CRITICAL)
-
-The footer was updated from "Active: 7/7 MAX CAPACITY" to "Active: 4/10". The agent is now correctly spawning new work. This was the #1 throughput blocker and is now fixed.
+**Stale locks:**
+- `mem0ai_mem0.lock` (created 02:53, subagent completed)
+- `DioCrafts_OxiCloud.lock` (created 02:45, subagent completed)
 
 ## REMAINING Issue: Scripts PATH (STILL BROKEN)
 
@@ -65,29 +77,6 @@ bash: scripts/check-supersession.sh: No such file or directory
 3. `workspace/skills/oss-discover/SKILL.md` -- 4 references
 4. `workspace/skills/oss-triage/SKILL.md` -- 2 references
 5. `workspace/skills/repo-analyzer/SKILL.md` -- 2 references
-
-Note: The daily-discovery cron job ALREADY uses absolute path -- only prompt files need fixing.
-
-## NEW Issue: Gateway Timeout on Completion (MEDIUM-HIGH)
-
-Subagent completion announcements are hitting 90s gateway timeouts at ws://127.0.0.1:18789. The mem0 subagent's announcement failed on retry 3/4. This blocks the orchestrator from updating spawn state and releasing locks for completed subagents.
-
-**Impact**: Completed subagents (mem0, OxiCloud) still show as "running" in spawn state, locks not released. Creates a secondary zombie slot effect.
-
-**Mitigation**: The heartbeat cycle's cleanup step should detect and reap these. But if the gateway is consistently timing out, the problem will recur.
-
-## Issue: Edit Race Conditions (MEDIUM)
-
-Multiple edit failures on shared state files:
-- `pr-ledger.md` -- exact text match failure at 02:57:09
-- `work-queue.md` -- exact text match failure at 02:57:25
-- `2026-03-17.md` (daily log) -- exact text match failure at 02:55:34, 02:59:40
-
-Root cause: concurrent subagent writes and orchestrator reads create race conditions. The model sees stale text, attempts edit, fails because the file was modified by another session.
-
-## Issue: Error Tracking Stale (LOW)
-
-`wake-state.md` error counter stuck at 0 despite 15+ real errors per cycle.
 
 ## Dashboard Directives (from health-check at 03:03)
 
@@ -125,21 +114,24 @@ Root cause: concurrent subagent writes and orchestrator reads create race condit
 | 02:55 | Scripts still failing (check-already-fixed, check-supersession) |
 | 02:56 | mem0#4364 completed -- PR submitted (stats widget HTTPS fix) |
 | 02:57 | Gateway timeout on completion announcement (retry 2/4) |
-| 02:57 | Edit failures on pr-ledger.md, work-queue.md |
 | 02:59 | OxiCloud#200 completed -- PR submitted (Calendar UUID type fix) |
-| 02:59 | Gateway timeout retry 3/4 |
+| 03:04 | Gateway timeout retry 4/4 |
+| **03:06** | **NEW: "Channel is required" error -- announce queue failing hard** |
+| 03:07 | Agent dormant -- cron nextAt = 08:00 CST |
 
 ## Priority Actions
 
 1. ~~**P0**: Fix capacity footer~~ -- RESOLVED
-2. **P0**: Change all script paths to absolute in prompt files (quality gates still bypassed)
-3. **P1**: Process 3 pending result files (OxiCloud, mem0, mastra skip) - orchestrator may be stuck
-4. **P1**: Investigate gateway timeout on completion announcements (transient but recurring)
-5. **P1**: mastra#14338 may be stalled (30+ min since spawn, no result file)
-6. **P1**: Merge rate strategy - 3.4% is critical, need to shift to follow-ups over new PRs
-7. **P2**: Address edit race conditions on shared state files
-8. **P2**: Fix error counter in wake-state.md
+2. **P0**: "Channel is required" config error -- subagent announces permanently broken
+3. **P0**: Agent dormant until 8 AM -- needs manual wake or config fix + restart
+4. **P0**: Change all script paths to absolute in prompt files (quality gates bypassed)
+5. **P1**: Stale locks for mem0 and OxiCloud blocking those repos
+6. **P1**: 2 unprocessed result files (OxiCloud, mem0) + 1 skip (mastra#14323)
+7. **P1**: mastra#14338 possibly stalled (35+ min)
+8. **P1**: Merge rate strategy - 3.4% is critical
+9. **P2**: Edit race conditions on shared state files
+10. **P2**: Error counter in wake-state.md stuck at 0
 
 ---
 
-*Monitor agent respawned. Continuous monitoring active.*
+*Monitor agent active. Agent dormant -- next cron fire at 08:00 CST.*

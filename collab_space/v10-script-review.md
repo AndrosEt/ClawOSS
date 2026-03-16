@@ -245,11 +245,50 @@ Each test should:
 - FIXED: JSON boolean issue (rewritten with Python)
 - Minor: bash variable interpolation into Python (safe in practice)
 
+### batch-fetch-pr-status.sh
+- **P1-9**: Lines 38+106 — Python heredoc (`<< 'PYEOF'`) and stdin redirect (`<<< "$PRS"`) conflict. Script is structurally broken — Python can't read PR data from stdin.
+- **P1-10**: Line 45 — `$FILTER_REPO` not interpolated inside single-quoted heredoc. Variable is literal text.
+
+### run-repo-tests.sh
+- **P1-11**: Line 104 — `timeout` command not available on macOS. Every test run fails with "command not found".
+- **P3**: Line 96-98 — pip install without virtualenv (low risk in /tmp workspace).
+
+### sign-cla.sh
+- **P2-10**: Lines 72-78 — wildcard case claims `"signed": true` for unknown CLA types. Should return false.
+
+### rework-pr.sh
+- **P2-11**: Lines 63-66 — triple-quoted Python strings with bash variables. Breaks if review bodies contain triple quotes.
+
+### update-trust-repos.sh
+- **P2-12**: Line 93 — deprioritize always writes "permanent". No time-limited skip support (HEARTBEAT says 30 days).
+- **P3**: Line 76 — substring match for repo name could match similarly-named repos.
+
+### discover-repos.sh
+- **P3**: Line 65 — bash string concatenation of JSON profiles. Fragile but common pattern.
+
+### lint-and-format.sh
+- Clean. Good framework detection for Node, Python, Rust, Go.
+
+### check-ci-matrix.sh
+- Clean. Good CI workflow parsing.
+
+### discover-issues.sh
+- Not reviewed in detail. Uses gh search issues — low risk.
+
+### batch-check-issues.sh
+- **P2-13**: Lines 76/92/104/116 — bare `except: pass` silently swallows errors. Failed checks default to "pass" instead of "error" or "skip".
+
+### repo-profile.sh, sync-live-config.sh
+- Not reviewed in detail. Uses PROJECT_DIR correctly.
+
 ---
 
 ## Summary
 
-### P1 bugs (must fix before deploying):
+### P0 (system-breaking):
+- **PATH BUG**: HEARTBEAT.md + AGENTS.md + 3 skill files use relative `scripts/` paths. Agent workspace is wrong directory. ALL gate checks silently skipped. 12 fixes across 5 files. See collab_space/v10-critique-three-design-flaws.md.
+
+### P1 bugs (11 total — must fix before deploying):
 1. **P1-1**: workspace-setup.sh blocklist check is a no-op (piped grep -q)
 2. **P1-2**: workspace-setup.sh HEALTH_RESULT uninitialized in fallback
 3. **P1-3**: heartbeat-status.sh `grep -oP` doesn't work on macOS
@@ -258,8 +297,11 @@ Each test should:
 6. **P1-6**: workspace-submit.sh size gate 500→200
 7. **P1-7**: workspace-submit.sh PR body missing disclosure line
 8. **P1-8**: workspace-submit.sh dedup regex no word boundary
+9. **P1-9**: batch-fetch-pr-status.sh structurally broken (heredoc + stdin conflict)
+10. **P1-10**: batch-fetch-pr-status.sh $FILTER_REPO not interpolated in single-quoted heredoc
+11. **P1-11**: run-repo-tests.sh `timeout` command not found on macOS
 
-### P2 bugs:
+### P2 bugs (13 total):
 1. **P2-1**: workspace-cleanup.sh lock matching never works
 2. **P2-2**: compute-merge-probability.sh threshold 30 vs spec 40 (may be intentional)
 3. **P2-5**: responsiveness weight 15 vs adopted 20 (may be intentional)
@@ -267,6 +309,10 @@ Each test should:
 5. **P2-7**: respond-to-review.sh identity text too close to forbidden "AI assistance"
 6. **P2-8**: workspace-submit.sh anti-slop filter breaks sentences
 7. **P2-9**: workspace-submit.sh missing format-pr-description.sh integration
+8. **P2-10**: sign-cla.sh wildcard case claims signed=true for unknown CLA types
+9. **P2-11**: rework-pr.sh triple-quoted Python strings break on review bodies with triple quotes
+10. **P2-12**: update-trust-repos.sh deprioritize always writes "permanent", no time-limited skip
+11. **P2-13**: batch-check-issues.sh bare `except: pass` — failed checks default to "pass"
 
 ### Cross-file PATH bug (P0):
 - HEARTBEAT.md, AGENTS.md, 3 skill files use relative `scripts/` paths
