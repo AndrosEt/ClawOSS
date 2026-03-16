@@ -59,3 +59,8 @@ Then reply: ANNOUNCE_SKIP
 
 When finished, write results to `memory/subagent-result-followup-{repo}-{pr}.md`
 using the format defined in `templates/subagent-result-schema.md` with `type: followup`.
+
+**failure_reason MUST use a standard category** from the taxonomy in the schema.
+Common follow-up failures: `reviewer_rejected_scope`, `reviewer_requested_rewrite`,
+`max_rounds_exceeded`, `pr_closed_by_maintainer`, `branch_conflict`.
+Format: `"category: optional details"` — e.g., `"reviewer_rejected_scope: maintainer said not a bug"`.

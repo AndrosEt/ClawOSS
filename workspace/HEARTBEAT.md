@@ -41,15 +41,15 @@ Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementati
 - Max 5 active PRs across all repos at any time
 - Max 3 follow-up revision rounds per PR -- after 3, politely disengage
 - Do NOT submit trivial PRs (whitespace-only, comment-only unless meaningful)
-- ALWAYS use branch naming: clawoss/fix/<description> (type MUST be "fix" — we only fix bugs)
+- ALWAYS use branch naming: clawoss/{type}/<description> (type = fix, docs, test, or typo)
 
 ### Quality (non-negotiable)
 - **We only contribute to repos that will actually review our work** -- repo health gate is mandatory
 - **Our goal is MERGED PRs, not submitted PRs** -- 50 unreviewed PRs = 0 impact
-- **Every PR must be a BUG FIX** -- no features, no refactors, no enhancements
-- **Every PR must FULLY resolve the bug** -- no partial fixes. Skip rather than submit half-baked work.
-- **Every PR must address the ROOT CAUSE** -- not just the surface symptom
-- **Prefer FRESH bugs in HEALTHY repos** -- issues in last 3 days, repos with merge time < 14d, review rate > 50%
+- **A merged typo fix > an unreviewed bug fix** -- optimize for merge rate, not submission count
+- **Mix: 60% easy wins (docs, typos, tests) + 40% substantive bug fixes** at responsive repos
+- **Every PR must FULLY resolve its scope** -- no partial fixes. Skip rather than submit half-baked work.
+- **Prefer FRESH issues in HEALTHY repos** -- repos with 500+ stars, merge time < 14d, review rate > 50%
 - Read CONTRIBUTING.md before first PR to any repo
 - Understand the repo architecture BEFORE writing any code
 - Every code change must include a test proving the bug existed and is now fixed
@@ -90,9 +90,12 @@ Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementati
 - loop-detection: Automatically guards against tool-call loops -- enabled globally
 
 ### Failure Handling
-- If a contribution is rejected, log reason and adapt
-- If repo's CI is broken (not our fault), skip and move to next
-- If rate-limited by GitHub API, back off and wait
+- All failures MUST use a standard `failure_reason` category from the taxonomy
+  in `templates/subagent-result-schema.md`. Format: `"category: optional details"`.
+- If a contribution is rejected, log `failure_reason` with category and adapt
+- If repo's CI is broken (not our fault): `ci_incompatible`, skip and move to next
+- If rate-limited by GitHub API: `api_rate_limited`, back off and wait
+- Track failures in `memory/failure-log.md` — 3+ same-category failures/day → adapt strategy
 - Never get stuck in retry loops -- fail fast and move forward
 
 ## 0a. Context Health
@@ -275,8 +278,10 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
        (a sub-agent is already working on it or already attempted it)
   b. SKIP if repo already has 3 PRs today (per-repo daily limit)
   c. Prefer different repos across concurrent sub-agents when possible
-  d. **BUG GATE: SKIP if the issue is NOT a bug report** — feature requests, enhancements, refactors, and improvements are out of scope. Check labels and title for bug indicators.
-  e. **TITLE KEYWORD HARD REJECT: SKIP if title matches any keyword as a WHOLE WORD
+  d. **CONTRIBUTION TYPE CHECK: Verify the issue is an actionable contribution** — bug fixes,
+     documentation fixes, typo fixes, or test additions. Feature requests and large refactors are out of scope.
+     For non-bug issues (docs, typos, tests), verify the repo is receptive to such contributions.
+  f. **TITLE KEYWORD HARD REJECT: SKIP if title matches any keyword as a WHOLE WORD
      (word boundary match, case-insensitive).** Do NOT match substrings — "Unsupported" must NOT
      match "support", "Additional" must NOT match "add", "Document" as noun must NOT match "document" as verb.
      Keywords: `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
@@ -284,7 +289,7 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
      `redesign`, `optimize`, `allow`, `provide`
      Match pattern: `\b{keyword}\b` (regex word boundary) or keyword appears at start of title
      followed by a space/punctuation. Examples: "Add dark mode" matches, "Unsupported operation crashes" does NOT.
-  f. **REPO HEALTH GATE (MANDATORY — check before spending tokens):**
+  g. **REPO HEALTH GATE (MANDATORY — check before spending tokens):**
      Before triaging or spawning, verify the repo is worth our tokens. A merged PR is the ONLY
      output that matters — skip repos where our PR will rot unreviewed.
      Run these quick checks via `gh api` (cached in memory/repos/ — reuse if checked within 7 days):
@@ -317,58 +322,102 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
-- Queue has < 5 items --> run oss-discover with BROAD BUG-FOCUSED scope targeting FRESH issues:
-  Search for BUG REPORTS created in the LAST 3 DAYS across ALL of GitHub, multiple languages.
-  Use `created:>YYYY-MM-DD` (3 days ago) in all search queries. Sort by created-desc.
-  Use labels: bug, defect, regression, crash, error. Use keywords: crash, TypeError, exception, broken, fails.
-  Target 20-30 candidate fresh bug reports per discovery cycle.
-  Diversify across repos — max 3 issues from the same repo.
-  SKIP any issues older than 30 days — they are stale.
-  Score >= 5 to enter queue. REJECT any non-bug issues. If nothing found, HEARTBEAT_OK.
+- Queue has < 5 items --> run oss-discover with MERGE-OPTIMIZED scope:
+  **AUTONOMOUS DISCOVERY — use CRITERIA to find repos, not a hardcoded list.**
+  The agent must learn to find high-merge-probability repos on its own using these search strategies:
+  **Tier 0 (ALWAYS first):** Search for agentic AI / LLM repos by CRITERIA:
+  - `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>500`
+  - Repo description/topics containing: agent, agentic, llm, rag, embedding, vector, prompt, chain,
+    tool-use, inference, transformer, fine-tuning, copilot, chatbot
+  - Search for bugs, docs fixes, typos in repos matching these criteria
+  **Tier 1:** Search high-star repos (500+) with `good-first-issue`/`help-wanted` labels.
+  These signal maintainer willingness to merge external contributions — highest merge probability.
+  **Tier 2:** General bug/docs/typo searches with `stars:>500 sort:reactions-+1-desc`.
+  Use `created:>YYYY-MM-DD` (3 days ago) for bugs, 2 weeks for docs/typos.
+  **REPO HEALTH VERIFICATION (mandatory before queuing):**
+  Before adding ANY issue, verify the repo via `gh api`:
+  - Recent commits (<2 weeks) — not abandoned
+  - External contributor PRs merged in last 30 days — they accept outside work
+  - Review rate >50% — maintainers actually review PRs
+  - Open PRs <50 — not overwhelmed
+  Cache results in memory/repos/ for 7 days.
+  Target 20-30 candidates per discovery cycle. Diversify across repos — max 3 per repo.
+  Score >= 5 to enter queue. If nothing found, HEARTBEAT_OK.
+  **SCOUT SPAWNING:** If work queue has < 5 items AND active sub-agents < 5, consider
+  spawning a scout sub-agent (templates/subagent-scout.md) to find new repos to target.
+  Scouts count against the 5-slot limit but replenish the work queue for future cycles.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 
 ## 4. Triage (in main session, < 3 min)
-1. **BUG GATE (mandatory first check):**
-   - Is this a bug report? Look for: error messages, stack traces, "expected vs actual", regression reports, crash logs.
-   - Does it have bug-related labels? (`bug`, `defect`, `regression`, `crash`, `error`)
-   - **TITLE KEYWORD HARD REJECT — auto-skip if title matches ANY keyword as a WHOLE WORD
-     (word boundary match `\b{keyword}\b`, case-insensitive):**
-     `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
-     `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
-     `redesign`, `optimize`, `allow`, `provide`
-     **This is a HARD GATE — no exceptions, no override by labels.** Match on WORD BOUNDARIES only.
-     "Add dark mode" matches `add`. "Unsupported operation crashes" does NOT match `support`.
-     "Document parser throws TypeError" does NOT match `document` (it's a noun, not verb-leading).
-     Only match when the keyword stands alone as a word, not as a substring of another word.
-   - **LABEL HARD REJECT — auto-skip if labeled:** `enhancement`, `feature`, `feature-request`,
-     `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`,
-     `chore`, `performance`, `optimization`, `docs`, `documentation`
-   - **REJECT if:** no concrete broken behavior described, is a discussion/RFC/proposal.
-   - If not a confirmed bug: remove from queue, go to step 3.
-2. oss-triage: Confirm open, unassigned, estimate complexity.
-3. If too complex or closed, remove from queue, go to step 3.
-4. Quality gate — SKIP issues that fail any of these:
-   - **Must be a bug fix, NOT a feature request, enhancement, or refactor**
-   - Must have clear reproduction steps or error details (stack traces, error messages)
-   - Must be well-scoped (not vague "improve X" without a specific broken behavior)
+
+### 4-ZERO. Health Gate (FIRST — before spending any triage tokens)
+Run the DETERMINISTIC health check script — do NOT rely on LLM judgment for repo health:
+   ```bash
+   bash scripts/repo-health-check.sh {owner}/{repo}
+   ```
+   Exit code 0 = healthy (pass), exit code 1 = skip (fail). The script outputs JSON with metrics.
+   Use cached results from memory/repos/ if < 7 days old (skip the script call).
+   **The script checks ALL of these (binary pass/fail):**
+   - Stars >= 500
+   - Last push < 2 weeks
+   - Merged PRs in last 30 days > 0
+   - Avg merge time <= 14 days
+   - Open PRs < 50
+   - Review rate > 50%
+   - External contributor merges tracked
+   - Niche fit detection (agentic AI repos get bonus)
+   The script outputs JSON with all metrics including `avg_merge_days` and composite `score`.
+   If the script returns exit code 1: remove from queue, cache the failure, go to step 3.
+   Save the JSON output to `memory/repos/{owner}_{repo}.md` for 7-day caching.
+
+### 4a. Contribution Type Assessment
+Determine the contribution type:
+- **Bug fix**: Has bug/defect/regression/crash labels, error messages, stack traces, "expected vs actual"
+- **Documentation fix**: Incorrect/outdated documentation, has docs/documentation label
+- **Typo fix**: Typo in code/docs/comments, has typo label
+- **Test addition**: Missing tests, has test label, uncovered code paths
+
+**TITLE KEYWORD HARD REJECT — auto-skip if title matches ANY keyword as a WHOLE WORD
+  (word boundary match `\b{keyword}\b`, case-insensitive):**
+  `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`,
+  `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+  `redesign`, `optimize`, `allow`, `provide`
+  **This is a HARD GATE — no exceptions.** Match on WORD BOUNDARIES only.
+  "Add dark mode" matches `add`. "Unsupported operation crashes" does NOT match `support`.
+
+**LABEL HARD REJECT — auto-skip if labeled:** `enhancement`, `feature`, `feature-request`,
+  `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`,
+  `chore`, `performance`, `optimization`
+  (Note: `docs`, `documentation`, `typo`, `test` labels are VALID contribution types.)
+
+If not a valid contribution type: remove from queue, go to step 3.
+
+### 4b. Quality Gate
+1. oss-triage: Confirm open, unassigned, estimate complexity.
+2. If too complex or closed, remove from queue, go to step 3.
+3. SKIP issues that fail any of these:
+   - **Must be an actionable contribution** (bug fix, docs fix, typo fix, or test addition)
+   - For bug fixes: must have clear reproduction steps or error details
+   - Must be well-scoped (not vague without a specific change)
    - Must NOT be labeled "wontfix", "duplicate", "invalid"
-   - Prefer issues with maintainer engagement (comments from repo owners)
-   - Prefer issues with "expected vs actual" descriptions
-   - **Prefer issues created in the last 3 days (freshest bugs get highest priority)**
+   - Prefer issues with maintainer engagement
+   - **Prefer issues created in the last 3 days (freshest get highest priority)**
    - Skip issues older than 30 days entirely — too stale
-   - Skip issues in repos with < 50 stars (low impact — raised from 10)
-5. **REPO HEALTH GATE (mandatory — we only contribute to repos that will actually review our work):**
-   Run repo-analyzer (use cached results from memory/repos/ if < 7 days old).
-   **SKIP the issue if the repo fails ANY of these:**
-   - No commits in last 2 weeks (abandoned)
-   - 0 merged PRs in last 30 days (not merging anything)
-   - Avg merge time > 14 days (too slow)
-   - Review rate < 50% (maintainers not reviewing)
-   - 50+ open PRs (overwhelmed)
-   - < 50 stars or < 5 contributors (too small)
-   - Anti-AI-PR policy (hostile — skip permanently)
-   If repo health fails, remove from queue and cache the failure. Do NOT spawn.
-6. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
+
+### 4c. Merge-Optimized Scoring
+Score the issue. Additional merge-optimization bonuses:
+- **+5** for docs/typo fixes (near-guaranteed merge)
+- **+3** for test additions (high merge rate)
+- **+5** for repos with avg merge time < 3 days
+- **+3** for repos with review rate > 80%
+- **+2** for `good-first-issue` or `help-wanted` label
+- **-5** for repos with avg merge time > 14 days
+- **SKIP** repos with 0 merges in 30 days
+- **SKIP** repos with > 50 open PRs
+
+### 4d. Quick Research
+If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning.
+If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent
 Read the spawn template from `templates/subagent-implementation.md`.
@@ -428,7 +477,16 @@ For each result file, parse the YAML frontmatter (see templates/subagent-result-
     - **Add new entry to memory/pr-followup-state.md** with status `pending_review`, round 0.
     - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via launchd).
       It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
-- If status: `failure` or `abandoned`: log `failure_reason` in memory/work-queue.md.
+- If status: `failure` or `abandoned`:
+    - Parse `failure_reason` — it MUST use a standard category from the taxonomy
+      (see templates/subagent-result-schema.md). Format: `"category: details"`.
+    - Log `failure_reason` in memory/work-queue.md (include the category).
+    - **Track failure patterns** in memory/failure-log.md:
+      Append a line: `| {date} | {repo} | #{issue} | {failure_category} | {details} |`
+      This enables pattern detection — if the same category repeats 3+ times in a day,
+      investigate and adapt (e.g., if `not_a_bug` keeps recurring, tighten triage).
+    - **Failure-driven learning:** If `failure_reason` starts with `repo_health_fail`:
+      cache the health failure in memory/repos/ for 7 days so the repo is skipped on future health checks.
 - If status: `already_fixed`: remove from work-queue.md, no PR to track.
 - If no valid YAML frontmatter: treat as legacy format, fall back to text search for "Status:" and "PR URL:".
 - Delete the result file after processing.
@@ -468,8 +526,8 @@ Count active sub-agents via sessions_list.
 If active sub-agents < 5 AND work queue has items:
   DO NOT reply HEARTBEAT_OK. Go back to step 3 and spawn more.
 If active sub-agents < 5 AND work queue is empty:
-  Run oss-discover for FRESH BUG REPORTS (last 3 days, all languages, 30+ candidates, bug labels only, created:> date filter).
-  Then go back to step 3 and spawn.
+  Run oss-discover using CRITERIA-BASED search (topic:llm/agent/rag/ai + stars:>500 + label:bug/help-wanted,
+  created:>3-days-ago, repo health verified). Then go back to step 3 and spawn.
 ONLY reply HEARTBEAT_OK if:
   - All 5 slots are full, OR
   - Work queue is empty AND oss-discover found nothing AND all slots checked

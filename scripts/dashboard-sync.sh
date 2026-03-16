@@ -50,10 +50,10 @@ build_session_map() {
   local sessions_file="$DIR/sessions.json"
   [ ! -f "$sessions_file" ] && echo '{}' > "$SESSION_MAP" && return
 
-  python3 -c "
-import json, sys
+  _SESSIONS_FILE="$sessions_file" python3 -c "
+import json, sys, os
 try:
-    data = json.load(open('$sessions_file'))
+    data = json.load(open(os.environ['_SESSIONS_FILE']))
     result = {}
     for key, meta in data.items():
         sid = meta.get('sessionId', '')
@@ -80,7 +80,7 @@ log "Posting to: ${URL}"
 
 # Build initial session map
 build_session_map
-log "Session map built: $(python3 -c "import json; d=json.load(open('$SESSION_MAP')); subs=[v for v in d.values() if v['isSubagent']]; print(f'{len(d)} sessions, {len(subs)} subagents')" 2>/dev/null || echo 'error')"
+log "Session map built: $(_SESSION_MAP="$SESSION_MAP" python3 -c "import json, os; d=json.load(open(os.environ['_SESSION_MAP'])); subs=[v for v in d.values() if v['isSubagent']]; print(f'{len(d)} sessions, {len(subs)} subagents')" 2>/dev/null || echo 'error')"
 
 CYCLE=0
 
@@ -157,8 +157,9 @@ while true; do
     NEW_COUNT=$((TOTAL_LINES - TOKEN_PREV))
     [ "$NEW_COUNT" -gt 200 ] && NEW_COUNT=200 && TOKEN_PREV=$((TOTAL_LINES - 200))
 
-    METRICS_PAYLOAD=$(tail -n "$NEW_COUNT" "$f" 2>/dev/null | python3 -c "
-import json, sys
+    METRICS_PAYLOAD=$(tail -n "$NEW_COUNT" "$f" 2>/dev/null | _SID="$SID" python3 -c "
+import json, sys, os
+sid = os.environ['_SID']
 metrics = []
 for line in sys.stdin:
     line = line.strip()
@@ -185,7 +186,7 @@ for line in sys.stdin:
         'inputTokens': inp,
         'outputTokens': out,
         'model': model or 'kimi-coding/k2p5',
-        'channel': '${SID}'
+        'channel': sid
     })
 if metrics:
     print(json.dumps({'metrics': metrics}))
@@ -224,16 +225,16 @@ if metrics:
     NEW_COUNT=$((TOTAL_LINES - PREV))
     [ "$NEW_COUNT" -gt 50 ] && NEW_COUNT=50 && PREV=$((TOTAL_LINES - 50))
 
-    tail -n "$NEW_COUNT" "$f" 2>/dev/null | python3 -c "
-import json, sys
+    tail -n "$NEW_COUNT" "$f" 2>/dev/null | _SESSION_MAP="$SESSION_MAP" _SID="$SID" python3 -c "
+import json, sys, os
 
 # Load session metadata map
 try:
-    session_map = json.load(open('$SESSION_MAP'))
+    session_map = json.load(open(os.environ['_SESSION_MAP']))
 except:
     session_map = {}
 
-sid = '${SID}'
+sid = os.environ['_SID']
 meta_info = session_map.get(sid, {})
 is_subagent = meta_info.get('isSubagent', False)
 label = meta_info.get('label', '')

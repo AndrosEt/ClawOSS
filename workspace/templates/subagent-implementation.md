@@ -13,11 +13,12 @@ attachments: [repo-conventions.md, issue-details.md]
 
 ## Task Prompt
 
-Fix BUG (not feature/refactor) in {repo}#{issue}: {title}.
+Fix issue in {repo}#{issue}: {title}.
 
-IMPORTANT: This MUST be a bug fix. If at any point you determine this is actually
-a feature request, enhancement, or refactor — ABANDON IMMEDIATELY and report
-Status: failure, Reason: 'not a bug — issue is a feature request/enhancement'.
+IMPORTANT: This must be a valid contribution (bug fix, docs fix, typo fix, or test addition).
+If at any point you determine this is actually a large feature request, enhancement,
+or refactor — ABANDON IMMEDIATELY and report
+Status: failure, Reason: 'not actionable — issue is a feature request/enhancement'.
 
 Read the attached repo-conventions.md and issue-details.md.
 Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
@@ -26,7 +27,8 @@ Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
    mkdir -p $WORKDIR && cd $WORKDIR
    Clone repo INTO this directory. All work happens here.
 
-2. CONFIRM BUG: Verify this is a real bug, not a feature request. If not a bug, ABANDON.
+2. CONFIRM ACTIONABLE: Verify this is a real bug, docs issue, typo, or test gap.
+   If it's a large feature request or refactor, ABANDON.
 
 3. DEEP COMPREHENSION (do NOT skip this):
    a. Read the repo's architecture: directory structure, key modules, how components connect.
@@ -52,25 +54,48 @@ Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
    No refactoring. No scope creep. No 'while I'm here' improvements.
    But DO fix the reported bug thoroughly and completely.
 
-6. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
-   Record the passing output as evidence.
-   Verify the fix addresses root cause, not just symptom.
+6. VERIFY — FULL CI MATRIX (a PR that breaks CI is WORSE than no PR):
+   a. Read `.github/workflows/` FIRST to understand the full CI matrix:
+      - Which OS does CI run on? (ubuntu, macos, windows, multiple?)
+      - Which language versions? (Python 3.8-3.12, Node 16/18/20, etc.)
+      - Which build configurations? (debug/release, with/without optional deps)
+      - What test suites beyond the obvious one? (linting, type checking, formatting)
+   b. Run ALL test suites the repo defines, not just `make test` or `pytest`:
+      - Unit tests (pytest, jest, go test, cargo test, make test, etc.)
+      - Linting (eslint, ruff, flake8, golangci-lint, clippy, etc.)
+      - Type checking (mypy, pyright, tsc, etc.)
+      - Formatters (black, prettier, gofmt — run in check mode)
+      - Integration tests if they run in CI
+      - Any custom test scripts in Makefile, package.json scripts, etc.
+   c. For cross-platform projects (C/C++, Rust, MicroPython, embedded, etc.):
+      - Does the fix touch platform-specific code? Check ALL target platforms.
+      - Does the fix use APIs or behaviors that differ across OS/architectures?
+      - If the repo builds for multiple targets (ARM, x86, RISC-V, etc.), verify
+        the fix is correct for ALL of them, not just the one you tested on.
+      - Example: micropython builds for stm32, esp32, rp2, unix — a fix that works
+        on unix but breaks stm32 is a BAD PR that wastes maintainer time.
+   d. Record passing output as evidence. The failing test MUST now pass. No regressions.
+   e. Verify the fix addresses root cause, not just symptom.
+   **If you cannot run the full test suite, explicitly note which tests you skipped and
+   why in the PR description. Never submit blind. A broken CI wastes the maintainer's
+   time and damages our reputation — one bad PR can get us blocked from a repo forever.**
 
 7. REVIEW: Self-check diff:
-   - Does this FULLY resolve the reported bug? Partial fixes = abandon.
-   - Does it fix the root cause, not just the symptom?
-   - Is this ONLY fixing a bug? If changes include feature additions or refactoring, STRIP THEM.
+   - Does this FULLY resolve the reported issue? Partial fixes = abandon.
+   - Does it fix the root cause, not just the symptom? (for bugs)
+   - Is the fix correct? (for docs/typos, verify against actual code behavior)
+   - No feature additions or refactoring snuck in. STRIP them if found.
+   - Will this pass the FULL CI matrix? If unsure, run more tests.
    - Scope, style, secrets, size, commit msg.
-   - Commit type MUST be 'fix', not 'feat' or 'refactor'.
+   - Commit type: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
    - 3+ failures = abandon.
 
-8. SUBMIT: Commit, push, create PR with reproduction evidence
-   (before/after test output in PR description).
-   PR title should indicate it's a bug fix. PR body must include:
-   - Root Cause Analysis: explain WHY the bug existed
-   - Fix explanation: how this addresses the root cause
-   - Before/after test evidence
-   - Reference to the bug report
+8. SUBMIT: Commit, push, create PR with evidence.
+   PR title should clearly describe the fix. PR body must include:
+   - For bugs: Root Cause Analysis, fix explanation, before/after test evidence
+   - For docs/typos: What was incorrect, what's now correct, how you verified
+   - For tests: What's now tested, why it matters
+   - Reference to the original issue (Fixes #{issue})
    Include a CLA confirmation section at the bottom of the PR body:
    '## Contributor License Agreement
    By submitting this pull request, I confirm that my contribution is made
@@ -93,6 +118,11 @@ Use image to analyze any screenshots attached to the issue.
 
 When finished, write results to `memory/subagent-result-{repo}-{issue}.md`
 using the format defined in `templates/subagent-result-schema.md`.
+
+**failure_reason MUST use a standard category** from the taxonomy in the schema.
+Common implementation failures: `cannot_reproduce`, `too_complex`, `tests_fail_after_fix`,
+`not_a_bug`, `scope_creep`, `self_review_fail`, `already_fixed_upstream`.
+Format: `"category: optional details"` — e.g., `"too_complex: requires auth middleware rewrite"`.
 
 Then run: rm -rf $WORKDIR
 Then reply: ANNOUNCE_SKIP

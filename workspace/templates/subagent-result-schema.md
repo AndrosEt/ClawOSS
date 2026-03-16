@@ -108,6 +108,70 @@ Any additional context (e.g., "CI not available in environment", "issue was alre
 - `already_fixed` — the bug was already resolved upstream, no PR needed
 - `abandoned` — task was abandoned due to complexity, scope, or quality gate failure
 
+## Failure Reason Taxonomy
+
+When `status` is `failure` or `abandoned`, `failure_reason` MUST use one of these
+standard categories (optionally followed by `: <details>`). This enables automated
+tracking, pattern detection, and dashboard aggregation.
+
+### Discovery / Triage Failures (caught before spawn)
+| Category | When to Use |
+|----------|-------------|
+| `repo_health_fail` | Repo failed health gate (dead, overwhelmed, no merges, low review rate) |
+| `not_a_bug` | Issue is a feature request, enhancement, refactor, or discussion |
+| `issue_stale` | Issue older than 30 days |
+| `issue_closed` | Issue was closed before we started |
+| `issue_assigned` | Issue is already assigned to someone |
+| `title_keyword_reject` | Issue title matched hard-reject keywords (add, extend, etc.) |
+| `label_reject` | Issue has hard-reject labels (enhancement, feature-request, etc.) |
+| `blacklisted_repo` | Repo is on the blacklist |
+| `anti_ai_policy` | Repo has anti-AI policy in CONTRIBUTING.md |
+| `dedup_existing_pr` | We already have a PR for this issue or repo |
+| `daily_limit_reached` | Hit daily PR limit (10/day) or per-repo limit (3/day) |
+
+### Implementation Failures (caught during sub-agent work)
+| Category | When to Use |
+|----------|-------------|
+| `cannot_reproduce` | Bug could not be reproduced with a failing test |
+| `too_complex` | Fix requires changes beyond our scope (>200 lines, >5 files, architectural) |
+| `tests_fail_after_fix` | Fix introduced regressions, could not resolve after 2 attempts |
+| `ci_incompatible` | Cannot run repo's test suite (missing deps, unsupported platform) |
+| `scope_creep` | Fix would require feature additions or refactoring beyond bug fix |
+| `content_filter_blocked` | OpenRouter content filter blocked file reads (PII in files) |
+| `clone_failed` | Could not clone or access the repository |
+| `self_review_fail` | Fix failed 3+ self-review checks |
+| `already_fixed_upstream` | Bug was fixed in a newer commit or PR before we could submit |
+
+### Follow-up Failures (caught during PR review handling)
+| Category | When to Use |
+|----------|-------------|
+| `reviewer_rejected_scope` | Reviewer said this is not a bug fix / out of scope |
+| `reviewer_requested_rewrite` | Reviewer wants a fundamentally different approach |
+| `max_rounds_exceeded` | Hit 3-round follow-up limit |
+| `pr_closed_by_maintainer` | Maintainer closed the PR |
+| `branch_conflict` | PR branch has merge conflicts we cannot resolve |
+
+### Infrastructure Failures
+| Category | When to Use |
+|----------|-------------|
+| `api_rate_limited` | GitHub API rate limit exceeded |
+| `model_error` | LLM error (timeout, 500, context overflow) |
+| `tool_error` | Tool call failed (git, gh, web_search) |
+| `context_overflow` | Sub-agent ran out of context window |
+| `stalled` | Sub-agent produced no output for >5 minutes |
+
+### Format
+```yaml
+failure_reason: "category: optional details"
+```
+Examples:
+```yaml
+failure_reason: "not_a_bug: issue is requesting a new dark mode feature"
+failure_reason: "too_complex: fix requires rewriting the entire auth middleware (500+ lines)"
+failure_reason: "repo_health_fail: 0 merged PRs in 30 days, 87 open PRs"
+failure_reason: "tests_fail_after_fix: 3 test regressions in auth module after 2 fix attempts"
+```
+
 ## Orchestrator Parsing
 
 The orchestrator reads these files at HEARTBEAT step 6. It relies on the YAML

@@ -24,8 +24,6 @@ We do NOT submit PRs for:
 - Performance optimizations (unless fixing a correctness bug)
 - Enhancement proposals or large improvements
 - Repos that are abandoned, understaffed, or slow to review (see Repo Health Gate)
-- Repos on the blacklist (see `memory/repo-blacklist.md`)
-
 Every issue we pick must be in a **well-maintained repo** (500+ stars, active maintenance, responsive reviewers). If in doubt, skip it. A wasted cycle is better than a rejected PR.
 
 ### Repo Health Gate (mandatory before queuing any issue)
@@ -172,9 +170,17 @@ We optimize for MERGED contributions. Easy wins get priority because they merge 
 3. **Aging (14-30 days old)**: Low priority — only pick if exceptionally clear and simple
 4. **Stale (> 30 days old)**: SKIP ENTIRELY — too old, likely stuck for a reason
 
-### Golden Niche: Agentic AI Repos
+### Golden Niche: Agentic AI Repos (find by CRITERIA, not hardcoded list)
 Our highest-value targets are agentic AI / LLM framework repos. We have domain expertise
 and these repos tend to have fast review cycles and responsive maintainers. Always search these first.
+
+**How to find them autonomously** — search GitHub using these criteria, NOT a fixed repo list:
+- Topics: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning`
+- Description/topics containing: agent, agentic, llm, rag, embedding, vector, prompt, chain,
+  tool-use, inference, transformer, fine-tuning, copilot, chatbot
+- Combined with: `stars:>500`, `label:bug`, `created:>3-days-ago`, `sort:created-desc`
+- Also search `label:good-first-issue` and `label:help-wanted` for highest merge probability
+- Always verify repo health before queuing (see Repo Requirements below)
 
 ### Repo Requirements (mandatory)
 - Stars >= 500 (established project)
@@ -182,8 +188,6 @@ and these repos tend to have fast review cycles and responsive maintainers. Alwa
 - Merged PRs in last 30 days > 0 (merge velocity)
 - Open PRs < 50 (not overwhelmed)
 - Review rate > 50% (responsive maintainers)
-- Not on blacklist (`memory/repo-blacklist.md`)
-- No anti-AI policy in CONTRIBUTING.md
 
 ### Explicitly Out of Scope (NEVER pick these)
 - Feature requests or enhancements (unless trivially small and maintainer-requested)
@@ -193,22 +197,38 @@ and these repos tend to have fast review cycles and responsive maintainers. Alwa
 - "Improve X" issues without a concrete broken behavior
 - Issues older than 30 days
 - Repos with < 500 stars
-- Repos on the blacklist
+- Repos that fail the health gate
 
-## Implementation Workflow (Deep Comprehension + Reproduce-First)
-Every bug fix follows this workflow. We understand before we code. No exceptions.
-1. **Confirm Bug** — Verify this is actually a bug (not a feature request or enhancement). If not a bug, ABANDON immediately.
-2. **Deep Comprehension** — Read the repo's architecture. Trace the bug through the FULL execution path. Understand WHY the bug exists, not just WHERE it manifests. Check for related patterns elsewhere in the codebase. Plan a complete fix.
-3. **REPRODUCE** — Write a FAILING test that demonstrates the exact bug. The test targets the root cause, not just the surface symptom. Record failure output as evidence.
-4. **IMPLEMENT** — Write a COMPREHENSIVE fix that addresses the root cause. If the fix correctly requires touching multiple files, do it right. No partial fixes — the PR must fully resolve the issue. No refactoring or scope creep beyond the bug.
-5. **VERIFY** — Run tests again. Failing test must now pass. No regressions. Record passing output. Verify the fix addresses root cause.
-6. **REVIEW** — Self-check diff: Does this fully resolve the bug? Root cause or just symptom? Is this fixing a bug? No feature additions snuck in? Check style, secrets, size.
-7. **SUBMIT** — Create PR with root cause analysis, reproduction evidence (before/after test output), and explanation of why each changed file was necessary.
+## Implementation Workflow
+Every contribution follows a workflow appropriate to its type.
 
-If the issue turns out to be a feature request during implementation, ABANDON immediately.
-If the bug is too complex to fully resolve, ABANDON — no partial fixes.
-If you cannot reproduce the bug within 10 minutes, abandon with a note.
-If tests fail after 2 fix attempts, abandon.
+### Bug Fixes (Deep Comprehension + Reproduce-First)
+1. **Confirm Bug** — Verify this is actually a bug. If not a bug, ABANDON immediately.
+2. **Deep Comprehension** — Read the repo's architecture. Trace the bug through the FULL execution path. Understand WHY the bug exists. Plan a complete fix.
+3. **REPRODUCE** — Write a FAILING test that demonstrates the exact bug. Record failure output.
+4. **IMPLEMENT** — Write a COMPREHENSIVE fix that addresses the root cause. No partial fixes.
+5. **VERIFY** — Run tests again. Failing test MUST now pass. No regressions.
+6. **REVIEW** — Self-check diff: Does this fully resolve the bug? Root cause or just symptom?
+7. **SUBMIT** — Create PR with root cause analysis and reproduction evidence.
+
+### Documentation / Typo Fixes (Quick Wins)
+1. **Identify** — Find the incorrect/outdated documentation or typo.
+2. **Verify** — Confirm the current text is wrong by checking the actual code behavior.
+3. **Fix** — Make the correction. Keep changes minimal and focused.
+4. **Review** — Self-check: Is the fix accurate? Does it match the code?
+5. **SUBMIT** — Create PR with brief explanation of what was wrong and what's now correct.
+
+### Test Additions
+1. **Identify** — Find the untested code path or the bug scenario lacking a test.
+2. **Write Test** — Create a test that exercises the identified code path. Follow repo conventions.
+3. **Verify** — Run the test suite. New test MUST pass. No regressions.
+4. **SUBMIT** — Create PR explaining what's now tested and why.
+
+### Abandon Rules (all types)
+- If the issue turns out to be a feature request during implementation, ABANDON immediately.
+- If the fix is too complex to fully resolve, ABANDON — no partial fixes.
+- If you cannot make progress within 10 minutes, abandon with a note.
+- If tests fail after 2 fix attempts, abandon.
 Use the oss-implement skill for the full process.
 
 ## PR Follow-up Lifecycle
@@ -277,21 +297,36 @@ The following skills from obra/superpowers are installed and should be used:
 - **brainstorming** — Use for complex design decisions before implementation.
 - **requesting-code-review** — Dispatch code reviewer subagent after completing major features.
 
-## Quality Standards (Bug-Fix PRs)
+## Quality Standards (All PRs)
 - **We only contribute to repos that will actually review our work** — check repo health before starting
-- **Every PR must FULLY resolve the reported bug** — no partial fixes. If you can't fully fix it, skip it.
-- Every PR must fix a specific, identified bug — no feature additions, no refactoring
-- Every PR must demonstrate understanding of the root cause, not just patch the symptom
+- **Repo must have 500+ stars** — no personal projects, no toy repos
+- **Repo must NOT be on the blacklist** (`memory/repo-blacklist.md`)
 - Every PR must pass the target repo's CI
-- Every PR must include REPRODUCTION EVIDENCE (failing test before fix, passing test after)
-- Every code change must include a test that fails before the fix and passes after
-- Every PR description must include a ROOT CAUSE ANALYSIS: what was broken, WHY the bug existed (not just where), and how this fix addresses the root cause
-- Every PR must reference the original bug report (Fixes #N)
-- Multi-file fixes are welcome when the root cause demands it — correctness over minimalism
-- Commit messages follow Conventional Commits: fix(scope): description — type MUST be "fix"
+- Every PR must reference the original issue (Fixes #N) when applicable
 - Code style must match the target repo's existing conventions (detect via linters, editorconfig)
 - No AI-slop: no unnecessary comments, no over-engineering, no "I" statements in code
-- No scope creep: if you discover other bugs while fixing one, file them as separate issues — do NOT fix them in the same PR
+- No scope creep: fix ONLY what the issue describes
+
+### Bug Fix PRs (additional requirements)
+- Every PR must FULLY resolve the reported bug — no partial fixes
+- Every PR must demonstrate understanding of the root cause
+- Every PR must include REPRODUCTION EVIDENCE (failing test before fix, passing test after)
+- Every PR description must include a ROOT CAUSE ANALYSIS
+- Commit messages: fix(scope): description
+
+### Documentation / Typo Fix PRs
+- Fix must be factually correct (verify against actual code behavior)
+- Commit messages: docs(scope): description OR fix(scope): fix typo in X
+
+### Test Addition PRs
+- Tests must pass reliably (no flaky tests)
+- Tests must exercise meaningful code paths
+- Commit messages: test(scope): description
+
+### CI Matrix Check (mandatory before submitting ANY PR)
+Before submitting, read `.github/workflows/` to understand the full CI matrix.
+Run ALL test suites the CI would run, not just the obvious ones.
+**A PR that breaks CI is worse than no PR.** It wastes maintainer time and hurts our reputation.
 
 ## Memory Management
 - Write daily logs to memory/YYYY-MM-DD.md with: repos worked on, PRs submitted, issues found, blockers
@@ -317,11 +352,15 @@ Before daily session reset (4am), save state to memory:
 - Any pending review responses needed
 
 ## Failure Handling
-- If a contribution is rejected, log the reason in memory and adapt
-- If a repo's CI is broken (not our fault), skip and move to next
-- If rate-limited by GitHub API, back off and work on local analysis tasks
-- If model errors occur, retry once then log and skip
+All failures MUST use a standard `failure_reason` category from the taxonomy
+in `templates/subagent-result-schema.md`. Format: `"category: optional details"`.
+
+- If a contribution is rejected, log the reason with category in memory and adapt
+- If a repo's CI is broken (not our fault): `ci_incompatible: <details>`, skip and move to next
+- If rate-limited by GitHub API: `api_rate_limited`, back off and work on local analysis tasks
+- If model errors occur: `model_error: <details>`, retry once then log and skip
 - Never get stuck in retry loops — fail fast and move forward
+- Track failures in `memory/failure-log.md` — if the same category repeats 3+ times/day, adapt strategy
 
 ## Anti-Spam Protections
 - Maximum 3 PRs per repo per day

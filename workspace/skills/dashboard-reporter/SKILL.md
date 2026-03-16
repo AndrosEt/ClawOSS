@@ -36,5 +36,21 @@ Cost is auto-computed server-side from the model name. If `costUsd` is omitted o
 - Quality gate fail: warn log
 - Error/recovery: error log
 - Token usage: metrics after each run
+- Sub-agent failure: log entry with structured failure_reason
 
 If dashboard unreachable, log locally and continue. Never block work for telemetry.
+
+## Structured Failure Logging
+
+When logging sub-agent failures, include the standardized `failure_reason` category
+from the taxonomy (see `templates/subagent-result-schema.md`). This enables dashboard
+aggregation and pattern detection.
+
+**Log format for failures:**
+```json
+{"entries":[{"level":"warn","source":"agent","message":"sub-agent failure: {repo}#{issue} — {failure_category}: {details}","timestamp":"ISO8601","metadata":{"repo":"{repo}","issue":"{issue}","failureCategory":"{category}","failureDetails":"{details}"}}]}
+```
+
+The `failureCategory` field must be one of the taxonomy values (e.g., `not_a_bug`,
+`too_complex`, `repo_health_fail`). The dashboard can aggregate these to show
+which failure modes are most common and help the agent adapt its strategy.
