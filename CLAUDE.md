@@ -1,0 +1,64 @@
+# ClawOSS — Claude Code Instructions
+
+## What This Is
+ClawOSS is an autonomous OpenClaw agent configuration that discovers GitHub issues, implements bug fixes, and submits PRs. It does NOT modify OpenClaw itself — it uses OpenClaw as a platform.
+
+## Architecture
+- **Orchestrator**: Main agent session running HEARTBEAT.md loop (steps 0-7)
+- **Implementation sub-agents**: Fresh context per task, clone → reproduce → fix → test → PR
+- **Follow-up sub-agents**: 1 per PR, handle reviewer feedback via `gh` CLI, max 3 rounds
+- **Sub-agents share a 5-slot pool** — follow-ups get priority over new implementations
+- **Result files**: Sub-agents write to `workspace/memory/subagent-result-*.md`, orchestrator reads and processes
+
+## Key Files
+- `workspace/HEARTBEAT.md` — The autonomous loop, DO NOT break this
+- `workspace/AGENTS.md` — Operating instructions and rules
+- `workspace/skills/*/SKILL.md` — 10+ custom skills
+- `config/openclaw.json` — Agent config (NO secrets here)
+- `~/.openclaw/openclaw.json` — Live config WITH secrets
+- `~/Library/LaunchAgents/ai.openclaw.gateway.plist` — Gateway service (MUST include KIMI_API_KEY)
+- `workspace/memory/` — Runtime state (gitignored)
+- `dashboard/` — Next.js 15 Vercel dashboard
+- `scripts/restart.sh` — Full restart for headless operation
+
+## Critical Rules
+- NEVER put secrets in `config/openclaw.json` — that's committed to git
+- ALWAYS update BOTH `~/.openclaw/openclaw.json` AND the gateway plist when changing API keys
+- Workspace memory files are gitignored — they contain runtime state
+- The agent targets BUG FIXES ONLY — no features, refactors, or architectural changes
+- Prioritize issues < 3 days old, skip > 30 days old
+- Sub-agents must deeply understand repo architecture before implementing fixes
+- All GitHub communication via `gh` CLI
+- Branch naming: `clawoss/fix/<description>`
+
+## Team (clawoss-v7)
+- **clawoss-architect**: Architecture & prompt design, deep knowledge of all files
+- **clawoss-monitor**: Real-time agent monitoring & status reports
+- **problem-finder**: Adversarial audit, finds bugs and edge cases
+- **compatibility-ensurer**: Architecture extensibility review
+- Teammates must NEVER be shut down unless user explicitly requests it
+- Teammates actively cross-communicate via DMs
+
+## Model
+- Kimi Code k2p5 via direct API (`https://api.kimi.com/coding/`)
+- NOT OpenRouter (content filter blocks @ symbols in code)
+- API key env var: `KIMI_API_KEY`
+
+## Common Commands
+```bash
+# Restart agent
+cd /Users/kevinlin/clawOSS && bash scripts/restart.sh
+
+# Check agent status
+openclaw logs 2>&1 | tail -20
+
+# Wake agent manually
+openclaw system event --text "resume heartbeat" --mode now
+
+# Restart gateway (after config changes)
+launchctl unload ~/Library/LaunchAgents/ai.openclaw.gateway.plist
+launchctl load ~/Library/LaunchAgents/ai.openclaw.gateway.plist
+
+# Check PRs
+gh pr list --author BillionClaw --state open
+```
