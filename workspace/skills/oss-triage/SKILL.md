@@ -56,30 +56,50 @@ If the issue fails the Bug Gate, write "SKIP: not a bug — [reason]" and move o
    - Whether the expected behavior is clearly defined
    - Whether existing tests cover the area (easier to verify fix)
 
+## Step 4: Completeness Check
+Before approving a bug for implementation, assess whether we can **fully resolve** it:
+- Can the bug be completely fixed, not just partially addressed?
+- Is the scope clear enough that we'll know when it's done?
+- **If the bug is too complex to fix completely: SKIP it.** A partial fix is worse than no fix — it wastes maintainer review time and may cause confusion.
+- One excellent, complete fix is worth more than five shallow ones.
+
 ## Bug Quality Score
-Score each bug 1-10:
+Score each bug 1-14:
+
+### Recency (most important)
+- **+4** Created in the last 24 hours (hot — we're first responders)
+- **+3** Created in the last 3 days (fresh)
+- **+1** Created in the last 2 weeks (recent)
+- **-2** Created 2-4 weeks ago (getting stale)
+- **-5** Created > 1 month ago (SKIP entirely — too stale)
+
+### Bug Signals
 - **+3** Has clear reproduction steps
 - **+2** Has stack trace or error message
 - **+2** Has "expected vs actual" description
 - **+1** Labeled `bug` or `defect` by maintainer (confirmed bug)
 - **+1** Has maintainer engagement (comments from repo owners)
 - **+1** Repo has good CI/test infrastructure
+
+### Negative Signals
 - **-2** Vague description, no repro steps
 - **-2** Might be a feature request disguised as a bug
-- **-1** Issue older than 6 months with no recent activity
+- **-2** Bug seems too complex to fully resolve (would result in partial fix)
 - **-1** Repo has history of rejecting external PRs
 
 Minimum score 5 to attempt.
 
 ## Decision
-- **Attempt**: Simple/medium bugs with score >= 5, clear repro steps, high fix probability
-- **Skip**: Non-bugs, complex issues, unclear requirements, repos with high rejection rate, score < 5
-- **Defer**: Medium bugs that need more context — revisit after learning more about repo
+- **Attempt**: Simple/medium bugs with score >= 5, created recently (< 2 weeks), clear repro steps, can be FULLY resolved, high fix probability
+- **Skip**: Non-bugs, stale issues (> 1 month), complex issues that can't be fully resolved, unclear requirements, repos with high rejection rate, score < 5
+- **Defer**: Medium bugs that need more context — revisit after learning more about repo (but only if < 2 weeks old)
 
 ## Output
 Write triage assessment to memory with:
 - Issue URL, repo, complexity rating
 - Bug Gate result: PASS (confirmed bug) or FAIL (not a bug)
+- Issue age and recency assessment
+- Completeness assessment: can this be fully resolved? (yes/no/uncertain)
 - Bug quality score with breakdown
 - Recommended action (attempt/skip/defer)
 - Reasoning for the decision

@@ -16,6 +16,8 @@ Submit a verified bug-fix branch as a pull request. **Only bug fixes are submitt
 ## Pre-Submit Sanity Check
 Before pushing anything, ask one final time:
 - Is this fixing a reported bug? If NO → ABANDON.
+- Does the PR FULLY resolve the reported bug? If NO (partial fix) → ABANDON.
+- Does the fix address the root cause, not just the symptom? If NO → go back and fix properly.
 - Does the PR reference a specific bug issue? If NO → ABANDON.
 - Is the branch named `clawoss/fix/...`? If NO → ABANDON.
 
@@ -30,7 +32,7 @@ Before pushing anything, ask one final time:
 1. Push branch to fork (or origin if write access)
 2. Create PR using `gh pr create`:
    - Title: `fix(scope): description` following repo conventions or Conventional Commits — type MUST be `fix`
-   - Body: use repo's PR template if available; must include: bug description, reproduction steps, before/after test evidence, root cause explanation
+   - Body: use repo's PR template if available; must include: bug description, ROOT CAUSE ANALYSIS (why the bug existed), reproduction steps, before/after test evidence, explanation of why each changed file was necessary
    - References: "Fixes #<issue-number>" in body (MUST reference the bug report)
 3. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
 4. Log submission to memory: repo, issue, PR number, timestamp, type: "bug-fix"

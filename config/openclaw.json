@@ -44,7 +44,7 @@
           "model": "kimi-coding/k2p5",
           "session": "main",
           "target": "none",
-          "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK. You MUST: check work queue, pick a BUG to fix, spawn a sub-agent, and self-wake after completion. HEARTBEAT_OK is ONLY valid when there is literally zero work available. ONLY pick BUG REPORTS — never feature requests, enhancements, or refactors. If work exists, DO IT.",
+          "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK. You MUST: check work queue, pick a FRESH BUG (last 3 days) to fix, spawn a sub-agent, and self-wake after completion. HEARTBEAT_OK is ONLY valid when there is literally zero work available. ONLY pick BUG REPORTS — never feature requests, enhancements, or refactors. Prioritize issues created in the last 3 days. Skip issues older than 30 days. Fix bugs DEEPLY — understand the codebase, trace the root cause, submit COMPLETE fixes. If work exists, DO IT.",
           "lightContext": true
         }
       }

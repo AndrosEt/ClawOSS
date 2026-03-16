@@ -38,16 +38,22 @@ Your #1 job is to keep all 5 sub-agent slots filled at ALL times.
 
 ### Quality (non-negotiable)
 - **Every PR must be a BUG FIX** -- no features, no refactors, no enhancements
+- **Every PR must FULLY resolve the bug** -- no partial fixes. Skip rather than submit half-baked work.
+- **Every PR must address the ROOT CAUSE** -- not just the surface symptom
+- **Prefer FRESH bugs** -- issues created in the last 3 days get top priority. Skip issues > 30 days old.
 - Read CONTRIBUTING.md before first PR to any repo
+- Understand the repo architecture BEFORE writing any code
 - Every code change must include a test proving the bug existed and is now fixed
-- Every PR description must explain: what was broken, why, and how this fixes it
+- Every PR description must include ROOT CAUSE ANALYSIS: what was broken, WHY it was broken, how this fixes it
 - Commit messages: Conventional Commits format -- fix(scope): description (type MUST be "fix")
 - Code style must match the target repo's existing conventions
 - No AI-slop: no unnecessary comments, no over-engineering, no "I" statements
 - No scope creep: fix ONLY the reported bug, nothing else
+- Multi-file fixes are fine when the root cause demands it -- correctness over minimalism
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
 - If issue turns out to be a feature request during implementation, ABANDON immediately
+- If the bug is too complex to fully resolve, ABANDON -- one excellent PR > five shallow ones
 
 ### Content Filter Safety (OpenRouter blocks emails in file contents)
 - OpenRouter blocks PII patterns (emails, phones) even inside file contents the model reads
@@ -125,11 +131,13 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
-- Queue has < 5 items --> run oss-discover with BROAD BUG-FOCUSED scope:
-  Search for BUG REPORTS across ALL of GitHub, multiple languages (rust, python, typescript, go, java).
+- Queue has < 5 items --> run oss-discover with BROAD BUG-FOCUSED scope targeting FRESH issues:
+  Search for BUG REPORTS created in the LAST 3 DAYS across ALL of GitHub, multiple languages.
+  Use `created:>YYYY-MM-DD` (3 days ago) in all search queries. Sort by created-desc.
   Use labels: bug, defect, regression, crash, error. Use keywords: crash, TypeError, exception, broken, fails.
-  Target 20-30 candidate bug reports per discovery cycle.
+  Target 20-30 candidate fresh bug reports per discovery cycle.
   Diversify across repos — max 3 issues from the same repo.
+  SKIP any issues older than 30 days — they are stale.
   Score >= 5 to enter queue. REJECT any non-bug issues. If nothing found, HEARTBEAT_OK.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 
@@ -148,7 +156,8 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
    - Must NOT be labeled "wontfix", "duplicate", "invalid"
    - Prefer issues with maintainer engagement (comments from repo owners)
    - Prefer issues with "expected vs actual" descriptions
-   - Skip issues older than 6 months with no recent activity
+   - **Prefer issues created in the last 3 days (freshest bugs get highest priority)**
+   - Skip issues older than 30 days entirely — too stale
    - Skip issues in repos with < 10 stars (low impact)
 5. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
 6. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
@@ -160,25 +169,49 @@ Use sessions_spawn to delegate the bug-fix task to a fresh sub-agent session:
     a feature request, enhancement, or refactor — ABANDON IMMEDIATELY and report
     Status: failure, Reason: 'not a bug — issue is a feature request/enhancement'.
     Read the attached repo-conventions.md and issue-details.md.
-    Follow the REPRODUCE-FIRST workflow (oss-implement skill):
+    Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
     1. Create isolated workspace: WORKDIR=/tmp/clawoss-<issue>-$(date +%s)
        mkdir -p $WORKDIR && cd $WORKDIR
        Clone repo INTO this directory. All work happens here.
     2. CONFIRM BUG: Verify this is a real bug, not a feature request. If not a bug, ABANDON.
-    3. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
+    3. DEEP COMPREHENSION (do NOT skip this):
+       a. Read the repo's architecture: directory structure, key modules, how components connect.
+       b. Trace the bug through the FULL execution path — start from the entry point,
+          follow every function call to where the error occurs. Do NOT just look at the
+          file mentioned in the stack trace.
+       c. Understand WHY the bug exists, not just WHERE it manifests. Is it a logic error?
+          Edge case? Race condition? Incorrect assumption? Missing validation?
+       d. Search for similar patterns elsewhere in the codebase (grep/search). Could the
+          same root cause affect other code paths?
+       e. Plan a COMPLETE fix that addresses the root cause. If the fix needs to touch
+          multiple files across the codebase, that's fine — do it right.
+       f. If the bug is too complex to fully resolve, ABANDON rather than submit a partial fix.
+    4. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
+       The test should target the root cause, not just the surface symptom.
        Record the failure output as evidence. The failing test proves the bug exists.
-    4. IMPLEMENT: Write the MINIMAL fix to make the failing test pass.
-       Fix ONLY the reported bug. No refactoring. No scope creep. No 'while I'm here' improvements.
-    5. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
+    5. IMPLEMENT: Write a COMPREHENSIVE fix that addresses the root cause.
+       Fix the bug COMPLETELY — no partial fixes. The PR must fully resolve the issue.
+       If the proper fix spans multiple files, that's expected — a correct 3-file fix
+       beats a hacky 1-file workaround.
+       No refactoring. No scope creep. No 'while I'm here' improvements.
+       But DO fix the reported bug thoroughly and completely.
+    6. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
        Record the passing output as evidence.
-    6. REVIEW: Self-check diff:
+       Verify the fix addresses root cause, not just symptom.
+    7. REVIEW: Self-check diff:
+       - Does this FULLY resolve the reported bug? Partial fixes = abandon.
+       - Does it fix the root cause, not just the symptom?
        - Is this ONLY fixing a bug? If changes include feature additions or refactoring, STRIP THEM.
        - Scope, style, secrets, size, commit msg.
        - Commit type MUST be 'fix', not 'feat' or 'refactor'.
        - 3+ failures = abandon.
-    7. SUBMIT: Commit, push, create PR with reproduction evidence
+    8. SUBMIT: Commit, push, create PR with reproduction evidence
        (before/after test output in PR description).
-       PR title should indicate it's a bug fix. PR body must reference the bug report.
+       PR title should indicate it's a bug fix. PR body must include:
+       - Root Cause Analysis: explain WHY the bug existed
+       - Fix explanation: how this addresses the root cause
+       - Before/after test evidence
+       - Reference to the bug report
        Include a CLA confirmation section at the bottom of the PR body:
        '## Contributor License Agreement
        By submitting this pull request, I confirm that my contribution is made
@@ -187,9 +220,9 @@ Use sessions_spawn to delegate the bug-fix task to a fresh sub-agent session:
        - [x] I have read and agree to the project's contributing guidelines
        - [x] This contribution is my original work (or properly attributed)
        - [x] I license this contribution under the project's existing license'
-    8. Do NOT wait for remote CI. Submit and report result.
-    9. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
-       This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
+    9. Do NOT wait for remote CI. Submit and report result.
+    10. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
+        This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
     Use image to analyze any screenshots attached to the issue.
@@ -197,6 +230,8 @@ Use sessions_spawn to delegate the bug-fix task to a fresh sub-agent session:
     - Status: success/failure
     - PR URL (if created)
     - Issue type: bug (if not a bug, explain why and mark as failure)
+    - Root cause: brief explanation of why the bug existed
+    - Fix completeness: full/partial (partial = failure)
     - Files changed
     - Test results (before/after)
     - Error details (if failed)
@@ -266,7 +301,7 @@ Count active sub-agents via sessions_list.
 If active sub-agents < 5 AND work queue has items:
   DO NOT reply HEARTBEAT_OK. Go back to step 3 and spawn more.
 If active sub-agents < 5 AND work queue is empty:
-  Run oss-discover BROADLY for BUG REPORTS (all languages, 30+ candidates, bug labels only).
+  Run oss-discover for FRESH BUG REPORTS (last 3 days, all languages, 30+ candidates, bug labels only, created:> date filter).
   Then go back to step 3 and spawn.
 ONLY reply HEARTBEAT_OK if:
   - All 5 slots are full, OR

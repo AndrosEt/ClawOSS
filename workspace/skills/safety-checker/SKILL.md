@@ -10,12 +10,15 @@ Final validation gate before `oss-submit`. Every check must pass or submission i
 
 ## Checks
 
-### 0. Bug Fix Verification (MOST IMPORTANT CHECK)
-Confirm that this PR is fixing a bug, NOT adding a feature or refactoring:
+### 0. Bug Fix Verification & Completeness (MOST IMPORTANT CHECK)
+Confirm that this PR is fixing a bug COMPLETELY, NOT adding a feature or refactoring:
 - Read the original issue: is it a bug report with error/crash/broken behavior?
 - Read the diff: do changes ONLY fix the reported bug?
+- **Does this fix FULLY resolve the issue?** A partial fix is not acceptable — abort and skip.
+- Does the fix address the root cause, not just the symptom?
 - Check commit messages: is the type `fix`?
 - **If this is a feature addition, enhancement, or refactor: ABORT IMMEDIATELY.**
+- **If this is a partial fix that doesn't fully resolve the bug: ABORT.**
 - Red flags: new public APIs, new config options, renamed variables without bug context, files changed that are unrelated to the bug.
 
 ### 1. Budget Check
@@ -56,8 +59,11 @@ If target repo has required CI checks, verify our branch builds locally.
 Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context). Subagent must confirm:
 - The change is correct and slop-free
 - **The change is a bug fix, not a feature addition or refactor**
+- **The fix is complete — it fully resolves the reported bug, not just partially**
+- **The fix addresses the root cause, not just the surface symptom**
 - Every changed line is necessary for fixing the reported bug
 
 ## On Failure
 Log which check failed, abort submission, report to dashboard.
 If check 0 (Bug Fix Verification) fails, log "ABORTED: not a bug fix" prominently.
+If the fix is partial/incomplete, log "ABORTED: partial fix — does not fully resolve the issue".
