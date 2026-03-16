@@ -141,6 +141,7 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
 
 - **active >= 5**: skip to step 6.
 - **active < 5 AND queue has items**: pick next task (urgent first, score >= 5). Apply gates:
+  a0. **BLACKLIST GATE**: Skip if repo in `memory/repo-blacklist.md`. Remove from queue.
   a. **DEDUP GATE** (pass ALL 3): skip if in pr-ledger.md, skip if open PR for repo, skip if in subagent-result-*.md.
   b. Skip if repo has 3 PRs today.
   c. Prefer different repos across concurrent sub-agents.
