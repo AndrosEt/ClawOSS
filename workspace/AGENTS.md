@@ -34,24 +34,65 @@ One excellent, complete fix is worth more than five shallow ones.
 
 ## Orchestrator + Sub-Agent Architecture
 You operate as ONE agent with ONE persistent main session for orchestration.
-- Implementation tasks are delegated to sub-agents via sessions_spawn
-- Sub-agents run in fresh isolated contexts for each task (zero cross-task pollution)
-- The main session handles: heartbeat loop, work queue, PR follow-ups, dashboard reporting
-- Sub-agents handle: coding, testing, committing, PR creation
-- Sub-agents write results to memory/subagent-result.md, then reply ANNOUNCE_SKIP
-- ANNOUNCE_SKIP bypasses the announce model call — no content filter risk, faster completion
-- maxConcurrent: 5 -- up to 5 sub-agents working in parallel on different tasks
-- Sub-agents cannot access memory tools -- pass context via attachments
+Two types of sub-agents exist:
+1. **Implementation sub-agents** — fix bugs in new repos (HEARTBEAT step 5)
+2. **Follow-up sub-agents** — handle PR review feedback on existing PRs (HEARTBEAT step 2d)
+
+Both types:
+- Are delegated via sessions_spawn
+- Run in fresh isolated contexts (zero cross-task pollution)
+- Write results to per-task files in memory/
+- Reply ANNOUNCE_SKIP when done (bypasses announce model call)
+- Cannot access memory tools — context passed via attachments
+- Share the same 5-slot concurrent pool
+
+The main session handles: heartbeat loop, work queue, PR detection, follow-up delegation, dashboard reporting.
+Sub-agents handle: coding, testing, committing, PR creation/updating, reviewer communication.
+- maxConcurrent: 5 — up to 5 sub-agents working in parallel (follow-ups + implementations combined)
 - NEVER implement code directly in the main session
 - Keep the orchestrator context clean: it should only see task summaries, not code
 
+## Sub-Agent Types
+
+### Implementation Sub-Agents (new bug fixes)
+- Spawned in HEARTBEAT step 5
+- One per issue, one per repo
+- Workspace: `/tmp/clawoss-<issue>-<timestamp>/`
+- Result file: `memory/subagent-result-<repo>-<issue>.md`
+- Skill: oss-implement
+- Lifecycle: clone → comprehend → reproduce → fix → test → review → submit PR → cleanup
+
+### Follow-up Sub-Agents (PR review feedback)
+- Spawned in HEARTBEAT step 2d
+- One per PR — never mix PRs in one sub-agent
+- Workspace: `/tmp/clawoss-followup-<pr>-<timestamp>/`
+- Result file: `memory/subagent-result-followup-<repo>-<pr>.md`
+- Skill: oss-pr-review-handler
+- Lifecycle: clone → checkout PR branch → read comments → implement changes → push → respond → cleanup
+- Context file: `memory/subagent-inputs/followup-<repo>-<pr>.md` (written by orchestrator before spawn)
+
+### Priority: Follow-ups FIRST
+Follow-up sub-agents get PRIORITY over implementation sub-agents:
+- ALWAYS spawn all pending follow-ups BEFORE spawning new implementations
+- A reviewer waiting for a response is more urgent than starting a new fix
+- If 3 follow-ups are needed and 2 implementations are running, the 3 follow-ups fill the remaining slots
+- Implementations wait until follow-up slots are satisfied
+
+### Round Limits (Follow-ups)
+- Round 1-2: Normal follow-up — sub-agent addresses feedback and pushes updates
+- Round 3: Final attempt — sub-agent posts polite disengagement message
+- Round 3+: No more sub-agents spawned for this PR. Terminal state.
+- State tracked in `memory/pr-followup-state.md`
+
 ## Parallel Execution
 - The orchestrator spawns UP TO 5 sub-agents simultaneously per heartbeat cycle
-- Each sub-agent works on a different issue in a different repo
+- Sub-agents can be a mix of follow-ups and implementations
+- Each sub-agent works on a different issue/PR in isolation
 - Sub-agents are independent — one failing doesn't affect others
-- Each sub-agent writes results to memory/subagent-result-<repo>-<issue>.md (no conflicts)
-- The orchestrator checks all result files on each heartbeat cycle
-- Target: 2-5 PRs being worked on at any given time
+- Implementation results: `memory/subagent-result-<repo>-<issue>.md`
+- Follow-up results: `memory/subagent-result-followup-<repo>-<pr>.md`
+- The orchestrator checks all result files on each heartbeat cycle (step 6a + 6b)
+- Target: 5 concurrent sub-agents at all times (mix of follow-ups and implementations)
 
 ## Session Start Checklist
 1. Read SOUL.md for persona and boundaries
@@ -124,6 +165,45 @@ If the bug is too complex to fully resolve, ABANDON — no partial fixes.
 If you cannot reproduce the bug within 10 minutes, abandon with a note.
 If tests fail after 2 fix attempts, abandon.
 Use the oss-implement skill for the full process.
+
+## PR Follow-up Lifecycle
+After a PR is submitted, the orchestrator monitors it through the full review lifecycle:
+
+### Detection (HEARTBEAT step 2)
+1. `gh pr list --author @me --state open` — find all our open PRs
+2. Fetch inline + general comments via `gh api`
+3. Classify each PR: `changes_requested`, `comment_only`, `ci_failing`, `approved`, `stale`, `merged`
+4. Use oss-followup skill for detection and classification logic
+
+### Delegation (HEARTBEAT step 2d)
+1. Write context file to `memory/subagent-inputs/followup-{repo}-{pr}.md`
+2. Context includes: PR URL, all new comments (with IDs for threaded replies), diff summary, round number
+3. Spawn follow-up sub-agent with context file as attachment
+4. Sub-agent uses oss-pr-review-handler skill
+
+### Sub-Agent Work
+1. Clone repo, checkout PR branch (NOT main)
+2. Read and understand ALL reviewer comments
+3. Implement requested code changes
+4. Run tests — no regressions allowed
+5. Push to the SAME branch (updates existing PR)
+6. Respond to reviewers via `gh pr comment` and `gh api` (inline replies)
+7. Write result file, cleanup workspace
+
+### Result Handling (HEARTBEAT step 6b)
+1. Read follow-up result files
+2. Update `memory/pr-followup-state.md` with round count, status, timestamp
+3. Terminal states: `approved`, `merged`, `closed_scope_concern`, `closed_rejected`, `disengaged`
+4. Non-terminal: increment round, schedule next check
+
+### Reviewer Communication Principles
+- Thank reviewers once (at top of response, not per comment)
+- Be professional and concise — no fluff
+- Never argue with reviewers — implement requests or politely disengage
+- If reviewer says "this is not a bug fix": close PR, log lesson, move on
+- If reviewer asks for scope expansion (features): politely decline, explain bug-fix focus
+- After round 3: post disengagement message, leave PR open for maintainer to decide
+- Never ping or request re-review — just push and comment
 
 ## Stall Recovery
 - Sub-agents that stall (no new messages for >5 minutes) are automatically detected and replaced

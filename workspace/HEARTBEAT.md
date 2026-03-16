@@ -18,6 +18,13 @@ Your #1 job is to keep all 5 sub-agent slots filled at ALL times.
 - After ANY sub-agent completes: check slots, discover if needed, spawn replacement
 - The work queue should always have 10+ items ready. If < 5, run oss-discover IMMEDIATELY.
 
+## PRIORITY ORDER: Follow-ups FIRST, then new work
+Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementation sub-agents.
+- ALWAYS spawn follow-up sub-agents BEFORE spawning new implementation sub-agents
+- A reviewer waiting for a response is more important than starting a new fix
+- Follow-ups and implementation sub-agents share the same 5-slot concurrent pool
+- If 3 slots are used by follow-ups, only 2 slots remain for new implementations
+
 ## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
 
 ### Safety (non-negotiable)
@@ -108,17 +115,146 @@ Check if a sub-agent session is active from a previous cycle:
 - Increment errors_this_hour in memory/wake-state.md
 - After 2 consecutive stalls on the same task, SKIP it and move to the next item
 
-## 2. PR Follow-ups (Highest Priority)
-Run: gh pr list --author @me --state open --json number,title,reviewDecision,statusCheckRollup,url,updatedAt
-- New review comments? --> oss-followup for that PR. Go to step 6.
-- CI failing (our fault)? --> fix and push. Go to step 6.
-- PR merged? --> Update memory/pipeline-state.md. Continue.
-- PR stale >7 days, no review? --> Close with polite comment. Remove from pipeline.
+## 2. PR Follow-ups (HIGHEST PRIORITY — before any new work)
+
+PR follow-ups are MORE IMPORTANT than starting new implementations. A reviewer
+waiting for a response reflects poorly on the project. Always handle follow-ups first.
+
+### 2a. Detect PRs Needing Attention
+Run:
+```bash
+gh pr list --author @me --state open --json number,title,url,updatedAt,reviewDecision,statusCheckRollup,comments
+```
+
+For each open PR, fetch review details:
+```bash
+# Inline file comments (code review comments)
+gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[].id, .[].body, .[].path, .[].created_at, .[].user.login'
+
+# General PR comments (issue-level discussion)
+gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[].id, .[].body, .[].created_at, .[].user.login'
+```
+
+### 2b. Classify Each PR
+Read memory/pr-followup-state.md to check round counts and last-checked timestamps.
+
+For each open PR, classify:
+
+**`changes_requested`** — reviewDecision is "CHANGES_REQUESTED" or there are new inline/general
+comments requesting code changes since our last push:
+- Check current round count in pr-followup-state.md
+- If round < 3: spawn a follow-up sub-agent (PRIORITY)
+- If round >= 3: do NOT spawn. PR is in disengaged state. Skip.
+
+**`comment_only`** — new comments that are questions or discussions (not change requests):
+- Spawn a follow-up sub-agent to respond thoughtfully
+- Counts as a round only if code changes are pushed
+
+**`approved`** — reviewDecision is "APPROVED":
+- Log success in memory/pr-followup-state.md (status: approved)
+- No sub-agent needed. Continue.
+
+**`ci_failing`** — statusCheckRollup shows failures that are our fault:
+- Treat like `changes_requested` — spawn sub-agent to fix CI
+- Round count increments
+
+**`stale`** — no review activity for >7 days (compare updatedAt to now):
+- Close with polite comment:
+  ```bash
+  gh pr close {number} --repo {owner}/{repo} --comment "Closing this PR as it hasn't received review activity in over a week. If the fix is still wanted, I'm happy to resubmit. Thank you for your time."
+  ```
+- Update pr-followup-state.md: status = closed_stale
+- Remove from pipeline-state.md
+
+**`merged`** — PR was merged:
+- Update pr-followup-state.md: status = merged
+- Log success. Continue.
+
+### 2c. Write Follow-up Context File
+For each PR that needs a sub-agent, write a context file:
+
+```bash
+# File: memory/subagent-inputs/followup-{repo}-{pr}.md
+```
+
+Contents:
+```markdown
+# Follow-up Context: {owner}/{repo}#{pr}
+
+## PR Details
+- URL: {pr_url}
+- Number: {pr_number}
+- Branch: {branch_name}
+- Repo: {owner}/{repo}
+- Original Issue: #{issue_number}
+- Classification: {changes_requested|comment_only|ci_failing}
+- Revision Round: {round}
+
+## Review Comments
+
+### Inline Comments (file-level)
+{for each inline comment:}
+- File: {path}
+- Line: {line}
+- Reviewer: {login}
+- Comment ID: {id}
+- Body: {body}
+
+### General Comments
+{for each general comment:}
+- Reviewer: {login}
+- Comment ID: {id}
+- Body: {body}
+
+## Diff Summary
+{output of gh pr diff {number} --repo {owner}/{repo} | head -200}
+```
+
+### 2d. Spawn Follow-up Sub-Agent
+Use sessions_spawn to delegate the follow-up to a fresh sub-agent:
+
+```
+task: "Handle PR review feedback for {owner}/{repo}#{pr} (round {round}).
+  IMPORTANT: This is a FOLLOW-UP on an existing bug-fix PR, not new work.
+  Read the attached followup context file for all review comments and PR details.
+  Follow the oss-pr-review-handler skill workflow:
+  1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
+     mkdir -p $WORKDIR && cd $WORKDIR
+  2. Clone repo and checkout the PR branch (NOT main): git checkout {branch}
+  3. Read ALL review comments — understand what each reviewer is asking
+  4. For change requests: implement the requested modifications
+  5. For questions: prepare clear technical responses
+  6. Run tests to verify no regressions
+  7. Commit and push to the SAME branch (updates the PR automatically)
+  8. Respond to reviewers:
+     - General comments: gh pr comment {number} --repo {owner}/{repo} --body '...'
+     - Inline replies: gh api repos/{owner}/{repo}/pulls/{number}/comments -X POST -f body='...' -F in_reply_to={comment_id}
+  9. Stay within bug-fix scope — do NOT expand to features even if reviewer suggests
+  10. If reviewer says 'this is not a bug fix': close PR politely, mark as closed_scope_concern
+  11. If round 3: post polite disengagement message, do NOT close PR yourself
+  12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
+  13. CLEANUP: rm -rf $WORKDIR
+  Then reply: ANNOUNCE_SKIP"
+label: "followup-{repo}#{pr}"
+attachments: [followup-{repo}-{pr}.md]
+```
+
+**Follow-up sub-agents get PRIORITY over implementation sub-agents.**
+Count active sub-agents. If follow-ups + implementations would exceed 5, defer new implementations.
+Spawn ALL pending follow-ups first, THEN fill remaining slots with implementations.
+
+### 2e. Update State
+After spawning (or skipping) each follow-up:
+- Update memory/pr-followup-state.md with new round count, timestamp, status
+- If PR was closed (stale/rejected): remove from active tracking
+
+Then continue to step 3. Do NOT go directly to step 6.
 
 ## 3. Merge Staging Files & Pick Work (up to 5 concurrent tasks)
 Merge any new items from memory/work-queue-staging.md and memory/followup-staging.md into memory/work-queue.md, then clear the staging files. (This prevents race conditions with concurrent cron writes.)
 
 Count active sub-agents via sessions_list (exclude main session and stale sessions >30min).
+**Include both follow-up and implementation sub-agents in the count.**
 Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr-ledger.md.
 - If active sub-agents >= 5: skip to step 6 (check results).
 - If active sub-agents < 5 AND work queue has items:
@@ -247,16 +383,19 @@ Do NOT implement in the main session.
 If web_search results were gathered during triage, include a summary in the attachments.
 
 ### Sub-Agent Discipline
-- Each sub-agent MUST write results to memory/subagent-result-<repo>-<issue>.md, then reply ANNOUNCE_SKIP
+- Each sub-agent MUST write results to its designated result file, then reply ANNOUNCE_SKIP
+- **Implementation sub-agents**: memory/subagent-result-<repo>-<issue>.md
+- **Follow-up sub-agents**: memory/subagent-result-followup-<repo>-<pr>.md
 - Per-task result files allow multiple sub-agents to write concurrently without conflicts
 - ANNOUNCE_SKIP bypasses the announce model call — no content filter risk, faster completion
 - NO hard timeout — sub-agents take as long as they need to do quality work
-- maxConcurrent: 5 — up to 5 sub-agents can work in parallel on different tasks
+- maxConcurrent: 5 — up to 5 sub-agents can work in parallel (follow-ups + implementations combined)
 - Result file must include: status, PR URL, files changed, test results, or error details
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 
 ### Disk Cleanup (non-negotiable)
-- Sub-agents clone repos to /tmp/clawoss-<issue>-<timestamp>/ — isolated per task
+- Implementation sub-agents clone repos to /tmp/clawoss-<issue>-<timestamp>/ — isolated per task
+- Follow-up sub-agents clone repos to /tmp/clawoss-followup-<pr>-<timestamp>/ — isolated per PR
 - After PR submit or task abandon, sub-agent MUST rm -rf its workdir
 - Orchestrator runs cleanup of stale workdirs (>60 min old) every cycle in step 6
 - NEVER clone to /tmp/clawoss-workdir (shared dir causes conflicts between sub-agents)
@@ -270,7 +409,9 @@ If web_search results were gathered during triage, include a summary in the atta
 
 ## 6. Handle Sub-Agent Results
 Check ALL active sub-agents via sessions_list.
-List memory/subagent-result-*.md files to find completed results.
+
+### 6a. Implementation Results
+List memory/subagent-result-*.md files (excluding followup-* files) to find completed results.
 For each result file:
 - Read it to get the sub-agent's outcome.
 - If Status: success — VALIDATE before counting:
@@ -283,13 +424,37 @@ For each result file:
   - If PR URL is PRESENT and valid:
     - Update memory/pipeline-state.md with new PR.
     - Remove the issue from memory/work-queue.md.
+    - **Add new entry to memory/pr-followup-state.md** with status `pending_review`, round 0.
     - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via launchd).
       It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
 - If Status: failure: log reason in memory/work-queue.md.
 - If timeout/error: increment errors_this_hour in wake-state.md.
 - Delete the result file after processing.
-- Run disk cleanup: find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} +
-  This catches any workdirs left behind by crashed/stalled sub-agents.
+
+### 6b. Follow-up Results
+List memory/subagent-result-followup-*.md files to find completed follow-up results.
+For each follow-up result file:
+- Read it to get the follow-up outcome.
+- Update memory/pr-followup-state.md:
+  - Increment the round count for this PR
+  - Update the last-checked timestamp
+  - Set status based on result:
+    - `success` → `follow_up_round_{N}` (N = new round count)
+    - `closed_scope_concern` → `closed_scope_concern` (terminal — no more sub-agents)
+    - `closed_rejected` → `closed_rejected` (terminal — no more sub-agents)
+    - `disengaged_max_rounds` → `disengaged` (terminal — no more sub-agents)
+    - `failure` → keep current status, log error, retry once on next cycle
+- If round count reaches 3: mark as `disengaged`, never spawn another sub-agent for this PR
+- If PR was closed by the sub-agent: remove from pipeline-state.md
+- Delete the follow-up result file after processing.
+
+### 6c. Disk Cleanup
+Run disk cleanup for both implementation and follow-up workdirs:
+```bash
+find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} +
+```
+This catches any workdirs left behind by crashed/stalled sub-agents.
+
 For sub-agents still running (no result file yet): leave them running, check next cycle.
 
 ## 7. Report & Loop
