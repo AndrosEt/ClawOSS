@@ -4,6 +4,7 @@ import { pullRequests, prReviews, qualityScores } from "./schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { computeQualityScore } from "./quality";
+import { classifyPRType } from "./pr-type";
 
 function getOctokit() {
   return new Octokit({ auth: process.env.GITHUB_TOKEN });
@@ -100,6 +101,8 @@ export async function syncPRsFromGitHub(): Promise<{
         const filesChanged = pr.changed_files;
         const htmlUrl = pr.html_url;
 
+        const prType = classifyPRType(pr.title, pr.body);
+
         await db
           .insert(pullRequests)
           .values({
@@ -117,6 +120,7 @@ export async function syncPRsFromGitHub(): Promise<{
             deletions,
             filesChanged,
             htmlUrl,
+            prType,
           })
           .onConflictDoUpdate({
             target: pullRequests.id,
@@ -130,6 +134,7 @@ export async function syncPRsFromGitHub(): Promise<{
               deletions,
               filesChanged,
               htmlUrl,
+              prType,
             },
           });
 

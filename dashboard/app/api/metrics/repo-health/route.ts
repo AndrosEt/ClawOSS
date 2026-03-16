@@ -145,6 +145,18 @@ export async function GET(request: Request) {
         NICHE_KEYWORDS.some((p) => p.test(repoSlug));
     }
 
+    // Per-repo average diff size for merge prediction
+    const diffStats = await db
+      .select({
+        repo: pullRequests.repo,
+        avgDiff: sql<number>`round(avg(COALESCE(${pullRequests.additions}, 0) + COALESCE(${pullRequests.deletions}, 0)), 0)`,
+      })
+      .from(pullRequests)
+      .where(gte(pullRequests.createdAt, since))
+      .groupBy(pullRequests.repo);
+
+    const diffMap = new Map(diffStats.map((d) => [d.repo, d.avgDiff ?? 0]));
+
     // Build repo health objects
     const repos = repoStats.map((r) => {
       const merged = r.merged ?? 0;
@@ -205,12 +217,37 @@ export async function GET(request: Request) {
         recommendedAction = "build_trust_first";
       }
 
+      // Merge prediction score (0-100)
+      // Based on monitor's weighted factors
+      const avgDiff = diffMap.get(r.repo) ?? 0;
+      let mergePrediction = 0;
+      // Small diffs are easier to merge: <20 lines = +40, <50 = +20, <100 = +10
+      if (avgDiff < 20) mergePrediction += 40;
+      else if (avgDiff < 50) mergePrediction += 20;
+      else if (avgDiff < 100) mergePrediction += 10;
+      // Repo has merged our PRs before: +20
+      if (merged > 0) mergePrediction += 20;
+      // Repo is responsive (reviews within 3 days): +20
+      if (engagement === "responsive") mergePrediction += 20;
+      else if (engagement === "slow") mergePrediction += 5;
+      // Niche fit (AI repos where we have domain expertise): +10
+      if (nicheFit) mergePrediction += 10;
+      // High review rate means repo is engaged: +10
+      if (reviewRate >= 50) mergePrediction += 10;
+      else if (reviewRate > 0) mergePrediction += 5;
+      // Penalty: multiple rejected PRs = hostile repo
+      if (closedCount >= 3 && merged === 0) mergePrediction -= 30;
+      else if (closedCount >= 2 && merged === 0) mergePrediction -= 15;
+      mergePrediction = Math.round(Math.max(0, Math.min(100, mergePrediction)));
+
       return {
         repo: r.repo,
         healthScore,
         engagement,
         nicheFit,
         recommendedAction,
+        mergePrediction,
+        avgDiffSize: avgDiff,
         prs: {
           total,
           merged,

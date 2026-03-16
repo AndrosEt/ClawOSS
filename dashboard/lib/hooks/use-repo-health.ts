@@ -6,6 +6,8 @@ export interface RepoHealth {
   engagement: "responsive" | "slow" | "dead";
   nicheFit: boolean;
   recommendedAction: "target_actively" | "one_more_try" | "build_trust_first" | "avoid";
+  mergePrediction: number;
+  avgDiffSize: number;
   prs: {
     total: number;
     merged: number;

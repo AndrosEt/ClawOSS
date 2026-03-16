@@ -8,6 +8,8 @@ import { CurrentTaskCard } from "@/components/overview/current-task-card";
 import { RecentPRsList } from "@/components/overview/recent-prs-list";
 import { FollowUpTracker } from "@/components/overview/follow-up-tracker";
 import { RepoHealthPanel } from "@/components/overview/repo-health-panel";
+import { StalePRPanel } from "@/components/overview/stale-pr-panel";
+import { PRTypeBreakdown } from "@/components/overview/pr-type-breakdown";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -151,6 +153,11 @@ export default function OverviewPage() {
         />
 
         <RepoHealthPanel />
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <PRTypeBreakdown />
+          <StalePRPanel />
+        </div>
 
         {/* Pipeline telemetry bar */}
         {connectionData && (

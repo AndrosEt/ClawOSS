@@ -25,13 +25,12 @@ Bug queries use `created:>$THREE_DAYS_AGO`. Easy-win queries extend to 2 weeks.
 Issues older than 1 month are SKIPPED entirely.
 
 ## Pre-Checks (before ANY query)
-1. Read `memory/repo-blacklist.md` — SKIP all repos on the blacklist.
-2. Read `memory/pr-ledger.md` — SKIP issues already attempted.
-3. Check daily PR count — if at limit (10), triage-only mode.
+1. Read `memory/pr-ledger.md` — SKIP issues already attempted.
+2. Check daily PR count — if at limit (10), triage-only mode.
 
 ## Process
 1. Run Priority Queries (Tier 0 first, then 1, then 2)
-2. Filter: stars >= 500, not blacklisted, not in pr-ledger, created within time window
+2. Filter: stars >= 500, not in pr-ledger, created within time window
 3. **Repo health pre-filter** (BEFORE scoring): quick-check via `scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
 4. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5.
 5. Return ranked top 10. Write full list to memory/today.md.
@@ -138,8 +137,7 @@ By language (diversify): add `language:python`/`language:typescript`/`language:r
 ## Repo Health Pre-Filter (MANDATORY — before scoring)
 For each candidate issue, quick-check the repo:
 1. **Stars >= 500** — `repository.stargazers_count` from search result JSON. Skip if < 500.
-2. **Not blacklisted** — check `memory/repo-blacklist.md`. Skip if listed.
-3. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
+2. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
 4. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
 5. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 14 days old).
 6. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
@@ -218,12 +216,11 @@ Minimum score 5 to enter work queue.
 
 ## Filters
 - **Title keyword hard reject — applied first, before any other filter**
-- **Blacklist check — applied second, before health check**
-- **Repo health pre-filter — applied third, before scoring**
+- **Repo health pre-filter — applied second, before scoring**
 - Stars >= 500, recent commits (<2wk), not archived, max 3 issues per repo
 - Skip if in pr-ledger.md. At daily limit (10 PRs)? Triage-only.
 - **MUST be created within the last 30 days** — skip anything older
 
 ## Fast Mode (queue < 5 or empty slots)
 Run 3+ parallel searches, score quickly, write 10-20 items immediately.
-Even in fast mode, NEVER add stale issues (>30 days) or issues from unhealthy/blacklisted repos.
+Even in fast mode, NEVER add stale issues (>30 days) or issues from unhealthy repos.

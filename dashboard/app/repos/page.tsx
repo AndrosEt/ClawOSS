@@ -124,7 +124,7 @@ function RepoCard({ repo }: { repo: RepoHealth }) {
             </div>
 
             {/* Metrics grid */}
-            <div className="grid grid-cols-5 gap-3 pt-2 border-t border-foreground/[0.04]">
+            <div className="grid grid-cols-6 gap-3 pt-2 border-t border-foreground/[0.04]">
               <MiniMetric
                 label="Merge Rate"
                 value={formatPercentage(repo.prs.mergeRate)}
@@ -148,6 +148,17 @@ function RepoCard({ repo }: { repo: RepoHealth }) {
                 }
               />
               <MiniMetric
+                label="Prediction"
+                value={`${repo.mergePrediction}%`}
+                color={
+                  repo.mergePrediction >= 60
+                    ? "text-emerald-400"
+                    : repo.mergePrediction >= 30
+                      ? "text-amber-400"
+                      : "text-red-400"
+                }
+              />
+              <MiniMetric
                 label="Merge Velocity"
                 value={
                   repo.velocity
@@ -164,11 +175,18 @@ function RepoCard({ repo }: { repo: RepoHealth }) {
                 }
               />
               <MiniMetric
-                label="Quality"
+                label="Avg Diff"
                 value={
-                  repo.prs.avgQuality > 0
-                    ? repo.prs.avgQuality.toFixed(0)
+                  repo.avgDiffSize > 0
+                    ? `${repo.avgDiffSize}L`
                     : "--"
+                }
+                color={
+                  repo.avgDiffSize > 0 && repo.avgDiffSize < 20
+                    ? "text-emerald-400"
+                    : repo.avgDiffSize >= 100
+                      ? "text-red-400"
+                      : ""
                 }
               />
             </div>

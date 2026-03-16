@@ -46,6 +46,7 @@ export interface PullRequest {
   deletions: number;
   filesChanged: number;
   reviewCount: number;
+  prType?: string | null;
   reviews?: PRReview[];
   qualityBreakdown?: QualityBreakdown | null;
 }

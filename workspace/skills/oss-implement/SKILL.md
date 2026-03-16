@@ -1,30 +1,38 @@
 ---
 name: oss-implement
-description: "Implement an OSS BUG FIX using deep-comprehension + reproduce-first workflow: understand repo architecture, trace the full execution path, find root cause, write comprehensive fix with failing test evidence. REJECT non-bug issues."
+description: "Implement an OSS contribution (bug fix, docs fix, typo fix, or test addition) using deep-comprehension workflow. For bugs: trace root cause, reproduce-first, comprehensive fix. For docs/typos: verify correctness. For tests: meaningful coverage. REJECT feature requests."
 user-invocable: true
 ---
 
-# OSS Bug Fix Implementation — Deep Comprehension + Reproduce-First
+# OSS Implementation — Deep Comprehension Workflow
 
-We fix bugs **deeply and comprehensively**. No surface-level patches. Understand the codebase before you touch it. Trace the bug through the full execution path. Fix the root cause, not just the symptom. Every PR must fully resolve the reported issue — no partial fixes.
+We contribute **deeply and comprehensively**. No surface-level patches. Understand the codebase before you touch it. Every PR must fully resolve the reported issue — no partial fixes.
+
+**Contribution types (in order of merge probability):**
+1. Documentation/typo fixes — near-guaranteed merge
+2. Test additions — high merge rate
+3. Bug fixes — standard merge rate (use reproduce-first workflow)
 
 ## Prerequisites
-- Issue selected and CONFIRMED as a bug (not a feature request)
+- Issue selected and CONFIRMED as actionable (bug, docs fix, typo, or test addition)
 - Repo cloned+analyzed
-- Branch: clawoss/fix/<issue>-<desc> (type MUST be "fix")
+- Branch: clawoss/{type}/<issue>-<desc> (type = fix, docs, test, or typo)
 
 ## Workflow (in order, no skipping)
 
-### 0. CONFIRM BUG (mandatory first step)
-Before any coding, verify this is a genuine bug:
-- Does the issue describe broken/incorrect behavior?
-- Is there an error message, stack trace, or crash report?
-- Can you identify what "correct" behavior should be?
-- **If this is a feature request, enhancement, or refactor: ABANDON IMMEDIATELY.**
-- Write "ABANDONED: not a bug" in the result file and stop.
+### 0. CONFIRM ACTIONABLE (mandatory first step)
+Before any coding, verify this is a valid contribution:
+- **Bug fix**: Does the issue describe broken/incorrect behavior? Error messages, stack traces?
+- **Docs fix**: Is the documentation factually incorrect or outdated? Can you verify against code?
+- **Typo fix**: Is there a clear typo in code, docs, comments, or error messages?
+- **Test addition**: Is there an untested code path or a bug scenario lacking a test?
+- **If this is a large feature request, enhancement, or refactor: ABANDON IMMEDIATELY.**
+- Write "ABANDONED: not actionable" in the result file and stop.
 
-### 1. DEEP COMPREHENSION (mandatory — understand before you touch)
-Do NOT jump to writing code. First, build a mental model of the relevant codebase:
+### 1. DEEP COMPREHENSION (mandatory for bugs — scaled for other types)
+For bug fixes: build a full mental model of the relevant codebase. Do NOT jump to writing code.
+For docs/typos: verify the fix is correct by reading relevant source code.
+For test additions: understand the code path being tested.
 
 **1a. Understand the repo architecture:**
 - Read the project README, directory structure, and key configuration files
@@ -49,14 +57,22 @@ Do NOT jump to writing code. First, build a mental model of the relevant codebas
 - Will your fix handle all edge cases of this bug, or just the one reported?
 - **If the bug is too complex to fully resolve: ABANDON rather than submit a partial fix**
 
-### 2. REPRODUCE (mandatory — the failing test IS the bug proof)
+### 2. REPRODUCE (mandatory for bugs — adapted for other types)
+**For bug fixes:**
 - Run existing tests for baseline
 - Write a FAILING test that demonstrates the exact bug reported
 - The test should cover the root cause, not just the surface symptom
-- If the bug has multiple manifestations, test the most representative one
-- The test must fail because of the bug, not because of a typo or import error
 - Record failure output as evidence — this proves the bug exists
 - Cannot reproduce after 10 min? Abandon with note. Already fixed upstream? Remove from queue.
+
+**For docs/typos:**
+- Verify the current text is incorrect by checking actual code behavior
+- No reproduction test needed — the fix is the documentation itself
+
+**For test additions:**
+- Run existing tests to establish baseline
+- Write the new test targeting the identified code path
+- The test should pass with current code (unless it's a test for a known bug)
 
 ### 3. IMPLEMENT (comprehensive root-cause fix)
 - Fix the ROOT CAUSE identified in Step 1, not just the surface symptom
@@ -73,29 +89,33 @@ Do NOT jump to writing code. First, build a mental model of the relevant codebas
 - Record passing output as evidence
 - Verify the fix addresses the root cause, not just the symptom — would the test catch a recurrence?
 
-### 5. REVIEW (bug-fix specific checks)
+### 5. REVIEW (contribution-type-aware checks)
 Self-check diff with these questions:
-1. **Does this fix fully resolve the reported bug?** Partial fixes are not acceptable — if incomplete, abandon or keep working.
-2. **Does the fix address the root cause or just the symptom?** If just the symptom, go back to Step 1.
-3. **Is every change directly related to fixing the reported bug?** If not, revert unrelated changes.
-4. **Did I accidentally add a feature or refactor code?** If yes, strip it out.
-5. **Is the commit type "fix"?** It must be `fix(scope): description`, never `feat` or `refactor`.
-6. Scoped to issue only? Matches style? No secrets/debug/AI-slop? <200 LOC?
-7. If 3+ checks fail, abandon.
+1. **Does this fully resolve the reported issue?** Partial fixes are not acceptable.
+2. **For bugs: does the fix address the root cause?** If just the symptom, go back to Step 1.
+3. **For docs/typos: is the corrected text factually accurate?** Verify against actual code behavior.
+4. **Is every change directly related to the issue?** Revert unrelated changes.
+5. **Did I accidentally add a feature or refactor code?** If yes, strip it out.
+6. **Is the commit type correct?** `fix` for bugs, `docs` for documentation, `test` for tests.
+7. Scoped to issue only? Matches style? No secrets/debug/AI-slop? <200 LOC?
+8. If 3+ checks fail, abandon.
 
 ### 6. SUBMIT
-Commit with `fix(scope): description`, create PR:
-- Title clearly indicates a bug fix
-- PR body format: Summary (Fixes #N), Bug Description, Root Cause Analysis (explain WHY the bug existed), Reproduction steps, Before Fix (failure output), After Fix (pass output), Changes list (explain why each changed file was necessary), AI disclosure.
+Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(scope): desc`. Create PR:
+- Title clearly indicates the contribution type
+- PR body format:
+  - **Bug fixes**: Summary (Fixes #N), Root Cause Analysis, Reproduction steps, Before/After test evidence, AI disclosure
+  - **Docs/typo fixes**: Summary (Fixes #N), What was incorrect, What's now correct, How verified, AI disclosure
+  - **Test additions**: Summary, What's now tested, Why it matters, AI disclosure
 - Push to fork.
 
 ## Constraints
 - Max 200 LOC. Match repo style. No new deps unless essential.
 - No AI-slop, no single-use helpers, variable names match repo conventions.
-- **Commit type MUST be `fix`** — never `feat`, `refactor`, `docs`, or `chore`.
-- **Every line changed must be necessary to fix the reported bug.**
-- **The fix must COMPLETELY resolve the issue** — no partial fixes. If you can't fully fix it, ABANDON.
-- Multi-file fixes are fine if the root cause demands it — do it right, not minimal for minimal's sake.
+- **Commit type must match contribution**: `fix` for bugs, `docs` for docs/typos, `test` for tests.
+- **Every line changed must be necessary to resolve the reported issue.**
+- **The contribution must COMPLETELY resolve the issue** — no partial work. If you can't fully complete it, ABANDON.
+- Multi-file changes are fine if the scope demands it — do it right, not minimal for minimal's sake.
 
 ## Related Skills
 systematic-debugging, test-driven-development, verification-before-completion

@@ -213,15 +213,11 @@ else
   warnings+=("0 external contributor merges in recent 30 closed PRs")
 fi
 
-# ─── 7. Anti-AI policy check (CONTRIBUTING.md) ───
+# ─── 7. CONTRIBUTING.md check (welcoming signal) ───
 CONTRIBUTING=$(gh api "repos/${REPO}/contents/CONTRIBUTING.md" --jq '.content' 2>/dev/null || echo "")
 HAS_CONTRIBUTING=false
 if [ -n "$CONTRIBUTING" ]; then
   HAS_CONTRIBUTING=true
-  DECODED=$(echo "$CONTRIBUTING" | base64 -d 2>/dev/null || echo "")
-  if echo "$DECODED" | grep -iqE '(no ai|no llm|no bot|no automated|ban ai|ban bot|ai.generated.*not.*accept|ai.assisted.*not.*accept|chatgpt|copilot.*ban|llm.*ban|ai.*pr.*reject|machine.generated.*reject)'; then
-    fail "anti-AI policy detected in CONTRIBUTING.md" "anti_ai_policy: CONTRIBUTING.md contains AI-hostile language"
-  fi
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
 fi
 

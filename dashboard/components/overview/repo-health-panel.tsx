@@ -109,6 +109,18 @@ function RepoRow({ repo }: { repo: RepoHealth }) {
           >
             {repo.engagement}
           </Badge>
+          <span
+            className={`w-8 text-center text-[9px] font-mono px-1 py-0.5 rounded-sm ${
+              repo.mergePrediction >= 60
+                ? "bg-emerald-500/10 text-emerald-400"
+                : repo.mergePrediction >= 30
+                  ? "bg-amber-500/10 text-amber-400"
+                  : "bg-red-500/10 text-red-400"
+            }`}
+            title={`Merge prediction: ${repo.mergePrediction}%`}
+          >
+            {repo.mergePrediction}%
+          </span>
           <span className="text-muted-foreground/40 w-12 text-right">
             {formatReviewDays(repo.timeToFirstReview)} rev
           </span>
@@ -178,7 +190,7 @@ export function RepoHealthPanel() {
             <div className="flex items-center gap-3 px-2 -mx-2 text-[9px] font-mono text-muted-foreground/30 uppercase tracking-wider pb-1">
               <span className="w-8 text-center">score</span>
               <span className="flex-1">repository</span>
-              <span>merge / engagement / review</span>
+              <span>merge / engagement / prediction / review</span>
             </div>
             {repos.map((repo) => (
               <RepoRow key={repo.repo} repo={repo} />

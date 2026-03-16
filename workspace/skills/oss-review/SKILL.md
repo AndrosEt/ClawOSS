@@ -1,12 +1,12 @@
 ---
 name: oss-review
-description: "Pre-submission self-review for BUG FIXES: run git diff, check all 8 quality gates (bug-fix gate, scope, code quality, tests, security, anti-slop, git hygiene, PR template). ABANDON if not a bug fix."
+description: "Pre-submission self-review for contributions (bug fixes, docs fixes, typo fixes, test additions): run git diff, check all 8 quality gates (contribution type gate, scope, code quality, tests, security, anti-slop, git hygiene, PR template). ABANDON if not a valid contribution."
 user-invocable: true
 ---
 
-# OSS Bug Fix Self-Review
+# OSS Contribution Self-Review
 
-Review changes against all 8 quality gates before submission. **Gate 0 (Bug Fix Gate) is the most important — if this PR is not fixing a bug, ABANDON immediately.**
+Review changes against all 8 quality gates before submission. **Gate 0 (Contribution Type Gate) is the most important — if this PR is not a valid contribution (bug fix, docs fix, typo fix, or test addition), ABANDON immediately.**
 
 ## Process
 1. Run `git diff main..HEAD` to see all changes

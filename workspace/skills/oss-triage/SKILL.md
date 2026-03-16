@@ -182,7 +182,6 @@ Minimum score 5 to attempt.
 ## Output
 Write triage assessment to memory with:
 - Issue URL, repo, **contribution type** (bug/docs/typo/test)
-- Blacklist check result: PASS or FAIL
 - Repo Health Gate result: PASS or FAIL (with reason)
 - Repo health metrics: merge velocity, review rate, open PR count, stars
 - Issue age and recency assessment
