@@ -726,3 +726,59 @@ button, [role="button"] {
     inset 0 0 40px oklch(0.6 0.1 160 / 5%),
     0 0 0 1px oklch(0.6 0.1 160 / 8%);
 }
+
+/* =========================================================
+   Repo Health & Merge Rate Polish
+   ========================================================= */
+
+/* ----- Health score ring ----- */
+.health-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-jetbrains, var(--font-mono));
+  border: 2px solid;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.health-ring:hover {
+  transform: scale(1.08);
+}
+.health-ring.h-good { border-color: oklch(0.6 0.15 160); color: oklch(0.6 0.15 160); }
+.health-ring.h-mid { border-color: oklch(0.7 0.15 85); color: oklch(0.7 0.15 85); }
+.health-ring.h-bad { border-color: oklch(0.55 0.2 25); color: oklch(0.55 0.2 25); }
+.dark .health-ring.h-good:hover { box-shadow: 0 0 12px oklch(0.6 0.15 160 / 20%); }
+.dark .health-ring.h-mid:hover { box-shadow: 0 0 12px oklch(0.7 0.15 85 / 20%); }
+.dark .health-ring.h-bad:hover { box-shadow: 0 0 12px oklch(0.55 0.2 25 / 20%); }
+
+/* ----- Engagement badge dots ----- */
+.engagement-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.engagement-dot.responsive { background: oklch(0.6 0.15 160); }
+.engagement-dot.slow { background: oklch(0.7 0.15 85); }
+.engagement-dot.dead { background: oklch(0.55 0.2 25); }
+
+/* ----- Funnel bar animation ----- */
+@keyframes funnel-grow {
+  from { width: 0%; }
+}
+.funnel-bar-fill {
+  animation: funnel-grow 0.6s ease-out;
+}
+
+/* ----- Hero merge rate glow ----- */
+.dark .card-elevated.accent-top {
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 3%),
+    0 2px 12px oklch(0 0 0 / 25%),
+    0 0 0 1px oklch(1 0 0 / 3%),
+    0 1px 0 oklch(0.6 0.08 160 / 6%);
+}

@@ -12,14 +12,19 @@ Assess GitHub issues for contribution feasibility. **Only bugs pass triage.** Fe
 Before any other assessment, determine if this is a genuine bug report.
 
 ### 0a. Title Keyword Hard Reject (FIRST CHECK — no exceptions)
-**Auto-SKIP if the issue title contains ANY of these keywords (case-insensitive):**
+**Auto-SKIP if the issue title matches ANY keyword as a WHOLE WORD (case-insensitive, word boundary `\b{keyword}\b`):**
 `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
 `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
 `redesign`, `optimize`, `allow`, `provide`
 
+**WORD BOUNDARY matching only — do NOT match substrings.**
+- "Add dark mode" → matches `add` → SKIP
+- "Unsupported operation crashes" → does NOT match `support` → KEEP
+- "Provider connection fails" → does NOT match `provide` → KEEP
+- "Document parser throws TypeError" → does NOT match `document` as substring → KEEP
+
 **This is a HARD GATE. No override by labels, score, or any other factor.**
 These keywords indicate feature requests, enhancements, or refactors — not bugs.
-Even if the issue has a `bug` label, if the title contains these words, SKIP IT.
 Write "SKIP: title keyword reject — title contains '[keyword]'" and move on.
 
 ### 0b. Label Hard Reject

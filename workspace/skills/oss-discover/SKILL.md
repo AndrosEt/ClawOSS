@@ -99,14 +99,19 @@ Score each candidate 1-14 based on:
 Minimum score 5 to enter work queue.
 
 ## Title Keyword Hard Reject (apply to EVERY candidate — no exceptions)
-**Auto-SKIP if the issue title contains ANY of these keywords (case-insensitive):**
+**Auto-SKIP if the issue title matches ANY keyword as a WHOLE WORD (case-insensitive, word boundary `\b{keyword}\b`):**
 `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
 `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
 `redesign`, `optimize`, `allow`, `provide`
 
+**WORD BOUNDARY matching only — do NOT match substrings.**
+- "Add dark mode" → matches `add` → SKIP
+- "Unsupported operation crashes" → does NOT match `support` → KEEP
+- "Provider connection fails" → does NOT match `provide` → KEEP
+- "Additional logging breaks startup" → does NOT match `add` → KEEP
+
 **This is a HARD GATE applied BEFORE scoring.** These keywords indicate feature requests,
-enhancements, or refactors — not bugs. Even if the issue has a `bug` label, if the title
-contains these words, DISCARD IT. Do not add to queue. Do not score.
+enhancements, or refactors — not bugs. DISCARD matches. Do not add to queue. Do not score.
 
 ## Filters
 - **Title keyword hard reject (above) — applied first, before any other filter**

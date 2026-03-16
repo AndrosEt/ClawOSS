@@ -146,6 +146,7 @@ export default function OverviewPage() {
           costToday={data?.stats?.costToday || 0}
           funnel={data?.funnel}
           costPerMerge={data?.stats?.costPerMerge || 0}
+          avgHoursToReview={data?.stats?.avgHoursToReview}
         />
 
         {/* Pipeline telemetry bar */}

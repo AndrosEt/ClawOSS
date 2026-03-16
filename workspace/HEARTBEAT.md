@@ -136,17 +136,23 @@ gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[].id, .[].body, .[]
 ```
 
 ### 2b. Classify Each PR
-Read memory/pr-followup-state.md to check round counts and last-checked timestamps.
+Read memory/pr-followup-state.md to check round counts, last-checked timestamps, and status.
+
+**SPAWNED_PENDING GUARD:** If a PR's status in pr-followup-state.md is `spawned_pending`,
+a sub-agent is ALREADY working on it. Do NOT spawn another. Skip to the next PR.
+Only PRs with status `pending_review`, `follow_up_round_N`, or no entry get new sub-agents.
 
 For each open PR, classify:
 
 **`changes_requested`** — reviewDecision is "CHANGES_REQUESTED" or there are new inline/general
 comments requesting code changes since our last push:
 - Check current round count in pr-followup-state.md
+- If status is `spawned_pending`: SKIP (sub-agent already working)
 - If round < 3: spawn a follow-up sub-agent (PRIORITY)
 - If round >= 3: do NOT spawn. PR is in disengaged state. Skip.
 
 **`comment_only`** — new comments that are questions or discussions (not change requests):
+- If status is `spawned_pending`: SKIP (sub-agent already working)
 - Spawn a follow-up sub-agent to respond thoughtfully
 - Counts as a round only if code changes are pushed
 
@@ -216,13 +222,18 @@ Substitute the variables: `{owner}`, `{repo}`, `{pr}`, `{branch}`, `{round}`, `{
 Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
 Use the Spawn Config from the template for `label` and `attachments`.
 
+**IMMEDIATELY after spawning**, set the PR's status to `spawned_pending` in
+memory/pr-followup-state.md. This prevents re-spawning on the next heartbeat cycle.
+
 **Follow-up sub-agents get PRIORITY over implementation sub-agents.**
 Count active sub-agents. If follow-ups + implementations would exceed 5, defer new implementations.
-Spawn ALL pending follow-ups first, THEN fill remaining slots with implementations.
+**BATCH LIMIT: Max 2 follow-up sub-agents per heartbeat cycle.** If more PRs need follow-ups,
+they will be processed on subsequent cycles. This prevents thundering herd on first activation
+when many open PRs exist simultaneously.
 
 ### 2e. Update State
 After spawning (or skipping) each follow-up:
-- Update memory/pr-followup-state.md with new round count, timestamp, status
+- If spawned: status is already `spawned_pending` (set in 2d). Update timestamp.
 - If PR was closed (stale/rejected): remove from active tracking
 
 Then continue to step 3. Do NOT go directly to step 6.
@@ -263,9 +274,14 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
   b. SKIP if repo already has 3 PRs today (per-repo daily limit)
   c. Prefer different repos across concurrent sub-agents when possible
   d. **BUG GATE: SKIP if the issue is NOT a bug report** — feature requests, enhancements, refactors, and improvements are out of scope. Check labels and title for bug indicators.
-  e. **TITLE KEYWORD HARD REJECT: SKIP if title contains** `add`, `extend`, `enable`, `improve`,
-     `document`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`,
-     `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
+  e. **TITLE KEYWORD HARD REJECT: SKIP if title matches any keyword as a WHOLE WORD
+     (word boundary match, case-insensitive).** Do NOT match substrings — "Unsupported" must NOT
+     match "support", "Additional" must NOT match "add", "Document" as noun must NOT match "document" as verb.
+     Keywords: `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
+     `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+     `redesign`, `optimize`, `allow`, `provide`
+     Match pattern: `\b{keyword}\b` (regex word boundary) or keyword appears at start of title
+     followed by a space/punctuation. Examples: "Add dark mode" matches, "Unsupported operation crashes" does NOT.
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
@@ -283,13 +299,15 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 1. **BUG GATE (mandatory first check):**
    - Is this a bug report? Look for: error messages, stack traces, "expected vs actual", regression reports, crash logs.
    - Does it have bug-related labels? (`bug`, `defect`, `regression`, `crash`, `error`)
-   - **TITLE KEYWORD HARD REJECT — auto-skip if title contains ANY of these (case-insensitive):**
+   - **TITLE KEYWORD HARD REJECT — auto-skip if title matches ANY keyword as a WHOLE WORD
+     (word boundary match `\b{keyword}\b`, case-insensitive):**
      `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`,
      `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
      `redesign`, `optimize`, `allow`, `provide`
-     **This is a HARD GATE — no exceptions, no override by labels.** These keywords indicate
-     feature requests, enhancements, or refactors, not bugs. Even if the issue has a `bug` label,
-     if the title contains these words, SKIP IT.
+     **This is a HARD GATE — no exceptions, no override by labels.** Match on WORD BOUNDARIES only.
+     "Add dark mode" matches `add`. "Unsupported operation crashes" does NOT match `support`.
+     "Document parser throws TypeError" does NOT match `document` (it's a noun, not verb-leading).
+     Only match when the keyword stands alone as a word, not as a substring of another word.
    - **LABEL HARD REJECT — auto-skip if labeled:** `enhancement`, `feature`, `feature-request`,
      `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`,
      `chore`, `performance`, `optimization`, `docs`, `documentation`
@@ -377,7 +395,7 @@ For each result file, parse the YAML frontmatter (see templates/subagent-result-
 List memory/subagent-result-followup-*.md files to find completed follow-up results.
 For each follow-up result file, parse the YAML frontmatter (see templates/subagent-result-schema.md):
 - Extract `status`, `followup_round`, `followup_outcome`, `pr_number`, `repo` from the YAML block.
-- Update memory/pr-followup-state.md:
+- Update memory/pr-followup-state.md (**clears `spawned_pending` status**):
   - Increment the round count for this PR
   - Update the last-checked timestamp
   - Set status based on `followup_outcome` field:
@@ -385,7 +403,7 @@ For each follow-up result file, parse the YAML frontmatter (see templates/subage
     - `closed_scope_concern` → `closed_scope_concern` (terminal — no more sub-agents)
     - `closed_rejected` → `closed_rejected` (terminal — no more sub-agents)
     - `disengaged_max_rounds` → `disengaged` (terminal — no more sub-agents)
-    - If `status: failure` → keep current status, log `failure_reason`, retry once on next cycle
+    - If `status: failure` → set status to `pending_review` (clears spawned_pending, allows retry next cycle)
 - If round count reaches 3: mark as `disengaged`, never spawn another sub-agent for this PR
 - If PR was closed by the sub-agent: remove from pipeline-state.md
 - Delete the follow-up result file after processing.

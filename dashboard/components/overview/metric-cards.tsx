@@ -19,6 +19,7 @@ interface MetricCardsProps {
   costToday: number;
   funnel?: FunnelData;
   costPerMerge?: number;
+  avgHoursToReview?: number | null;
 }
 
 function MiniBar({
@@ -82,6 +83,21 @@ function FunnelStage({
   );
 }
 
+function formatReviewTime(hours: number | null | undefined): string {
+  if (hours == null || hours <= 0) return "--";
+  if (hours < 1) return `${Math.round(hours * 60)}m`;
+  if (hours < 24) return `${hours.toFixed(1)}h`;
+  const days = hours / 24;
+  return `${days.toFixed(1)}d`;
+}
+
+function reviewTimeLabel(hours: number | null | undefined): string | null {
+  if (hours == null || hours <= 0) return null;
+  if (hours <= 24) return "fast response";
+  if (hours <= 72) return "moderate response";
+  return "slow response";
+}
+
 export function MetricCards({
   totalPRs,
   mergeRate,
@@ -90,6 +106,7 @@ export function MetricCards({
   costToday,
   funnel,
   costPerMerge,
+  avgHoursToReview,
 }: MetricCardsProps) {
   const mergeColor =
     mergeRate >= 50
@@ -127,6 +144,17 @@ export function MetricCards({
       sub: costPerMerge && costPerMerge > 0 ? "avg cost per merged PR" : null,
       bar: { value: costPerMerge || 0, max: 10 },
       barColor: "bg-amber-500/40",
+    },
+    {
+      label: "Review Time",
+      value: formatReviewTime(avgHoursToReview),
+      sub: reviewTimeLabel(avgHoursToReview),
+      bar: { value: Math.min(avgHoursToReview || 0, 72), max: 72 },
+      barColor: avgHoursToReview != null && avgHoursToReview <= 24
+        ? "bg-emerald-500/40"
+        : avgHoursToReview != null && avgHoursToReview <= 72
+          ? "bg-amber-500/40"
+          : "bg-red-500/40",
     },
   ];
 
@@ -235,7 +263,7 @@ export function MetricCards({
       </div>
 
       {/* Secondary metrics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {cards.map((card) => (
           <Card key={card.label} className="metric-card card-lift">
             <CardContent className="p-4 pb-3">

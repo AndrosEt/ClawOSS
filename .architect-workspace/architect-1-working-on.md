@@ -1,6 +1,6 @@
 # Architect 1 — Current Work
 
-## Status: WAITING FOR COMMIT — all changes applied, pending push
+## Status: PUSHED — commit 2dac918 on v6-release
 
 ## Completed (uncommitted — needs commit with architect-2's work)
 1. **R1: Extract spawn templates** — HEARTBEAT.md step 2d + step 5 now reference templates instead of inline 80-line prompts
