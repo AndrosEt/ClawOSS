@@ -69,9 +69,9 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
-### 0d. Existing PR Check
+### 0d. Dedup Check
 Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`.
-If > 0, SKIP: "already have open PR on this repo — max 1 active PR per repo."
+If > 0, SKIP: "already have an active PR on this repo — focus on follow-ups instead."
 
 ### 0e. Supersession Check (CRITICAL — prevents wasted cycles)
 Before scoring, check if someone else is already working on this issue:

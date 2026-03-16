@@ -1,10 +1,33 @@
 #!/usr/bin/env bash
+# ClawOSS V9 Full Restart Script
+# THE canonical way to restart ClawOSS from scratch.
+# Safe to run multiple times — idempotent.
+
 set -euo pipefail
 
-echo "=== ClawOSS Full Restart ==="
+echo "=== ClawOSS V9 Full Restart ==="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# 0. Preflight checks
+if ! command -v python3 &>/dev/null; then
+    echo "[FAIL] python3 not found in PATH — required for config merge and repo-health-check.sh"
+    exit 1
+fi
+if ! command -v gh &>/dev/null; then
+    echo "[FAIL] gh (GitHub CLI) not found in PATH"
+    exit 1
+fi
+if ! command -v jq &>/dev/null; then
+    echo "[FAIL] jq not found in PATH — required for repo-health-check.sh"
+    exit 1
+fi
+if ! command -v openclaw &>/dev/null; then
+    echo "[FAIL] openclaw not found in PATH"
+    exit 1
+fi
+echo "[OK] All required tools found (python3, gh, jq, openclaw)"
 
 # 1. Load environment
 if [ -f "$PROJECT_DIR/.env" ]; then
@@ -21,12 +44,14 @@ git config --global user.name "$GITHUB_USERNAME"
 git config --global user.email "$GITHUB_EMAIL"
 echo "[OK] Git identity: $GITHUB_USERNAME"
 
-# 3. Authenticate GitHub CLI
-if [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+# 3. Authenticate GitHub CLI (skip if already logged in)
+if gh auth status &>/dev/null; then
+    echo "[OK] GitHub CLI already authenticated"
+elif [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null || true
     echo "[OK] GitHub CLI authenticated"
 else
-    echo "[WARN] No GITHUB_TOKEN — gh commands may fail"
+    echo "[WARN] No GITHUB_TOKEN and not logged in — gh commands may fail"
 fi
 
 # 4. Link workspace
@@ -42,7 +67,7 @@ fi
 # 5. Deploy config (deep-merge repo config into deployed config, preserving gateway-managed sections)
 DEPLOYED_CONFIG="$HOME/.openclaw/openclaw.json"
 
-# First, build the repo config with path placeholders substituted
+# Build the repo config with path placeholders substituted
 REPO_CONFIG_RESOLVED=$(sed \
     -e "s|__WORKSPACE_PATH__|$PROJECT_DIR/workspace|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
@@ -100,15 +125,15 @@ merged['env'] = {k: v for k, v in merged['env'].items() if v}
 
 with open(deployed_path, 'w') as f:
     json.dump(merged, f, indent=2)
-" 2>/dev/null
+"
 echo "[OK] Config deployed (deep-merged with env vars)"
 
 # 6. Clean stale sessions
-rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null
-rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.lock 2>/dev/null
+rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null || true
+rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.lock 2>/dev/null || true
 echo "[OK] Sessions cleaned"
 
-# 7. Reset wake state
+# 7. Reset wake state (V9: no rate-limit fields)
 cat > "$PROJECT_DIR/workspace/memory/wake-state.md" << 'WAKEEOF'
 # Wake State
 consecutive_wakes: 0
@@ -116,32 +141,37 @@ errors_this_hour: 0
 last_error: none
 last_wake: none
 WAKEEOF
-echo "[OK] Wake state reset"
+echo "[OK] Wake state reset (V9 — no rate-limit fields)"
 
 # 8. Create required directories
-# Sub-agents create their own /tmp/clawoss-<issue>-<timestamp>/ dirs
-# Sub-agents self-cleanup after completing — do NOT delete externally (active agents may be working)
 mkdir -p "$HOME/.openclaw/logs"
 mkdir -p "$PROJECT_DIR/workspace/memory/repos"
 mkdir -p "$PROJECT_DIR/workspace/memory/issues"
-echo "[OK] Directories ready"
+mkdir -p "$PROJECT_DIR/workspace/memory/locks"
+mkdir -p "$PROJECT_DIR/workspace/memory/subagent-inputs"
+echo "[OK] Directories ready (including memory/locks/ for dedup)"
 
-# 9. Stop existing gateway
+# 9. Clean stale lock files (in case of dirty shutdown)
+find "$PROJECT_DIR/workspace/memory/locks/" -name "*.lock" -mmin +60 -delete 2>/dev/null || true
+echo "[OK] Stale lock files cleaned"
+
+# 10. Stop existing gateway
 openclaw gateway stop 2>/dev/null || true
 sleep 2
 echo "[OK] Gateway stopped"
 
-# 10. Start gateway
+# 11. Start gateway
 openclaw gateway install 2>/dev/null || openclaw gateway run &
 sleep 5
 if openclaw gateway status 2>/dev/null | grep -q "running\|reachable"; then
     echo "[OK] Gateway running"
 else
-    echo "[FAIL] Gateway failed to start"
+    echo "[FAIL] Gateway failed to start — check: openclaw gateway status"
+    echo "       Try manually: openclaw gateway run"
     exit 1
 fi
 
-# 11. Kill old dashboard sync processes and start fresh
+# 12. Kill old dashboard sync processes and start fresh
 pkill -f "dashboard-sync" 2>/dev/null || true
 sleep 1
 if [ -f "$PROJECT_DIR/scripts/dashboard-sync.sh" ]; then
@@ -155,7 +185,7 @@ else
     echo "[WARN] No dashboard-sync.sh found"
 fi
 
-# 12. Install PR ledger sync (launchd, runs every 60s)
+# 13. Install PR ledger sync (launchd, runs every 60s)
 PLIST="$HOME/Library/LaunchAgents/com.clawoss.pr-ledger-sync.plist"
 launchctl unload "$PLIST" 2>/dev/null || true
 if [ -f "$PROJECT_DIR/config/com.clawoss.pr-ledger-sync.plist" ]; then
@@ -169,22 +199,25 @@ else
     echo "[WARN] No pr-ledger-sync plist found"
 fi
 if [ -f "$PLIST" ]; then
-    launchctl load "$PLIST" 2>/dev/null
+    launchctl load "$PLIST" 2>/dev/null || true
     echo "[OK] PR ledger sync installed (launchd, 60s interval)"
 fi
 
-# 13. Kick the agent
+# 14. Kick the agent with V9 wake message
 sleep 3
-openclaw system event --text "ClawOSS restart complete. Read HEARTBEAT.md. Fill all 5 sub-agent slots. Discover broadly. Go." --mode now 2>&1
-echo "[OK] Agent kicked"
+openclaw system event --text "ClawOSS V9 restart complete. Execute HEARTBEAT.md steps 0-7. Scout + 5 impl/followup slots. Follow-ups FIRST, then trusted repos, then discovery. No rate limits — ship quality PRs. Rework rejected PRs, never close. Go." --mode now 2>&1
+echo "[OK] Agent kicked (V9)"
 
 echo ""
-echo "=== ClawOSS Running ==="
+echo "=== ClawOSS V9 Running ==="
 echo "  Model: kimi-coding/k2p5 (Kimi Code direct API)"
 echo "  Dashboard: https://clawoss-dashboard.vercel.app"
+echo "  Slots: 1 scout (always-on) + 5 implementation/follow-up"
 echo "  Logs: openclaw logs"
 echo "  PRs: gh search prs --author BillionClaw --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
-echo "The agent will discover issues, spawn sub-agents, and submit PRs autonomously."
-echo "No Claude Code session needed — the agent runs independently via OpenClaw gateway."
+echo "V9 changes: no rate limits, rework-not-close, always-on scout,"
+echo "lock-file dedup, mandatory health checks, BerriAI CLA blocked."
+echo ""
+echo "The agent runs independently via OpenClaw gateway — no Claude Code session needed."

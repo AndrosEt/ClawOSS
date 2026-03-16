@@ -153,7 +153,8 @@ for pr in data:
         c = datetime.fromisoformat(pr['created'].replace('Z','+00:00'))
         m = datetime.fromisoformat(pr['merged'].replace('Z','+00:00'))
         days.append((m - c).days)
-    except (ValueError, KeyError): pass
+    except (ValueError, KeyError):
+        pass
 print(int(sum(days)/len(days)) if days else 0)
 " <<< "$MERGE_DATA" 2>/dev/null || echo "0")
 fi
@@ -277,7 +278,7 @@ fi
 HAS_CLA=false
 
 # Known CLA-required orgs (maintained list — add orgs as we discover them)
-CLA_ORGS="deepset-ai iterative Aider-AI milvus-io apache microsoft google meta-llama"
+CLA_ORGS="deepset-ai iterative Aider-AI milvus-io apache microsoft google meta-llama BerriAI"
 for org in $CLA_ORGS; do
   if [ "$OWNER" = "$org" ]; then
     HAS_CLA=true

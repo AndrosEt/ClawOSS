@@ -97,22 +97,22 @@ export async function GET() {
         category: "quality",
         title: "Increase merge rate from 2% to >30%",
         problem: `Only ${merged}/${total} PRs merged (${mergeRate.toFixed(1)}%). AI benchmark is 32.7%. Current approach is fundamentally not working.`,
-        suggestedFix: "Implement pre-submission review step: (1) Run repo's linter/tests before opening PR, (2) Check CONTRIBUTING.md for conventions, (3) Ensure issue reference is valid, (4) Keep diffs under 50 lines. Quality over quantity.",
-        impactEstimate: "Each 10% improvement in merge rate = ~${total * 0.1} additional merges",
+        suggestedFix: "Focus on trusted repos, run repo's linter/tests before opening PR, check CONTRIBUTING.md for conventions, ensure issue reference is valid, keep diffs under 50 lines. Rework rejected PRs instead of abandoning.",
+        impactEstimate: `Each 10% improvement in merge rate = ~${Math.round(total * 0.1)} additional merges`,
         dataPoint: `${merged}/${total} merged (${mergeRate.toFixed(1)}%)`,
       });
     }
 
-    // P1: PR spam / duplicates
+    // P1: Dedup — multiple open PRs per repo
     if (spamRepos.length >= 3) {
       items.push({
         id: "fix-dedup",
         priority: "P1",
         category: "volume",
-        title: "Add deduplication guard — stop submitting multiple PRs per repo",
-        problem: `${spamRepos.length} repos have 3+ PRs. This looks like spam to maintainers and damages reputation.`,
-        suggestedFix: "Add to heartbeat: before opening a new PR, check if there's already an open PR to that repo. Max 1 open PR per repo. Wait for review/close before submitting another.",
-        impactEstimate: "Eliminates spam perception, improves per-repo reputation",
+        title: "Dedup guard — max 1 open PR per repo",
+        problem: `${spamRepos.length} repos have 3+ PRs. Multiple concurrent PRs per repo damages reputation with maintainers.`,
+        suggestedFix: "Enforce lock file mechanism: memory/locks/{owner}_{repo}.lock prevents concurrent agents on same repo. Post-PR-creation dedup check closes duplicates automatically.",
+        impactEstimate: "Eliminates duplicate submissions, improves per-repo reputation",
         dataPoint: `${spamRepos.length} repos with 3+ PRs: ${spamRepos
           .sort((a, b) => b.total - a.total)
           .slice(0, 3)
@@ -152,6 +152,49 @@ export async function GET() {
       });
     }
 
+    // P0: CLA honesty — detect if PRs falsely claim CLA compliance
+    let claBotCount = 0;
+    try {
+      const claReviews = await db
+        .select({ prId: prReviews.prId, reviewer: prReviews.reviewer, body: prReviews.body })
+        .from(prReviews);
+      const claPrIds = new Set<string>();
+      for (const rev of claReviews) {
+        const isClaBot = /cla/i.test(rev.reviewer) || /cla.*not.*signed|sign.*cla|contributor.*license/i.test(rev.body || "");
+        if (isClaBot) claPrIds.add(rev.prId);
+      }
+      claBotCount = claPrIds.size;
+    } catch {
+      // non-critical
+    }
+
+    if (claBotCount > 0) {
+      items.push({
+        id: "fix-cla-honesty",
+        priority: "P0",
+        category: "tooling",
+        title: "Fix CLA handling — never claim CLA compliance unless repo requires it",
+        problem: `${claBotCount} PR(s) were flagged by CLA bots. The agent must ONLY mention CLA if the repo explicitly requires one. Falsely claiming CLA compliance is dishonest and gets PRs rejected.`,
+        suggestedFix: "Update PR templates (subagent-implementation.md, oss-submit SKILL.md, pr-template.md): Remove any hardcoded CLA checkbox. Before submitting, check CONTRIBUTING.md for CLA requirement. If no CLA required, do NOT mention CLA at all.",
+        impactEstimate: "Eliminates dishonest claims, prevents automatic CLA rejections",
+        dataPoint: `${claBotCount} PRs blocked by CLA bots`,
+      });
+    }
+
+    // P1: High close rate — rework instead of abandoning
+    if (total >= 10 && closed / total > 0.3) {
+      items.push({
+        id: "fix-rework-rate",
+        priority: "P1",
+        category: "quality",
+        title: "Rework closed PRs instead of abandoning them",
+        problem: `${closed}/${total} PRs (${Math.round((closed / total) * 100)}%) were closed without merge. Many of these could be salvaged by addressing feedback and reopening.`,
+        suggestedFix: "Implement rework pipeline: when a PR is closed with feedback, spawn a follow-up subagent to rework with a different approach and force-push to the same branch. Never give up on a PR unless fundamentally invalid (wrong repo, feature not bug fix, CLA required).",
+        impactEstimate: "Converting even 20% of closed PRs to merges would significantly boost merge rate",
+        dataPoint: `${closed} closed PRs (${Math.round((closed / total) * 100)}% close rate)`,
+      });
+    }
+
     // P2: Follow-up rate
     if (open > 5) {
       items.push({
@@ -159,8 +202,8 @@ export async function GET() {
         priority: "P2",
         category: "followup",
         title: "Improve PR follow-up rate",
-        problem: `${open} PRs are still open. Many may have review comments that need responses.`,
-        suggestedFix: "Schedule cron job to check open PRs every 4 hours. If reviewer left comments, spawn follow-up sub-agent immediately. Prioritize follow-ups over new PRs.",
+        problem: `${open} PRs are still open. Many may have review comments that need responses or rework.`,
+        suggestedFix: "Check open PRs every cycle. If reviewer left comments, spawn follow-up sub-agent immediately. If changes requested, rework and push updates. Prioritize follow-ups over new PRs.",
         impactEstimate: "Responding to reviews within 4h increases merge rate by ~25%",
         dataPoint: `${open} open PRs pending follow-up`,
       });

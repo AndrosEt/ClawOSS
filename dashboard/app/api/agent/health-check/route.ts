@@ -60,15 +60,18 @@ export async function GET() {
       .filter((r) => (r.open ?? 0) > 0)
       .map((r) => r.repo);
 
+    // Closed PRs (for rework tracking)
+    const closedResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pullRequests)
+      .where(eq(pullRequests.status, "closed"));
+    const closed = closedResult[0]?.count || 0;
+
     // Quick directives
     const directives: string[] = [];
 
-    if (todayPRs >= 20) {
-      directives.push("SLOW DOWN: Already submitted " + todayPRs + " PRs today. Quality over quantity.");
-    }
-
     if (total > 0 && merged / total < 0.05) {
-      directives.push("MERGE RATE CRITICAL: Only " + ((merged / total) * 100).toFixed(1) + "%. Submit smaller PRs (under 50 lines). Reference real issues.");
+      directives.push("MERGE RATE CRITICAL: Only " + ((merged / total) * 100).toFixed(1) + "%. Target trusted repos, keep PRs under 50 lines, reference real issues.");
     }
 
     if (avoidRepos.length > 5) {
@@ -76,7 +79,11 @@ export async function GET() {
     }
 
     if (reposWithOpenPRs.length > 10) {
-      directives.push("FOLLOW UP FIRST: " + reposWithOpenPRs.length + " repos have open PRs. Follow up before submitting new ones.");
+      directives.push("FOLLOW UP FIRST: " + reposWithOpenPRs.length + " repos have open PRs. Follow up and rework before submitting new ones.");
+    }
+
+    if (closed > 0 && total > 0 && closed / total > 0.3) {
+      directives.push("REWORK NEEDED: " + closed + " closed PRs (" + ((closed / total) * 100).toFixed(0) + "%). Rework rejected PRs instead of abandoning — reopen and address feedback.");
     }
 
     return NextResponse.json({
@@ -85,8 +92,10 @@ export async function GET() {
         total,
         merged,
         open,
+        closed,
         todayPRs,
         mergeRate: total > 0 ? Math.round((merged / total) * 1000) / 10 : 0,
+        reworkRate: total > 0 ? Math.round((closed / total) * 1000) / 10 : 0,
       },
       avoidRepos,
       reposWithOpenPRs,

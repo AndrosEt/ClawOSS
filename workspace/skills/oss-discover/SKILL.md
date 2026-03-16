@@ -26,8 +26,7 @@ Issues older than 1 month are SKIPPED entirely.
 
 ## Pre-Checks (before ANY query)
 1. Read `memory/pr-ledger.md` — SKIP issues already attempted, superseded, or assigned.
-2. Check daily PR count — if at limit (10), triage-only mode.
-3. For each candidate issue, quick-check supersession before scoring:
+2. For each candidate issue, quick-check supersession before scoring:
    - `gh api "repos/{owner}/{repo}/issues/{number}" --jq '{assignees: (.assignees | length), linked_prs: 0}'`
    - If issue has assignees > 0, SKIP (assigned to someone else).
    - Check issue timeline for linked PRs: if open PRs exist, SKIP (already being worked on).
@@ -37,7 +36,7 @@ Issues older than 1 month are SKIPPED entirely.
 **Depth over breadth.** 3 merged PRs at one repo > 30 unreviewed PRs across 30 repos.
 1. **Check memory/trust-repos.md FIRST** — search for new issues in trusted repos before broad queries.
 2. **Return to winners**: If a repo merged our PR, search it for new issues immediately.
-3. **Max 3 NEW repos per day** — the rest should be trusted repos or follow-ups.
+3. **Prefer trusted repos** but no hard cap on new repo discovery.
 4. **Abandon losers**: If a repo closed our PR without review within 24h, skip for 30 days.
 Trusted repos get **+8 bonus** in scoring. This is the single biggest lever for merge rate.
 
@@ -203,7 +202,7 @@ For each candidate issue, quick-check the repo:
 4. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 7 days old).
 5. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
 6. **Anti-bot/anti-AI policy and CLA detection** — handled automatically by `scripts/repo-health-check.sh`.
-   The script checks CONTRIBUTING.md for anti-bot phrases and detects CLA requirements via .clabot files, CLA GitHub Actions, CONTRIBUTING.md text, and a maintained org list (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama). HARD SKIP if detected.
+   The script checks CONTRIBUTING.md for anti-bot phrases and detects CLA requirements via .clabot files, CLA GitHub Actions, CONTRIBUTING.md text, and a maintained org list (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI). HARD SKIP if detected.
 
 If a repo fails the pre-filter, SKIP all issues from that repo. Cache the failure.
 
@@ -288,7 +287,7 @@ Minimum score 5 to enter work queue.
 - **Title keyword hard reject — applied first, before any other filter**
 - **Repo health pre-filter — applied second, before scoring**
 - Stars >= 200, recent commits (<2wk), not archived, max 3 issues per repo
-- Skip if in pr-ledger.md. At daily limit (10 PRs)? Triage-only.
+- Skip if in pr-ledger.md.
 - **MUST be created within the last 30 days** — skip anything older
 
 ## Fast Mode (queue < 5 or empty slots)

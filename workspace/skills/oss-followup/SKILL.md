@@ -87,12 +87,12 @@ Action: Update pr-followup-state.md status to `approved`. No sub-agent needed.
 
 ### `stale`
 Criteria:
-- `updatedAt` is >7 days ago
+- `updatedAt` is >14 days ago (not 7 — many repos review on 2-week cycles)
 - No new review activity
 
-Action: Close PR with polite comment. Update state to `closed_stale`.
+Action: Add polite bump comment. Do NOT close. Update state to `bumped_stale`.
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Closing this as stale — no reviewer activity in 7+ days. Happy to reopen if there's interest."
+gh pr comment {number} --repo {owner}/{repo} --body "Just checking in — is there anything else needed for this PR to move forward? Happy to make adjustments."
 ```
 
 ### `fix_rejected`
@@ -100,10 +100,11 @@ Criteria:
 - Issue reporter or maintainer says the fix doesn't work, wrong approach, or doesn't resolve the issue
 - Keywords: "doesn't work", "wrong approach", "doesn't fix", "still broken", "not the right fix"
 
-Action: Close PR with polite comment. Update state to `fix_rejected`. No sub-agent needed.
+Action: **REWORK** — spawn follow-up sub-agent with instructions to try a different approach. Force-push to same branch. Update state to `rework_pending`. Comment acknowledging feedback first.
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
+gh pr comment {number} --repo {owner}/{repo} --body "Thanks for the feedback — reworking with a different approach."
 ```
+If 2+ rework attempts also fail, update state to `fix_rejected_terminal` but still leave PR open for maintainer.
 
 ### `already_fixed_upstream`
 Criteria:
@@ -133,13 +134,13 @@ Action: Close PR with polite comment. Update state to `low_star_repo`. No sub-ag
 gh pr close {number} --repo {owner}/{repo} --comment "Closing — this was submitted in error. Apologies for the noise."
 ```
 
-### `close_withdraw`
+### `scope_rejected`
 Criteria:
 - Maintainer explicitly rejected the contribution (e.g., "not appropriate", "out of scope", "we don't want this")
 
-Action: Close PR with polite withdrawal message. Update state to `close_withdraw`. No sub-agent needed.
+Action: Adjust scope if possible and push update. If scope cannot be adjusted, leave PR open for maintainer to close. Update state to `scope_adjusted` or `scope_rejected_terminal`.
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Thank you for reviewing. We understand this contribution isn't a good fit for the project. Closing this PR. Apologies for any inconvenience."
+gh pr comment {number} --repo {owner}/{repo} --body "Thanks for the feedback — happy to adjust the scope if there's a way this can be helpful."
 ```
 
 ### `maintainer_question`

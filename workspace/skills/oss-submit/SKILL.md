@@ -28,14 +28,11 @@ Before pushing anything, ask one final time:
 # ALWAYS use explicit username, not @me (which can fail in sub-agent contexts)
 # Check 1: open PRs by BillionClaw on this repo
 OPEN_COUNT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state open --json number --jq 'length')
-# Check 2: recently closed PRs (avoid re-submitting to repos that closed our PR)
-CLOSED_RECENT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state closed --json closedAt --jq '[.[] | select(.closedAt > "7_DAYS_AGO")] | length')
-# Check 3: search for PRs targeting the same issue (catches cross-fork dupes)
+# Check 2: search for PRs targeting the same issue (catches cross-fork dupes)
 ISSUE_PRS=$(gh search prs --author BillionClaw "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
 ```
 If ANY result > 0: **ABANDON. Do NOT create duplicate PRs.**
 - One open PR per repo at a time (not per issue — per REPO)
-- No re-submitting to repos that closed our PR in the last 7 days
 - No duplicate PRs for the same issue even across different branches
 This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
@@ -93,4 +90,4 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
 - Monitor CI status on next heartbeat
 - Respond to review comments within 4 hours (~8 heartbeats)
 - Do NOT ping or bump PRs — wait patiently for maintainer response
-- If maintainer says "this is not appropriate" or "out of scope" → close PR, learn from it, log in memory
+- If maintainer says "this is not appropriate" or "out of scope" → adjust scope or leave PR open for maintainer to close. Log lesson in memory.

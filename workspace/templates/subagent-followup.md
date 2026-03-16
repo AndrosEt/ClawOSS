@@ -26,6 +26,17 @@ Follow the oss-pr-review-handler skill workflow:
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
 
+1b. HEALTH GATE (defense-in-depth — skip follow-up if repo now fails health):
+   ```bash
+   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}
+   if [ $? -ne 0 ]; then
+     echo "SKIP: repo {owner}/{repo} now fails health check — not worth following up"
+     rm -rf $WORKDIR
+     # Write result as failure with reason "repo_health_fail"
+     exit 0
+   fi
+   ```
+
 2. Clone OUR FORK (not upstream) so we have push access:
    `gh repo clone BillionClaw/{repo} $WORKDIR -- --depth=50`
    Then checkout the PR branch (NOT main): `git checkout {branch}`
@@ -47,11 +58,14 @@ Follow the oss-pr-review-handler skill workflow:
 
 9. Stay within the original contribution scope — do NOT expand to features even if reviewer suggests
 
-10. If reviewer says the contribution is out of scope: close PR politely, mark as closed_scope_concern
+10. If reviewer says the contribution is out of scope: adjust scope to match feedback, or leave PR open
+    for maintainer to close. Comment: "Thanks for the feedback — happy to adjust the scope." Mark as scope_adjusted.
 
 10b. If issue reporter or reviewer says "fix doesn't work" / "doesn't resolve the issue" / "wrong approach":
-    Close the PR with: "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
-    Mark as fix_rejected. Do NOT iterate on a fundamentally broken fix — it wastes maintainer time.
+    **REWORK** — try a different approach. Read the feedback carefully, understand why the fix was wrong,
+    then implement an alternative solution and force-push to the same branch.
+    Comment: "Thanks for the feedback — reworking with a different approach."
+    Mark as rework_in_progress. Only mark fix_rejected if 2+ rework attempts also fail.
 
 10c. If maintainer says "already fixed" / "fixed in latest release" / "resolved upstream":
     Close the PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
@@ -62,7 +76,7 @@ Follow the oss-pr-review-handler skill workflow:
     Do NOT claim to have signed a CLA you didn't sign. If the repo DOES require a CLA we can't sign,
     close the PR politely: "Apologies — we're unable to complete the CLA process. Closing this PR."
 
-11. If round 3: post polite disengagement message, do NOT close PR yourself
+11. If round 3: post polite disengagement message, do NOT close PR yourself — leave for maintainer
 
 12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
     using the format defined in templates/subagent-result-schema.md

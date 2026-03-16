@@ -40,7 +40,18 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh repo clone {repo} $WORKDIR -- --depth=50`
    All work happens here.
 
-1a. QUICK HEALTH CHECK (defense-in-depth):
+1a. FULL HEALTH CHECK (HARD GATE — run before ANY work):
+   ```bash
+   # Run the full health check script — checks stars, merge velocity, CLA, anti-bot, review rate
+   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {repo}
+   if [ $? -ne 0 ]; then
+     echo "ABORT: repo health check failed for {repo}"
+     rm -rf $WORKDIR
+     # Write result as failure with reason "repo_health_fail: <details from script output>"
+     exit 1
+   fi
+   ```
+   If the script is not available, fall back to manual checks:
    ```bash
    STARS=$(gh api repos/{repo} --jq '.stargazers_count' 2>/dev/null || echo 0)
    [ "$STARS" -lt 200 ] && echo "ABORT: $STARS stars (<200)" && rm -rf $WORKDIR && exit 1
@@ -54,7 +65,7 @@ Read the attached repo-conventions.md and issue-details.md.
 
    **CLA ORG HARD REJECT (defense-in-depth):** Extract the repo owner from {repo}.
    If the owner is ANY of: `deepset-ai`, `iterative`, `Aider-AI`, `milvus-io`, `apache`,
-   `microsoft`, `google`, `meta-llama` — ABANDON with reason `cla_required: org requires CLA`.
+   `microsoft`, `google`, `meta-llama`, `BerriAI` — ABANDON with reason `cla_required: org requires CLA`.
    We cannot sign CLAs, so PRs to these orgs can NEVER merge.
 
 1c. PR CONFLICT & SUPERSESSION CHECK (CRITICAL — do ALL of these before writing any code):
@@ -248,12 +259,11 @@ Read the attached repo-conventions.md and issue-details.md.
    ```
    Valid prefixes: `clawoss/fix/`, `clawoss/docs/`, `clawoss/test/`, `clawoss/typo/`.
 
-   **DE-DUPLICATION CHECK (mandatory):** Before creating the PR:
+   **DE-DUPLICATION CHECK (mandatory — run TWICE: before push AND after PR creation):**
    ```bash
+   # Pre-push dedup: check if someone else (including another sub-agent) already submitted
    EXISTING_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length')
-   [ "$EXISTING_OPEN" -gt 0 ] && echo "ABORT: open PR exists" && exit 1
-   EXISTING_CLOSED=$(gh search prs --author BillionClaw --repo {repo} --state closed --json closedAt --jq '[.[] | select(.closedAt > "'"$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d '7 days ago' +%Y-%m-%dT00:00:00Z)"'")] | length')
-   [ "$EXISTING_CLOSED" -gt 0 ] && echo "ABORT: recently closed PR on this repo" && exit 1
+   [ "$EXISTING_OPEN" -gt 0 ] && echo "ABORT: open PR already exists for this repo" && rm -rf $WORKDIR && exit 1
    ```
 
    **FORK & PUSH (mandatory):** We don't have write access to upstream repos. Fork first, then push:
@@ -296,15 +306,56 @@ Read the attached repo-conventions.md and issue-details.md.
    - For docs/typos: what was wrong + what's correct now (2-3 sentences)
    - For tests: what's tested + why it matters (2-3 sentences)
    - Reference the original issue (Fixes #{issue})
-   Include AI disclosure in the PR body (MANDATORY — transparency builds trust):
-   '> **Note:** This contribution was generated with AI assistance (@BillionClaw / ClawOSS).'
+   Include disclosure in the PR body (MANDATORY — transparency builds trust):
+   '> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.'
+   NEVER use: "AI agent", "AI assistance", "AI-generated", "generated with AI".
+
+   **PR DESCRIPTION VERIFICATION (mandatory — phantom changes tank merge rate by 51.7%):**
+   Before creating the PR, verify your description matches the actual diff:
+   ```bash
+   # 1. See what you ACTUALLY changed
+   git diff --stat HEAD~1
+   # 2. Read your PR description draft
+   # 3. Verify EVERY claim in the description has a corresponding code change
+   # 4. Remove any claims about changes you didn't actually make
+   # 5. If description mentions files you didn't touch, FIX the description
+   ```
+   Phantom changes (describing work you didn't do) cause a 51.7% drop in acceptance rate.
+
+   **COMMIT MESSAGE QUOTING (mandatory — prevents shell parsing errors):**
+   Always use heredoc for commit messages:
+   ```bash
+   git commit -m "$(cat <<'COMMIT_EOF'
+   fix(scope): one-line summary
+
+   Details of the fix here.
+   COMMIT_EOF
+   )"
+   ```
 
    **CLA RULE:** Never include CLA claims unless the repo requires it AND you completed their process.
    CLA repos should have been caught at step 1b. No CLA mention = correct for non-CLA repos.
 
-9. Do NOT wait for remote CI. Submit and report result.
+9. **POST-PR DEDUP CHECK (mandatory — immediately after `gh pr create`):**
+   ```bash
+   # Verify we didn't create a duplicate (race condition with concurrent agents)
+   ALL_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number,createdAt --jq '. | sort_by(.createdAt) | reverse')
+   OPEN_COUNT=$(echo "$ALL_OPEN" | jq 'length')
+   if [ "$OPEN_COUNT" -gt 1 ]; then
+     echo "WARNING: $OPEN_COUNT open PRs detected — closing our newest (duplicate)"
+     NEWEST=$(echo "$ALL_OPEN" | jq -r '.[0].number')
+     gh pr close "$NEWEST" --repo {repo} --comment "Closing duplicate PR — another is already open."
+   fi
+   ```
+   Do NOT wait for remote CI. Submit and report result.
 
-10. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
+10. CLEANUP: After submit or abandon, ALWAYS run:
+    ```bash
+    # Remove lock file so orchestrator can spawn for this repo again
+    rm -f /Users/kevinlin/clawOSS/workspace/memory/locks/$(echo "{repo}" | tr '/' '_').lock
+    # Remove workspace
+    rm -rf $WORKDIR
+    ```
     This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 
 Tools: You have web_search, web_fetch, image, and apply_patch available.

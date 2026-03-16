@@ -129,18 +129,19 @@ Reply to each inline comment individually so reviewers see responses in context.
 
 **Scope Concern ("this is not appropriate" / "out of scope"):**
 - Do NOT argue. The maintainer knows their codebase better than we do.
-- Close the PR with a polite comment:
+- Try to adjust scope to match feedback. If possible, push an update narrowing the change.
+- If scope cannot be adjusted, leave PR open for maintainer to close. Comment:
   ```
-  Thank you for the review. I understand this change doesn't align with what
-  the project needs. I'll close this PR. Apologies for the noise.
+  Thanks for the feedback — happy to adjust the scope if there's a way this can be helpful.
   ```
-- Set `followup_outcome: closed_scope_concern` in result file YAML frontmatter
+- Set `followup_outcome: scope_adjusted` or `scope_rejected_terminal` in result file YAML frontmatter
 - This is a learning opportunity — log the feedback for future triage improvement
 
 **Rejection (approach is fundamentally wrong):**
-- Close the PR politely
-- Set `followup_outcome: closed_rejected` in result file YAML frontmatter
-- Log the reason — it helps us avoid similar mistakes
+- **REWORK** with a different approach. Read feedback carefully, implement alternative, force-push.
+- Comment: "Thanks for the feedback — reworking with a different approach."
+- Set `followup_outcome: rework_in_progress` in result file YAML frontmatter
+- If 2+ rework attempts fail, set `followup_outcome: fix_rejected_terminal` but do NOT close
 
 **Round 3 (max revision limit reached):**
 - Post a polite disengagement message:
@@ -185,8 +186,10 @@ Addressed reviewer feedback in round {round}. [describe what was done]
 ```
 
 For terminal outcomes, use the appropriate `followup_outcome`:
-- `closed_scope_concern` — reviewer said the contribution is out of scope
-- `closed_rejected` — reviewer rejected the approach
+- `scope_adjusted` — adjusted scope per reviewer feedback (continue iterating)
+- `scope_rejected_terminal` — reviewer firmly rejected scope after rework attempts
+- `rework_in_progress` — reworking with different approach per feedback
+- `fix_rejected_terminal` — 2+ rework attempts failed, approach fundamentally wrong
 - `disengaged_max_rounds` — round 3 polite disengagement
 
 ### 9. Cleanup
@@ -198,9 +201,9 @@ This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 ## Constraints
 - Target 25-100 LOC per revision round (max 200)
 - Commit type MUST remain the same as the original PR (`fix`/`docs`/`test`)
-- Never force-push — always regular push to update the PR
-- Never rebase the PR branch — just add new commits
-- Never close a PR without posting a comment explaining why
+- Prefer regular push to update the PR. Force-push ONLY when reworking with a fundamentally different approach (reviewer explicitly rejected the original approach).
+- Never rebase the PR branch — just add new commits (unless reworking)
+- Never close a PR ourselves — leave open for maintainer to close. Only exception: true duplicates, self-fork PRs, low-star repos, CLA-blocked repos.
 - Never argue with reviewers — implement or politely disengage
 - 1 PR = 1 sub-agent — never handle multiple PRs in one agent
 - All GitHub communication via `gh` CLI

@@ -29,7 +29,7 @@ has_tests: true
 root_cause: Brief one-line root cause explanation
 failure_reason: Only present if status is failure or abandoned
 followup_round: 2
-followup_outcome: changes_pushed | question_answered | closed_scope_concern | closed_rejected | disengaged_max_rounds | fix_rejected | already_fixed_upstream
+followup_outcome: changes_pushed | question_answered | scope_adjusted | scope_rejected_terminal | rework_in_progress | fix_rejected_terminal | disengaged_max_rounds | already_fixed_upstream
 ---
 
 # Result: {owner}/{repo}#{issue or pr}
@@ -128,7 +128,6 @@ tracking, pattern detection, and dashboard aggregation.
 | `label_reject` | Issue has hard-reject labels (enhancement, feature-request, etc.) |
 | `dedup_existing_pr` | We already have a PR for this issue or repo |
 | `superseded` | Another contributor already has an open PR linked to this issue (found via timeline API) |
-| `daily_limit_reached` | Hit daily PR limit (10/day) or per-repo limit (3/day) |
 
 ### Implementation Failures (caught during sub-agent work)
 | Category | When to Use |

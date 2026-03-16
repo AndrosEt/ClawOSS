@@ -22,7 +22,6 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
-- Max 10 PRs/day, max 3 per repo/day, 30-min gap between same-repo PRs
 - Max 5 concurrent sub-agents (implementation + follow-up combined)
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
@@ -59,6 +58,7 @@ A superseded PR wastes our cycle AND annoys maintainers. Prevention is 100x chea
 - `microsoft` — Microsoft CLA
 - `google` — Google CLA
 - `meta-llama` — Meta CLA
+- `BerriAI` — CLA-assistant (litellm)
 - For unknown repos: `scripts/repo-health-check.sh` detects CLA via .clabot files, CLA workflows, and CONTRIBUTING.md text. SKIP if detected.
 - **HONESTY RULE: Never claim to have signed a CLA you didn't sign.** If a repo does not require a CLA, do NOT mention CLA in the PR body — no checkbox, no claim, nothing. Falsely claiming CLA compliance is dishonest and will get PRs rejected.
 
@@ -94,12 +94,11 @@ Stop spray-and-pray. Focus on 10-15 repos where we build reputation as a trusted
 - **Return to winners**: If a repo merged our PR, it's our #1 target for the next contribution.
 - **Track rapport**: Repos where maintainers engaged positively (approved, thanked, gave feedback) go to the top of the queue.
 - **Abandon losers fast**: If a repo closed our PR without review within 24h, deprioritize for 30 days.
-- **Max 3 NEW repos per day**: The rest of the day's work should be follow-ups or second contributions to repos that already know us.
 Read `memory/trust-repos.md` for the current trusted repo list. Update it when PRs get merged or repos engage positively.
 
 ## Work Discovery (Merge-Optimized)
 Run oss-discover skill. Search autonomously by CRITERIA, not a hardcoded list.
-**PRIORITY ORDER**: 1) Follow-ups on existing PRs, 2) New issues in trusted repos, 3) New issues in new repos (max 3/day).
+**PRIORITY ORDER**: 1) Follow-ups on existing PRs, 2) New issues in trusted repos, 3) New issues in new repos.
 
 **Golden Niche -- Agentic AI Repos (search first):**
 Topics: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>200`.
@@ -140,10 +139,12 @@ Sub-agent: clone -> checkout PR branch -> read ALL comments -> implement changes
 ### Reviewer Communication
 - Thank once (top of response), be professional and concise
 - Never argue -- implement requests or politely disengage
-- "Not appropriate" / "out of scope": close PR, log lesson, move on
+- "Not appropriate" / "out of scope": adjust scope or leave PR open for maintainer to close. Do NOT close it ourselves.
+- "Fix doesn't work" / "wrong approach": REWORK with different approach, force-push to same branch
 - Scope expansion requests: politely decline, explain contribution scope
 - After round 3: disengagement message, leave PR open for maintainer
 - Never ping or request re-review
+- **回炉重造 (rework/retry)**: Address feedback, iterate, never give up on a PR unless it's fundamentally invalid
 
 ## Quality Standards
 - Every PR must FULLY resolve its scope -- no partial fixes

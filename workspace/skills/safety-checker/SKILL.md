@@ -1,6 +1,6 @@
 ---
 name: safety-checker
-description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size 25-100 LOC target (HARD MAX 200), no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
+description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size 25-100 LOC target (HARD MAX 200), no secrets, branch naming, dedup check, independent review. Abort if any check fails."
 user-invocable: true
 ---
 
@@ -54,12 +54,8 @@ Verify branch matches: `clawoss/{type}/<description>`
 Valid types for ClawOSS: `fix` (bugs), `docs` (documentation/typos), `test` (test additions), `typo` (typo fixes).
 **If branch type is `feat`, `refactor`, or `chore`: ABORT — these are not valid contribution types.**
 
-### 5. Anti-Spam Limits (HARD GATE — no exceptions)
-Check memory/wake-state.md for today's submissions:
-- **All repos: must be < 10 PRs today. If >= 10: ABORT IMMEDIATELY.** This is a hard ceiling.
-- This repo: must be < 3 PRs today. If >= 3: ABORT.
-- Last PR to this repo: must be > 30 minutes ago. If < 30 min: ABORT.
-- **Also verify:** Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` — if > 0, ABORT (avoid piling multiple PRs on one repo). ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
+### 5. Dedup Check (HARD GATE)
+Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` — if > 0, ABORT (max 1 active PR per repo). ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
 ### 5b. Supersession Check (HARD GATE — final check before submit)
 Re-verify no one else submitted a fix while we were working:
