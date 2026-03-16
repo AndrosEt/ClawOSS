@@ -30,7 +30,7 @@
       <key>HOME</key>
       <string>__HOME_DIR__</string>
       <key>PATH</key>
-      <string>/opt/homebrew/bin:/usr/local/bin:__HOME_DIR__/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin</string>
+      <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
   </dict>
 </plist>

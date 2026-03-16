@@ -2,12 +2,12 @@
  * ClawOSS PII Sanitizer Plugin — COMPREHENSIVE + BIDIRECTIONAL
  *
  * TWO-WAY sanitization:
- * 1. INCOMING (persist/write): @ → ＠ — prevents OpenRouter content filter
+ * 1. INCOMING (persist/write): @ → ＠ — prevents content filter triggers
  * 2. OUTGOING (tool calls): ＠ → @ — ensures files have correct symbols
  *
  * The model sees ＠ in context. If it generates ＠ in code, the before_tool_call
  * hook converts it back to @ before the tool executes. Files on disk always
- * have real @. Session history always has ＠. OpenRouter never sees @.
+ * have real @. Session history always has ＠.
  */
 
 var FULLWIDTH_AT = '\uFF20'; // ＠
