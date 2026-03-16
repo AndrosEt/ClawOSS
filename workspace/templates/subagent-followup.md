@@ -19,7 +19,7 @@ attachments: [followup-{repo}-{pr}.md]
 
 Handle PR review feedback for {owner}/{repo}#{pr} (round {round}).
 
-IMPORTANT: This is a FOLLOW-UP on an existing bug-fix PR, not new work.
+IMPORTANT: This is a FOLLOW-UP on an existing PR (bug fix, docs fix, typo, or test), not new work.
 Read the attached followup context file for all review comments and PR details.
 Follow the oss-pr-review-handler skill workflow:
 
@@ -42,9 +42,9 @@ Follow the oss-pr-review-handler skill workflow:
    - General comments: gh pr comment {number} --repo {owner}/{repo} --body '...'
    - Inline replies: gh api repos/{owner}/{repo}/pulls/{number}/comments -X POST -f body='...' -F in_reply_to={comment_id}
 
-9. Stay within bug-fix scope — do NOT expand to features even if reviewer suggests
+9. Stay within the original contribution scope — do NOT expand to features even if reviewer suggests
 
-10. If reviewer says 'this is not a bug fix': close PR politely, mark as closed_scope_concern
+10. If reviewer says the contribution is out of scope: close PR politely, mark as closed_scope_concern
 
 11. If round 3: post polite disengagement message, do NOT close PR yourself
 

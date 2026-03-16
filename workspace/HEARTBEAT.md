@@ -365,9 +365,12 @@ Run the DETERMINISTIC health check script — do NOT rely on LLM judgment for re
    - Open PRs < 50
    - Review rate > 50%
    - External contributor merges tracked
+   - **Anti-AI/anti-bot policy detection** — checks CONTRIBUTING.md, README, and recent
+     maintainer comments for anti-AI patterns. If detected: auto-blacklist permanently.
    - Niche fit detection (agentic AI repos get bonus)
    The script outputs JSON with all metrics including `avg_merge_days` and composite `score`.
    If the script returns exit code 1: remove from queue, cache the failure, go to step 3.
+   **If JSON output contains `"blacklist": true`**: add repo to `memory/repo-blacklist.md` permanently.
    Save the JSON output to `memory/repos/{owner}_{repo}.md` for 7-day caching.
 
 ### 4a. Contribution Type Assessment

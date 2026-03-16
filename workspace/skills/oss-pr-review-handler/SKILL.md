@@ -6,8 +6,8 @@ user-invocable: false
 
 # OSS PR Review Handler (Sub-Agent Skill)
 
-Handle review feedback on a submitted bug-fix pull request. This skill runs inside
-a dedicated sub-agent spawned by the orchestrator — one sub-agent per PR, never mixed.
+Handle review feedback on a submitted pull request (bug fix, docs fix, typo fix, or test addition).
+This skill runs inside a dedicated sub-agent spawned by the orchestrator — one sub-agent per PR, never mixed.
 
 ## Context (provided via attachments)
 
@@ -68,8 +68,8 @@ For each change request:
 4. If the reviewer's suggestion would break tests or introduce bugs, explain why in the response
 
 **Stay within scope:**
-- If a reviewer asks to expand scope (add features, refactor): politely decline
-- Explain: "This PR is scoped to fixing [specific bug]. I'd be happy to open a separate issue for that enhancement."
+- If a reviewer asks to expand scope (add features, large refactor): politely decline
+- Explain: "This PR is scoped to [specific fix/docs correction/test addition]. I'd be happy to open a separate issue for that."
 - Never argue — just politely set the boundary
 
 **Quality standards:**
@@ -80,14 +80,14 @@ For each change request:
 ### 5. Commit and Push
 ```bash
 git add -u
-git commit -m "fix: address review feedback
+git commit -m "{type}: address review feedback
 
 - [summary of changes made in response to feedback]
 - Addresses reviewer comments on [files/areas]"
 git push origin {pr-branch}
 ```
 
-Commit message type MUST remain `fix` — we are still fixing the same bug.
+Commit message type MUST remain the same as the original PR (`fix`/`docs`/`test`) — we are still addressing the same issue.
 Push to the SAME branch — this updates the existing PR automatically.
 
 ### 6. Respond to Reviewers

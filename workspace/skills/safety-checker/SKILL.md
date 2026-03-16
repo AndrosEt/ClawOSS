@@ -1,6 +1,6 @@
 ---
 name: safety-checker
-description: "Final safety gate before PR submission: bug-fix verification, budget check, diff size <200 LOC, no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails — especially if PR is not a bug fix."
+description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size <200 LOC, no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
 user-invocable: true
 ---
 
@@ -10,16 +10,17 @@ Final validation gate before `oss-submit`. Every check must pass or submission i
 
 ## Checks
 
-### 0. Bug Fix Verification & Completeness (MOST IMPORTANT CHECK)
-Confirm that this PR is fixing a bug COMPLETELY, NOT adding a feature or refactoring:
-- Read the original issue: is it a bug report with error/crash/broken behavior?
-- Read the diff: do changes ONLY fix the reported bug?
-- **Does this fix FULLY resolve the issue?** A partial fix is not acceptable — abort and skip.
-- Does the fix address the root cause, not just the symptom?
-- Check commit messages: is the type `fix`?
-- **If this is a feature addition, enhancement, or refactor: ABORT IMMEDIATELY.**
-- **If this is a partial fix that doesn't fully resolve the bug: ABORT.**
-- Red flags: new public APIs, new config options, renamed variables without bug context, files changed that are unrelated to the bug.
+### 0. Contribution Type Verification & Completeness (MOST IMPORTANT CHECK)
+Confirm that this PR is a valid contribution, NOT a large feature or refactor:
+- Read the original issue: is it a bug report, docs issue, typo, or test gap?
+- Read the diff: do changes ONLY address the reported issue?
+- **Does this FULLY resolve the issue?** A partial fix is not acceptable — abort and skip.
+- For bugs: does the fix address the root cause, not just the symptom?
+- For docs/typos: is the corrected text factually accurate (verified against code)?
+- Check commit messages: is the type correct? (`fix` for bugs, `docs` for docs/typos, `test` for tests)
+- **If this is a large feature addition, enhancement, or refactor: ABORT IMMEDIATELY.**
+- **If this is partial work that doesn't fully resolve the issue: ABORT.**
+- Red flags: new public APIs, new config options, renamed variables without issue context, files changed unrelated to the issue.
 
 ### 1. Budget Check
 Verify daily token spend hasn't exceeded cap before starting new work.
@@ -39,9 +40,9 @@ Search staged changes for:
 - Private keys (patterns: `-----BEGIN`)
 
 ### 4. Branch Name
-Verify branch matches: `clawoss/fix/<description>`
-**For bug fixes, type MUST be `fix`.** Other types (feat, refactor, docs) indicate a non-bug PR — abort.
-Valid types for ClawOSS: fix (only)
+Verify branch matches: `clawoss/{type}/<description>`
+Valid types for ClawOSS: `fix` (bugs), `docs` (documentation/typos), `test` (test additions), `typo` (typo fixes).
+**If branch type is `feat`, `refactor`, or `chore`: ABORT — these are not valid contribution types.**
 
 ### 5. Anti-Spam Limits (HARD GATE — no exceptions)
 Check memory/wake-state.md for today's submissions:
@@ -60,12 +61,13 @@ If target repo has required CI checks, verify our branch builds locally.
 ### 8. Independent Review
 Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context). Subagent must confirm:
 - The change is correct and slop-free
-- **The change is a bug fix, not a feature addition or refactor**
-- **The fix is complete — it fully resolves the reported bug, not just partially**
-- **The fix addresses the root cause, not just the surface symptom**
-- Every changed line is necessary for fixing the reported bug
+- **The change is a valid contribution (bug fix, docs fix, typo, or test addition) — not a feature or refactor**
+- **The work is complete — it fully resolves the reported issue, not just partially**
+- For bugs: the fix addresses the root cause, not just the surface symptom
+- For docs/typos: the corrected text is factually accurate
+- Every changed line is necessary for resolving the reported issue
 
 ## On Failure
 Log which check failed, abort submission, report to dashboard.
-If check 0 (Bug Fix Verification) fails, log "ABORTED: not a bug fix" prominently.
-If the fix is partial/incomplete, log "ABORTED: partial fix — does not fully resolve the issue".
+If check 0 (Contribution Type Verification) fails, log "ABORTED: not a valid contribution" prominently.
+If the work is partial/incomplete, log "ABORTED: partial work — does not fully resolve the issue".

@@ -124,8 +124,6 @@ tracking, pattern detection, and dashboard aggregation.
 | `issue_assigned` | Issue is already assigned to someone |
 | `title_keyword_reject` | Issue title matched hard-reject keywords (add, extend, etc.) |
 | `label_reject` | Issue has hard-reject labels (enhancement, feature-request, etc.) |
-| `blacklisted_repo` | Repo is on the blacklist |
-| `anti_ai_policy` | Repo has anti-AI policy in CONTRIBUTING.md |
 | `dedup_existing_pr` | We already have a PR for this issue or repo |
 | `daily_limit_reached` | Hit daily PR limit (10/day) or per-repo limit (3/day) |
 

@@ -1,25 +1,26 @@
 ---
 name: oss-submit
-description: "Submit a BUG FIX PR to an open-source repo: verify it's a bug fix, push branch to fork, create PR with gh CLI, use repo's PR template, add AI disclosure, log submission, report to dashboard."
+description: "Submit a contribution PR (bug fix, docs fix, typo fix, or test addition) to an open-source repo: verify it's a valid contribution, push branch to fork, create PR with gh CLI, use repo's PR template, add AI disclosure, log submission, report to dashboard."
 user-invocable: true
 ---
 
-# OSS Bug Fix PR Submission
+# OSS Contribution PR Submission
 
-Submit a verified bug-fix branch as a pull request. **Only bug fixes are submitted — never features, refactors, or enhancements.**
+Submit a verified contribution branch as a pull request. **Valid types: bug fixes, docs fixes, typo fixes, test additions. Never features, large refactors, or enhancements.**
 
 ## Prerequisites
-- Branch passes all 8 quality gates (oss-review skill), including Gate 0 (Bug Fix Gate)
-- safety-checker skill has approved submission (including Bug Fix Verification)
-- Commit type is `fix` (not `feat`, `refactor`, etc.)
+- Branch passes all 8 quality gates (oss-review skill), including Gate 0 (Contribution Type Gate)
+- safety-checker skill has approved submission
+- Commit type matches contribution: `fix` for bugs, `docs` for docs/typos, `test` for tests
 
 ## Pre-Submit Sanity Check
 Before pushing anything, ask one final time:
-- Is this fixing a reported bug? If NO → ABANDON.
-- Does the PR FULLY resolve the reported bug? If NO (partial fix) → ABANDON.
-- Does the fix address the root cause, not just the symptom? If NO → go back and fix properly.
-- Does the PR reference a specific bug issue? If NO → ABANDON.
-- Is the branch named `clawoss/fix/...`? If NO → ABANDON.
+- Is this a valid contribution (bug fix, docs fix, typo, or test addition)? If NO → ABANDON.
+- Does the PR FULLY resolve the reported issue? If NO (partial fix) → ABANDON.
+- For bugs: does the fix address the root cause? If NO → go back and fix properly.
+- For docs/typos: is the corrected text factually accurate? If NO → verify against code.
+- Does the PR reference a specific issue? If NO → ABANDON.
+- Is the branch named `clawoss/{fix,docs,test,typo}/...`? If NO → fix it.
 
 ## Fork vs Direct Push
 1. Check if we have write access to the repo
@@ -31,15 +32,18 @@ Before pushing anything, ask one final time:
 ## Process
 1. Push branch to fork (or origin if write access)
 2. Create PR using `gh pr create`:
-   - Title: `fix(scope): description` following repo conventions or Conventional Commits — type MUST be `fix`
-   - Body: use repo's PR template if available; must include: bug description, ROOT CAUSE ANALYSIS (why the bug existed), reproduction steps, before/after test evidence, explanation of why each changed file was necessary
-   - References: "Fixes #<issue-number>" in body (MUST reference the bug report)
+   - Title: `{type}(scope): description` following Conventional Commits — type must match contribution
+   - Body: use repo's PR template if available; must include:
+     - **Bug fixes**: bug description, ROOT CAUSE ANALYSIS, reproduction steps, before/after test evidence
+     - **Docs/typo fixes**: what was incorrect, what's now correct, how verified against code
+     - **Test additions**: what's now tested, why it matters, test output
+   - References: "Fixes #<issue-number>" in body
 3. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
-4. Log submission to memory: repo, issue, PR number, timestamp, type: "bug-fix"
+4. Log submission to memory: repo, issue, PR number, timestamp, contribution type
 5. Report to dashboard via dashboard-reporter skill
 
 ## Post-Submission
 - Monitor CI status on next heartbeat
 - Respond to review comments within 4 hours (~8 heartbeats)
 - Do NOT ping or bump PRs — wait patiently for maintainer response
-- If maintainer says "this is a feature, not a bug fix" → close PR, learn from it, log in memory
+- If maintainer says "this is not appropriate" or "out of scope" → close PR, learn from it, log in memory

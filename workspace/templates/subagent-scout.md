@@ -12,7 +12,7 @@ run health checks on candidates, and write scored repo lists to memory.
 ## Spawn Config
 ```
 label: "scout-{tier}"
-attachments: [repo-blacklist.md]
+attachments: []
 ```
 
 ## Task Prompt
@@ -99,9 +99,6 @@ If the script is not available, manually check:
 - Merged PRs in last 30 days > 0
 - Open PR count < 50
 - Review rate > 50%
-- No anti-AI policy in CONTRIBUTING.md
-
-Read the attached repo-blacklist.md. SKIP any repo on the blacklist.
 
 ### Step 3: Score and Rank
 
