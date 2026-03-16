@@ -8,8 +8,9 @@ Keep all 7 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 
 ## 0. Health Checks
-**0a. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
-**0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
+**0a. Quick status snapshot**: `bash scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
+**0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
+**0b. Circuit breakers**: Read wake-state.md (or use heartbeat-status.sh output). HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
 **0b2. Cycle guardrails** (prevent runaway cycles and quota burn):
 - **Max cycle time**: If any single step takes >5 minutes, skip to the next step. Do not block the entire cycle.
 - **Context check mid-cycle**: If >50% context used after steps 2-3, compact immediately before continuing to steps 4-7.

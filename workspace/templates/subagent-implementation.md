@@ -34,68 +34,51 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh issue comment {issue} --repo {repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."`
    Keep it short, specific to this issue, and written like a human developer. No AI phrasing.
 
-1. Create isolated workspace: WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
-   mkdir -p $WORKDIR && cd $WORKDIR
-   Clone repo INTO this directory (shallow clone to save time/disk):
-   `gh repo clone {repo} $WORKDIR -- --depth=50`
-   All work happens here.
-   **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
-
-1a. HARD GATES (run ALL before any work — each exits 1 on failure):
+1. SETUP WORKSPACE (one command — runs ALL gates, clones repo, reads CONTRIBUTING.md):
    ```bash
    SCRIPTS=/Users/kevinlin/clawOSS/scripts
-   bash $SCRIPTS/check-blocklist.sh {repo} || { echo "ABORT: repo blocklisted"; rm -rf $WORKDIR; exit 1; }
-   bash $SCRIPTS/repo-health-check.sh {repo} || { echo "ABORT: repo health check failed"; rm -rf $WORKDIR; exit 1; }
-   bash $SCRIPTS/check-already-fixed.sh {repo} {issue} || { echo "ABORT: already fixed"; rm -rf $WORKDIR; exit 1; }
-   bash $SCRIPTS/check-supersession.sh {repo} {issue} || { echo "ABORT: superseded"; rm -rf $WORKDIR; exit 1; }
+   SETUP=$(bash $SCRIPTS/workspace-setup.sh {repo} {issue})
+   if [ $? -ne 0 ]; then
+     echo "ABORT: $(echo "$SETUP" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"reason\",\"setup failed\"))')"
+     exit 1
+   fi
+   WORKDIR=$(echo "$SETUP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["workspace_path"])')
+   cd $WORKDIR
+   echo "$SETUP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d[\"default_branch\"]}, CLA: {d[\"cla_type\"]}, Stars: {d[\"stars\"]}')"
    ```
+   The setup script runs: blocklist check, repo health check, already-fixed check, supersession check,
+   dedup check, clone, CONTRIBUTING.md parsing, anti-AI policy check, lock acquisition.
+   **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
 
-1b. READ REPO GUIDELINES (MANDATORY — repos close PRs that ignore these):
-   **BEFORE writing any code**, parse contribution metadata and read guidelines:
+1b. READ FULL REPO GUIDELINES (setup extracted metadata, now read the full text):
    ```bash
-   # Quick metadata extraction (JSON output)
-   REPO_META=$(bash $SCRIPTS/check-contributing-guide.sh {repo})
-   echo "$REPO_META" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d[\"target_branch\"]}, CLA: {d[\"cla_type\"]}, AI policy: {d[\"ai_disclosure\"]}, Anti-AI: {d[\"anti_ai_policy\"]}')"
-   # If anti_ai_policy is true, ABORT immediately
-   echo "$REPO_META" | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d['anti_ai_policy'] else exit(0)" || { echo "ABORT: anti-AI policy"; rm -rf $WORKDIR; exit 1; }
-
-   # Read full guidelines
    for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md AGENTS.md; do
-     gh api "repos/{repo}/contents/$f" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null && echo "=== Found: $f ==="
+     [ -f "$WORKDIR/$f" ] && echo "=== $f ===" && head -200 "$WORKDIR/$f"
    done
    ```
-
    **You MUST follow every requirement in CONTRIBUTING.md**, including:
    - Code style, linting, formatting requirements
    - Commit message conventions (some repos require specific formats)
    - PR template requirements (fill out their template, not ours)
    - Branch naming conventions (some repos have their own)
    - Test requirements (some require specific test frameworks or patterns)
-   - **AI disclosure policy**: If the repo has an AI policy, follow it EXACTLY. Some repos require explicit AI disclosure in a specific format. Search CONTRIBUTING.md for "AI", "bot", "automated", "generated". If they require disclosure, add it in their specified format.
-   - **CLA/DCO**: If required, sign it. CLA-assistant: click the bot link. DCO: use `git commit -s` to add Signed-off-by.
-     **Non-automatable CLA orgs (ABANDON if encountered)**: apache, microsoft, google, meta-llama — these require identity verification or postal mail that a bot cannot complete.
+   - **AI disclosure policy**: If the repo has an AI policy, follow it EXACTLY.
+   - **CLA/DCO**: If required, sign it. `bash $SCRIPTS/sign-cla.sh {repo}` shows how.
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
+   **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.**
 
-   **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.** This has happened (qdrant closed our PR for ignoring contribution guides). Read it. Follow it. No exceptions.
-
-1c. CONFLICT AWARENESS (quick check — deep checks already ran in 1a scripts):
+1c. CONFLICT AWARENESS + ISSUE READINESS:
    ```bash
    # Open PRs in repo — know what's in flight to avoid file conflicts
    OPEN_PRS=$(gh pr list --repo {repo} --state open --json number,title,headRefName --limit 30)
    echo "Open PRs in repo: $(echo $OPEN_PRS | jq 'length')"
-   ```
-   Keep this list in mind during implementation. If your fix touches files that another open PR also modifies, either:
-   (a) adjust scope to avoid the overlap, or
-   (b) ABANDON if the overlap is unavoidable.
 
-1d. CHECK ISSUE READINESS:
-   Read the last 5 comments on the issue: `gh api repos/{repo}/issues/{issue}/comments --jq '.[-5:] | .[] | {user: .user.login, body: .body[:200]}'`
-   ABANDON if:
-   - Maintainer said "won't fix", "by design", "not a bug", "duplicate", "already fixed"
-   - Active design discussion still happening (people debating approach) — wait, don't jump in
-   - Issue was closed then reopened (controversial)
-   - Maintainer explicitly assigned the issue to someone else
-   - Someone commented "I'm working on this" or "I'll take this" (respect dibs)
+   # Check last 5 comments for readiness signals
+   gh api repos/{repo}/issues/{issue}/comments --jq '.[-5:] | .[] | {user: .user.login, body: .body[:200]}'
+   ```
+   ABANDON if: maintainer said "won't fix"/"by design"/"not a bug"/"duplicate"/"already fixed",
+   active design discussion, issue closed then reopened, assigned to someone else,
+   someone claimed "I'm working on this", or your fix would overlap with an active PR.
 
 2. CLASSIFY & CONFIRM: Read the issue title and body. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
@@ -146,30 +129,27 @@ Read the attached repo-conventions.md and issue-details.md.
    The PR must fully resolve the issue — no partial fixes.
 
 6. VERIFY — FULL CI MATRIX (a PR that breaks CI is WORSE than no PR):
-   a. Read `.github/workflows/` FIRST to understand the full CI matrix:
-      - Which OS does CI run on? (ubuntu, macos, windows, multiple?)
-      - Which language versions? (Python 3.8-3.12, Node 16/18/20, etc.)
-      - Which build configurations? (debug/release, with/without optional deps)
-      - What test suites beyond the obvious one? (linting, type checking, formatting)
-   b. Progressive test strategy (saves time — run targeted first, expand after):
-      1. Run TARGETED tests first — only the module/file you changed:
-         `pytest tests/test_<module>.py` or `jest <module>.test.ts` or `go test ./<pkg>/`
-      2. If targeted tests pass, run the FULL test suite.
-      3. If targeted tests fail, fix before running full suite (saves cycles).
-      Also run all other CI checks:
-      - Linting (eslint, ruff, flake8, golangci-lint, clippy, etc.)
-      - Type checking (mypy, pyright, tsc, etc.)
-      - Formatters (black, prettier, gofmt — run in check mode)
-      - Integration tests if they run in CI
-      - Any custom test scripts in Makefile, package.json scripts, etc.
-   c. For cross-platform projects: if the fix touches platform-specific code or uses
-      OS-dependent APIs, verify correctness for ALL target platforms (not just the one you tested on).
-   d. Record passing output as evidence. The failing test MUST now pass. No regressions.
-   e. Verify the fix addresses root cause, not just symptom.
+   a. Understand what CI expects:
+      ```bash
+      CI_MATRIX=$(bash $SCRIPTS/check-ci-matrix.sh $WORKDIR)
+      echo "$CI_MATRIX" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'OS: {d.get(\"os_targets\",[])} | Linters: {d.get(\"linters\",[])} | Formatters: {d.get(\"formatters\",[])} | Type checkers: {d.get(\"type_checkers\",[])}')"
+      ```
+   b. Progressive test strategy — targeted first, then full:
+      ```bash
+      # Targeted tests on the module you changed
+      bash $SCRIPTS/run-repo-tests.sh $WORKDIR --targeted <changed_module>
+      # If targeted pass, run full suite
+      bash $SCRIPTS/run-repo-tests.sh $WORKDIR --full
+      ```
+   c. Auto-fix linting/formatting before commit:
+      ```bash
+      bash $SCRIPTS/lint-and-format.sh $WORKDIR --fix
+      ```
+   d. For cross-platform projects: if the fix touches platform-specific code, verify for ALL targets.
+   e. Record passing output as evidence. The failing test MUST now pass. No regressions.
    f. If your fix relies on unverified API behavior, state it in the PR description.
    **If tests don't pass, ABANDON. A broken CI damages reputation — one bad PR gets us blocked.**
    **If you CANNOT run tests locally** (C#, Lua, embedded): state what you tested and what you couldn't.
-   Never claim tests pass if you didn't run them.
 
 7. REVIEW — ACT AS A SKEPTICAL REVIEWER (not the author):
    Read your own diff as if you're a maintainer seeing it for the first time.
@@ -187,107 +167,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - [ ] Commit type correct: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
    3+ failures = abandon. This review step catches the issues that get PRs rejected.
 
-8. SUBMIT: Commit, push, create PR with evidence.
-
-   **COMMIT TYPE GATE (mandatory — RUN THIS CHECK):**
-   ```bash
-   # Check commit message prefix — ABORT if feature/refactor
-   COMMIT_MSG=$(git log -1 --format=%s)
-   if echo "$COMMIT_MSG" | grep -qE '^(feat|chore|refactor|perf|style)(\(|:)'; then
-     echo "ABORT: commit type '$(echo $COMMIT_MSG | cut -d: -f1)' is not allowed. We only submit fix/docs/test."
-     # Write result as failure with reason "not_a_bug: commit type indicates feature/refactor"
-     rm -rf $WORKDIR && exit 1
-   fi
-   ```
-   Valid prefixes: `fix(scope):`, `docs(scope):`, `test(scope):`. If your commit starts with `feat:`, you are submitting a feature — ABANDON IMMEDIATELY.
-
-   **DIFF SIZE HARD GATE (mandatory — RUN THIS CHECK before pushing):**
-   ```bash
-   DIFF_STATS=$(git diff --stat HEAD~1 | tail -1)
-   INSERTIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
-   DELETIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
-   TOTAL=$((${INSERTIONS:-0} + ${DELETIONS:-0}))
-   if [ "$TOTAL" -gt 200 ]; then
-     echo "ABORT: diff is $TOTAL lines (max 200). Smaller PRs merge 40% faster."
-     # Write result as failure with reason "scope_creep: diff too large ($TOTAL lines)"
-     rm -rf $WORKDIR && exit 1
-   fi
-   ```
-   **YOU MUST ACTUALLY RUN the above script.** Do not skip it. PRs > 200 lines are NEVER submitted.
-
-   **BRANCH NAME CHECK (mandatory):** Verify your branch starts with `clawoss/`:
-   ```bash
-   BRANCH=$(git branch --show-current)
-   if [[ "$BRANCH" != clawoss/* ]]; then
-     git branch -m "clawoss/${BRANCH}"
-     BRANCH="clawoss/${BRANCH}"
-   fi
-   ```
-   Valid prefixes: `clawoss/fix/`, `clawoss/docs/`, `clawoss/test/`, `clawoss/typo/`.
-
-   **DE-DUPLICATION CHECK (mandatory — run TWICE: before push AND after PR creation):**
-   ```bash
-   # Pre-push dedup: check if someone else (including another sub-agent) already submitted
-   EXISTING_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length')
-   [ "$EXISTING_OPEN" -gt 0 ] && echo "ABORT: open PR already exists for this repo" && rm -rf $WORKDIR && exit 1
-   ```
-
-   **FORK & PUSH (mandatory):** We don't have write access to upstream repos. Fork first, then push:
-   ```bash
-   # Fork the repo (idempotent — if already forked, this is a no-op)
-   gh repo fork {repo} --clone=false
-   # Extract just the repo name from owner/repo
-   REPO_NAME=$(echo "{repo}" | cut -d/ -f2)
-   # Add fork as remote and push
-   git remote add fork https://github.com/BillionClaw/$REPO_NAME.git 2>/dev/null || true
-   git push fork $BRANCH
-   ```
-   If push to fork fails, try `gh repo sync BillionClaw/$REPO_NAME` then retry.
-
-   **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
-   ```bash
-   DEFAULT_BRANCH=$(gh api repos/{repo} --jq '.default_branch')
-   ```
-   Create the PR against $DEFAULT_BRANCH — NOT hardcoded 'main' or 'master'.
-   A PR targeting the wrong branch will be closed immediately.
-   Use `gh pr create --repo {repo} --head BillionClaw:$BRANCH --base $DEFAULT_BRANCH`.
-   PR title should clearly describe the fix.
-   **PR TEMPLATE CHECK:** Before writing the PR body, check if the repo has a PR template:
-   `ls .github/PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null`
-   If a template exists, use its structure (fill in sections, check checkboxes). If not, use our format.
-   PR body rules — WRITE LIKE A HUMAN DEVELOPER (AI PRs get 4.6x slower review pickup):
-   - Jump straight to what's broken and what you did. Write like leaving a note for a colleague.
-   - **AI tells (NEVER USE)**: "This PR addresses...", "I noticed...", "Upon investigation...",
-     "This change ensures...", "This commit fixes...", "I identified...", "After analyzing...",
-     "The root cause was identified as...", "This resolves the issue by...", "Comprehensive fix for...",
-     bullet lists starting with "Ensures", "Improves", "Handles"
-   - **Write like this** (bug fix example):
-     `ProcessPoolTaskRunner.submit` swallows `BrokenProcessPool` — the except clause
-     catches `Exception` but doesn't re-raise after logging. Changed to re-raise after
-     `self._report_failure()`. Test added confirming propagation. Fixes #21131
-   - **NOT like this**: "This PR addresses an issue where ProcessPoolTaskRunner silently
-     swallows exceptions. Upon investigation, I identified that the root cause is..."
-   - Be terse: 3-5 sentences max. Maintainers skim. Reference specific files/functions/lines.
-   - For bugs: what broke + why (root cause) + what you changed + test evidence
-   - For docs/typos: what was wrong + what's correct now (2-3 sentences)
-   - For tests: what's tested + why it matters (2-3 sentences)
-   - Reference the original issue (Fixes #{issue})
-   Include disclosure in the PR body (MANDATORY — transparency builds trust):
-   '> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.'
-   NEVER use: "AI agent", "AI assistance", "AI-generated", "generated with AI".
-
-   **PR DESCRIPTION VERIFICATION (mandatory — phantom changes tank merge rate by 51.7%):**
-   Before creating the PR, verify your description matches the actual diff:
-   ```bash
-   # 1. See what you ACTUALLY changed
-   git diff --stat HEAD~1
-   # 2. Read your PR description draft
-   # 3. Verify EVERY claim in the description has a corresponding code change
-   # 4. Remove any claims about changes you didn't actually make
-   # 5. If description mentions files you didn't touch, FIX the description
-   ```
-   Phantom changes (describing work you didn't do) cause a 51.7% drop in acceptance rate.
-
+8. COMMIT & PREPARE:
    **COMMIT MESSAGE QUOTING (mandatory — prevents shell parsing errors):**
    Always use heredoc for commit messages:
    ```bash
@@ -298,37 +178,45 @@ Read the attached repo-conventions.md and issue-details.md.
    COMMIT_EOF
    )"
    ```
+   Valid prefixes: `fix(scope):`, `docs(scope):`, `test(scope):`. NEVER `feat:` or `refactor:`.
 
-   **CLA SIGNING** (if repo requires it — metadata from step 1b tells you):
+   **CLA SIGNING** (if repo requires it — metadata from step 1 tells you):
    ```bash
    CLA_INFO=$(bash $SCRIPTS/sign-cla.sh {repo})
    echo "$CLA_INFO"  # Shows CLA type + signing instructions
    ```
-   Follow the signing instructions. Never claim to have signed a CLA you didn't sign.
-   No CLA mention = correct for non-CLA repos.
 
-9. **POST-PR DEDUP CHECK (mandatory — immediately after `gh pr create`):**
+   **PR DESCRIPTION (WRITE LIKE A HUMAN — AI PRs get 4.6x slower review pickup):**
+   - Jump straight to what's broken and what you did. Write like a note to a colleague.
+   - **NEVER USE**: "This PR addresses...", "I noticed...", "Upon investigation...",
+     "This change ensures...", "I identified...", "After analyzing...", "Comprehensive fix for..."
+   - **Write like this**: `ProcessPoolTaskRunner.submit` swallows `BrokenProcessPool` — the except
+     clause catches `Exception` but doesn't re-raise after logging. Changed to re-raise after
+     `self._report_failure()`. Test added confirming propagation. Fixes #21131
+   - Be terse: 3-5 sentences. Reference specific files/functions/lines. Fixes #{issue}.
+   - Verify EVERY claim matches the actual `git diff --stat HEAD~1`. Phantom changes = -51.7% merge rate.
+   Include disclosure: '> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.'
+
+9. SUBMIT (one command — runs all gates, fork, push, create PR, post-PR dedup):
    ```bash
-   # Verify we didn't create a duplicate (race condition with concurrent agents)
-   ALL_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number,createdAt --jq '. | sort_by(.createdAt) | reverse')
-   OPEN_COUNT=$(echo "$ALL_OPEN" | jq 'length')
-   if [ "$OPEN_COUNT" -gt 1 ]; then
-     echo "WARNING: $OPEN_COUNT open PRs detected — closing our newest (duplicate)"
-     NEWEST=$(echo "$ALL_OPEN" | jq -r '.[0].number')
-     gh pr close "$NEWEST" --repo {repo} --comment "Closing duplicate PR — another is already open."
+   SUBMIT=$(bash $SCRIPTS/workspace-submit.sh $WORKDIR {repo} {issue} "$PR_TITLE" --type $TYPE)
+   if [ $? -ne 0 ]; then
+     echo "ABORT: $(echo "$SUBMIT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"reason\",\"submit failed\"))')"
+     bash $SCRIPTS/workspace-cleanup.sh $WORKDIR
+     exit 1
    fi
+   PR_URL=$(echo "$SUBMIT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"pr_url\",\"unknown\"))')
+   echo "PR created: $PR_URL"
    ```
+   The submit script runs: commit type gate, diff size gate (max 200 LOC), branch name check,
+   pre-push dedup, fork repo, push to fork, create PR with anti-slop description, post-PR dedup check.
    Do NOT wait for remote CI. Submit and report result.
 
 10. CLEANUP: After submit or abandon, ALWAYS run:
     ```bash
-    SCRIPTS=/Users/kevinlin/clawOSS/scripts
-    # Remove lock file so orchestrator can spawn for this repo again
-    bash $SCRIPTS/unlock-repo.sh {repo}
-    # Remove workspace
-    rm -rf $WORKDIR
+    bash $SCRIPTS/workspace-cleanup.sh $WORKDIR
     ```
-    This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
+    This is NON-OPTIONAL. Removes workspace + lock file. Cloned repos waste 500MB-2GB each.
 
 Tools: You have web_search, web_fetch, image, and apply_patch available.
 Use web_search to research error messages or find related upstream fixes.

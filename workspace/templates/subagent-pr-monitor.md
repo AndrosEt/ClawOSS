@@ -36,28 +36,22 @@ WHILE context < 70%:
   7. Wait ~15 minutes between cycles
 ```
 
-### Step 1: Fetch All Open PRs
-
-```bash
-gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt,createdAt
-```
-
-ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
-
-### Step 2: Check Each PR
-
-For each PR, use the scan script to get classification, reviews, CI status, and comments in one call:
+### Step 1+2: Fetch All Open PRs with Full Status (one call)
 
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
-for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
-  IFS=':' read -r repo num <<< "$pr_info"
-  echo "=== $repo #$num ==="
-  SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh "$repo" "$num")
-  echo "$SCAN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"classification\"]} | urgency:{d[\"urgency\"]} | ci_failed:{d[\"ci_failed\"]} | stale:{d[\"is_stale\"]} | comments:{d[\"comment_count\"]}')"
-done
+ALL_PR_STATUS=$(bash $SCRIPTS/batch-fetch-pr-status.sh --open)
+echo "$ALL_PR_STATUS" | python3 -c "
+import json,sys
+prs = json.load(sys.stdin)
+for pr in prs:
+    print(f'{pr.get(\"repo\",\"?\")}#{pr.get(\"pr\",0)} | {pr.get(\"classification\",\"unknown\")} | urgency:{pr.get(\"urgency\",\"?\")} | ci_failed:{pr.get(\"ci_failed\",False)}')
+print(f'Total: {len(prs)} PRs')
+"
 ```
-The script returns JSON with: classification, urgency, latest_review_state, ci_failed, is_stale, comment_count, pr_data, ci_status, reviews, comments.
+The batch script fetches ALL BillionClaw PRs in one pass, then calls `scan-pr-reviews.sh` for each.
+Each result has: classification, urgency, latest_review_state, ci_failed, is_stale, comment_count, reviews, comments.
+ALWAYS uses `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
 ### Step 3: Classify Each PR
 
@@ -79,64 +73,47 @@ Assign each PR exactly ONE classification:
 | `self_fork` | Repo owner is BillionClaw |
 | `duplicate_pr` | Multiple open PRs in same repo fixing same issue |
 
-### Step 4: Handle Simple Actions (execute directly)
+### Step 4: Handle Simple Actions (execute directly via scripts)
 
 **These do NOT need the main agent or a follow-up subagent:**
 
-#### `approved` — Merge immediately
 ```bash
-gh pr merge {number} --repo {owner}/{repo} --squash
-```
-If merge fails (branch protection, permissions), comment:
-"Thanks for the approval! Could you merge this when you get a chance?"
-Log as `approved_waiting_maintainer_merge`.
-**This is the highest-value action in the entire system.**
-
-#### `maintainer_question` — Respond directly
-
-- **Identity questions** ("are you an AI?", "are you a bot?"):
-  Respond: "I'm ClawOSS, an autonomous codebase helper. Here's the project: https://github.com/kevinlin/clawOSS"
-  Then redirect: "Happy to discuss the fix itself — let me know if there are any concerns with the approach."
-  NEVER say "AI agent", "AI-generated". NEVER deny being automated.
-
-- **CLA questions** ("did you sign the CLA?"):
-  If CLA-assistant: "Signed — please check the CLA status check."
-  If DCO: "Commits are signed with `Signed-off-by`."
-  If repo doesn't require CLA: "This repo doesn't appear to require a CLA — happy to complete one if needed."
-
-- **Approach questions** ("can you explain why you did X?"):
-  Read the PR diff, explain the reasoning briefly. Keep it technical and concise.
-
-#### `stale` (>14 days no activity) — Bump
-```bash
-gh pr comment {number} --repo {owner}/{repo} --body "Just checking in — is there anything else needed for this PR to move forward? Happy to make adjustments."
-```
-Do NOT close. Many repos review on 2-week cycles. Only bump ONCE per PR per cycle.
-
-#### `already_fixed_upstream` — Close
-```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
-```
-
-#### `invalid_contribution` — Close
-```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Closing — this was submitted as a feature rather than a bug fix. Apologies for the noise."
+# For each PR, use respond-to-review.sh based on classification:
+case "$CLASSIFICATION" in
+  approved)
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} merge
+    # This is the highest-value action in the entire system.
+    ;;
+  maintainer_question)
+    # Identity questions:
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} identity
+    # CLA questions: check CLA status first
+    bash $SCRIPTS/sign-cla.sh {owner}/{repo} {number}
+    # Approach questions: read the PR diff and explain reasoning briefly (do this manually)
+    ;;
+  stale)
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} bump
+    # Do NOT close. Many repos review on 2-week cycles. Only bump ONCE per PR per cycle.
+    ;;
+  already_fixed_upstream)
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} close-fixed
+    bash $SCRIPTS/update-trust-repos.sh {owner}/{repo} remove  # Not hostile, just resolved
+    ;;
+  invalid_contribution|low_star_repo)
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} close-invalid
+    ;;
+  self_fork)
+    gh pr close {number} --repo {owner}/{repo}
+    ;;
+  duplicate_pr)
+    # Keep newest, close older — handled by batch-close-invalid.sh
+    ;;
+esac
 ```
 
-#### `low_star_repo` — Close
+**Batch cleanup** (run once per cycle to catch any invalid PRs missed above):
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Closing — this was submitted in error. Apologies for the noise."
-```
-
-#### `self_fork` — Close
-```bash
-gh pr close {number} --repo {owner}/{repo}
-```
-
-#### `duplicate_pr` — Close older ones
-Keep the newest PR, close older ones with:
-```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Closing in favor of #{newer_pr}."
+bash $SCRIPTS/batch-close-invalid.sh
 ```
 
 ### Step 5: Stage Complex Actions
@@ -172,7 +149,10 @@ Write updated state to `memory/pr-followup-state.md`:
 | owner/repo | 456 | changes_requested | staged_for_followup | 2 | 2026-03-17T10:00:00Z |
 ```
 
-Also update `memory/trust-repos.md` if any PR was merged or approved — these repos are now trusted.
+For merged/approved PRs, promote the repo in trust-repos.md:
+```bash
+bash $SCRIPTS/update-trust-repos.sh {owner}/{repo} promote
+```
 Update `memory/pr-ledger.md` for any PRs that were closed.
 
 ### Step 7: Cycle Summary and Wait

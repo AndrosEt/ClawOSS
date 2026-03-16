@@ -63,13 +63,18 @@ Follow the oss-pr-review-handler skill workflow:
     for maintainer to close. Comment: "Thanks for the feedback — happy to adjust the scope." Mark as scope_adjusted.
 
 10b. If issue reporter or reviewer says "fix doesn't work" / "doesn't resolve the issue" / "wrong approach":
-    **REWORK** — try a different approach. Read the feedback carefully, understand why the fix was wrong,
-    then implement an alternative solution and force-push to the same branch.
-    Comment: "Thanks for the feedback — reworking with a different approach."
+    **REWORK** — use the rework pipeline:
+    ```bash
+    REWORK=$(bash /Users/kevinlin/clawOSS/scripts/rework-pr.sh $WORKDIR {owner}/{repo} {pr} "feedback summary here")
+    echo "$REWORK"  # Provides review context, sets up workspace, comments on PR
+    ```
+    Then implement a different approach and force-push to the same branch.
     Mark as rework_in_progress. Only mark fix_rejected if 2+ rework attempts also fail.
 
 10c. If maintainer says "already fixed" / "fixed in latest release" / "resolved upstream":
-    Close the PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
+    ```bash
+    bash /Users/kevinlin/clawOSS/scripts/respond-to-review.sh {owner}/{repo} {pr} close-fixed
+    ```
     Mark as already_fixed_upstream. Do NOT argue or ask for merge anyway.
 
 10d. CLA RULE (HONESTY — never lie): If a reviewer asks about CLA:
@@ -82,16 +87,19 @@ Follow the oss-pr-review-handler skill workflow:
     Do NOT claim to have signed a CLA you didn't sign — complete the signing process first, then confirm.
 
 10e. IDENTITY QUESTIONS ("are you an AI?", "are you a bot?", "is this AI-generated?"):
-    Respond: "I'm ClawOSS, an autonomous codebase helper. Here's the project: https://github.com/kevinlin/clawOSS"
-    Then redirect to the contribution: "Happy to discuss the fix itself — let me know if there are any concerns with the approach."
-    NEVER say "AI agent", "AI-generated", "AI assistance". NEVER deny being automated — just use the correct framing.
+    ```bash
+    bash /Users/kevinlin/clawOSS/scripts/respond-to-review.sh {owner}/{repo} {pr} identity
+    ```
+    NEVER say "AI agent", "AI-generated", "AI assistance". NEVER deny being automated.
 
 11. If round 3: post polite disengagement message, do NOT close PR yourself — leave for maintainer
 
 12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
     using the format defined in templates/subagent-result-schema.md
-    If reviewer approved or gave positive feedback, also append to memory/trust-repos.md
-    under the appropriate tier (Tier 1 if merged, Tier 2 if positive engagement).
+    If reviewer approved or gave positive feedback, update trust:
+    ```bash
+    bash /Users/kevinlin/clawOSS/scripts/update-trust-repos.sh {owner}/{repo} promote
+    ```
 
 13. CLEANUP: rm -rf $WORKDIR
 

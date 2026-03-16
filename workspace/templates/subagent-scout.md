@@ -41,43 +41,36 @@ WHILE context < 70%:
 
 **DISCOVER repos by CRITERIA, not a hardcoded list.** Rotate through tiers each cycle.
 
-```bash
-# Date calculation
-THREE_DAYS_AGO=$(date -v-3d +%Y-%m-%d 2>/dev/null || date -d "3 days ago" +%Y-%m-%d)
-TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d)
-```
-
-IMPORTANT: `gh search issues` with qualifier combos silently returns EMPTY. Use `gh api` instead.
-
 **Cycle A — Trusted repos first (check attachments for trust-repos.md):**
 Search each trusted repo for fresh issues:
 ```bash
-gh api "/search/issues?q=is:issue+is:open+label:bug+repo:{owner}/{repo}+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=10" --jq '.items[] | {number, title, html_url, created_at}'
+# For each trusted repo in trust-repos.md:
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+repo:{owner}/{repo}" --tier 0 --limit 10
 ```
 Trusted repos get +8 score bonus. These are highest priority.
 
 **Cycle B — Agentic AI niche (highest value new repos):**
 ```bash
-# Find repos by topic
-for TOPIC in llm agent rag ai machine-learning generative-ai vector-database embedding nlp; do
-  gh api "/search/repositories?q=topic:${TOPIC}+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+# Discover repos by topic, get full profiles
+for TOPIC in llm agent rag generative-ai vector-database embedding; do
+  bash $SCRIPTS/discover-repos.sh "$TOPIC" --min-stars 200 --limit 10 --write
 done
 
-# Search for bug issues in discovered repos
-gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:python+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:typescript+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+# Search for bug issues in Python and TypeScript
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 1 --lang python --limit 30
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 1 --lang typescript --limit 30
 
 # Easy wins (near-guaranteed merges)
-gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:documentation+stars:>200" --limit 20
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:help-wanted+stars:>200" --limit 30
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:good-first-issue+stars:>200" --limit 30
 ```
 
 **Cycle C — General bug search (high-star repos):**
 ```bash
-gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:defect+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:regression+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 2 --limit 50
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:defect+stars:>200" --tier 2 --limit 30
+bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:regression+stars:>200" --tier 2 --limit 30
 ```
 
 ### Step 2: Analyze Codebase Direction (CRITICAL — V10 enhanced)
@@ -110,28 +103,32 @@ An issue about a deprecated module or a feature the maintainers are actively rep
 
 Write a "direction summary" for each analyzed repo to `memory/repos/{owner}_{repo}.md` so implementation subagents have context.
 
-### Step 3: Check Repo Health
+### Step 3: Repo Profile (health + direction + contributing in one call)
 
-For each unique repo found, run the health check script:
+For each unique repo found, run the full profile script:
 ```bash
-bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh owner/repo
+bash $SCRIPTS/repo-profile.sh owner/repo --write
 ```
-Exit code 0 = healthy, 1 = skip. The script checks stars, merge velocity, anti-bot policies.
-Automatable CLA/DCO repos are allowed (CLA-assistant, DCO). Non-automatable CLAs (apache, microsoft, google, meta-llama) are hard-skipped by the script.
+Exit code 0 = healthy, 1 = skip. Runs health check, direction analysis, CLA detection, anti-AI check.
+Writes complete profile to `memory/repos/{owner}_{repo}.md` for implementation subagents.
+AI disclosure requirements are flagged as metadata (NOT a skip reason).
 
-**Anti-AI policy check**: Read CONTRIBUTING.md for anti-bot phrases. HARD SKIP if found.
+### Step 3b: Batch Filter Issues
 
-**AI disclosure policy check**: Some repos require specific AI disclosure formats in PRs (e.g., qdrant requires AI contributions to be clearly labeled). When scoring repos, check CONTRIBUTING.md for AI disclosure requirements. Flag these in the candidate report so subagents can comply — this is NOT a skip reason, it's metadata. Write any disclosure requirements to `memory/repos/{owner}_{repo}.md`.
+Write discovered issues to a temp file (one `owner/repo#number` per line), then batch-check:
+```bash
+# Write candidates to temp file
+echo "$CANDIDATES" > /tmp/scout-candidates.txt
+# Batch check: blocklist, health, already-fixed, supersession
+BATCH_RESULTS=$(bash $SCRIPTS/batch-check-issues.sh /tmp/scout-candidates.txt)
+# Filter to passing issues
+echo "$BATCH_RESULTS" | python3 -c "import json,sys; [print(f'{r[\"repo\"]}#{r[\"issue\"]}') for r in json.load(sys.stdin) if r['overall']=='pass']"
+```
 
-### Step 3b: Filter Issues
-
-Before scoring, discard issues that won't pass triage:
-- **Blocklist reject**: `bash $SCRIPTS/check-blocklist.sh {owner}/{repo}` — exit 1 = blocklisted, discard ALL issues from that repo immediately. Do not score, do not add to staging.
+Also apply local filters (no API calls needed):
 - **Title keyword reject** (whole word, case-insensitive): `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
 - **Label reject**: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
 - **Age reject**: Skip issues > 30 days old
-- **Supersession reject**: `bash $SCRIPTS/check-supersession.sh {owner}/{repo} {number}` — exit 1 = superseded (linked PRs, assignees, competing PRs). SKIP.
-- **Already-fixed reject**: `bash $SCRIPTS/check-already-fixed.sh {owner}/{repo} {number}` — exit 1 = already fixed (closed, merged PR references). SKIP with reason `already_fixed_upstream`. **Submitting duplicate fixes gets us flagged as bots.**
 - **Dedup reject**: Check pr-ledger.md attachment — skip issues already attempted.
 
 ### Step 4: Score and Rank
