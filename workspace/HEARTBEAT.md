@@ -57,26 +57,14 @@ ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron context
 **2d.** Spawn using `templates/subagent-followup.md`. Set status to `spawned_pending` IMMEDIATELY. Max 2 follow-ups per cycle.
 **2e.** Update timestamps, remove closed PRs. **Update memory/trust-repos.md if any PR was merged or approved.**
 
-**2f. DUPLICATE + LOW-STAR PR CLEANUP** (run every cycle — executable checks):
-```bash
-# Group open PRs by repo, find duplicates
-gh search prs --author BillionClaw --state open --limit 50 --json repository,number | \
-  python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-repos = {}
-for pr in data:
-    repo = pr['repository']['nameWithOwner']
-    repos.setdefault(repo, []).append(pr['number'])
-for repo, nums in repos.items():
-    if len(nums) > 1:
-        nums.sort()
-        print(f'DUPE:{repo}:keep={nums[-1]}:close={nums[:-1]}')
-"
-```
-For each DUPE line: close all but the newest with `gh pr close {num} --repo {repo} --comment "Closing in favor of #{newest} which supersedes this PR. Apologies for the duplicate."`
-Also, for EACH open PR repo, quick-check stars: `gh api repos/{repo} --jq '.stargazers_count'`. If < 200: close with `low_star_repo` classification.
-Update pr-ledger.md and pr-followup-state.md to reflect all closures.
+**2f. BATCH CLEANUP** (run every cycle — catch PRs that should never have been submitted):
+For EVERY open PR, check these conditions and close any that fail:
+1. **Low-star**: `gh api repos/{owner}/{repo} --jq '.stargazers_count'` < 200 → close: "Closing — this was submitted in error. Apologies for the noise."
+2. **feat: title**: title starts with `feat:` or `feat(` → close with `invalid_contribution` message.
+3. **CLA org**: owner is deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, or meta-llama → close: "Closing — unable to complete the CLA process for this organization. Apologies for the noise."
+4. **Self-fork**: repo owner is BillionClaw → close immediately.
+5. **True duplicates**: If 2+ PRs in the same repo fix the SAME issue (check PR body for "Fixes #N"), keep newest, close others. Different fixes to different issues in the same repo are allowed (max 3/repo per AGENTS.md).
+Update pr-ledger.md and pr-followup-state.md after closures.
 
 ## 3. Pick Work
 
