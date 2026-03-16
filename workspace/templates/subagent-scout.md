@@ -155,13 +155,14 @@ Before scoring, discard issues that won't pass triage:
 - **-5** avg merge > 14d, **-3** 0 external merges
 Minimum score 5 to enter staging.
 
-**P(merge) Score (0-100) — compute for all candidates passing quality score:**
+**P(merge) Score (0-100) — compute ONLY for candidates that passed ALL hard gates in Step 3b:**
+Hard gates (P=0): blocklist, stars < 200, anti-AI policy, issue > 30 days, health gate fail, already-fixed.
 ```
 P(merge) =
-  + 25 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
+  + 15 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
   + 20 * size_score              # estimated: <30 LOC=1.0, 30-100=0.7, 100-200=0.3, >200=0
   + 15 * repo_responsiveness     # merge<3d=1.0, 3-7d=0.7, 7-14d=0.3, >14d=0
-  + 15 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
+  + 25 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
   + 10 * freshness               # <1d=1.0, 1-3d=0.8, 3-7d=0.5, 7-14d=0.2, >14d=0
   + 10 * contributor_fit         # help-wanted=1.0, good-first-issue=0.8, bug=0.5, none=0.3
   + 5  * competition_score       # no other PRs=1.0, 1 competing=0.3, 2+=0

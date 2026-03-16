@@ -232,15 +232,21 @@ Minimum score 5 to attempt.
 
 ## P(merge) — Merge Probability Score (0-100)
 
-After computing the quality score above, also compute a weighted merge probability estimate.
-This is used for prioritization — higher P(merge) issues get spawned first.
+**Hard gates (P=0, skip immediately — BEFORE scoring):**
+- Repo in blocklist (trust-repos.md Deprioritized) → P=0
+- Stars < 200 → P=0
+- Anti-AI/anti-bot policy in CONTRIBUTING.md → P=0
+- Issue > 30 days old → P=0
+- Repo health gate failed → P=0
+
+Only compute P(merge) for issues that pass ALL hard gates above (Steps 0a-0e).
 
 ```
 P(merge) =
-  + 25 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
+  + 15 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
   + 20 * size_score              # estimated: <30 LOC=1.0, 30-100=0.7, 100-200=0.3, >200=0
   + 15 * repo_responsiveness     # merge<3d=1.0, 3-7d=0.7, 7-14d=0.3, >14d=0
-  + 15 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
+  + 25 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
   + 10 * freshness               # <1d=1.0, 1-3d=0.8, 3-7d=0.5, 7-14d=0.2, >14d=0
   + 10 * contributor_fit         # help-wanted=1.0, good-first-issue=0.8, bug=0.5, none=0.3
   + 5  * competition_score       # no other PRs=1.0, 1 competing=0.3, 2+=0

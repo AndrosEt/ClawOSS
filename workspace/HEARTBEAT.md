@@ -4,7 +4,7 @@
 Execute ALL steps. Only reply HEARTBEAT_OK if: queue empty, no follow-ups pending, no stalled agents, oss-discover found nothing. Otherwise: PICK WORK AND DO IT.
 
 ## Rules — see AGENTS.md (loaded alongside this file)
-Keep all 8 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work.
+Keep all 7 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 
 ## 0. Health Checks
@@ -24,7 +24,7 @@ Parse the response and OBEY all three fields:
 - `reposWithOpenPRs`: repos where we already have open PRs — do NOT submit new PRs, focus on follow-ups instead.
 If curl fails or times out, proceed without dashboard data — the other gates still apply.
 
-## 0.5. Always-On Subagent Management (scout + PR monitor)
+## 0.5. Always-On Subagent Management (scout + PR monitor + PR analyst)
 Check always-on subagents via `sessions_list`:
 
 **1. Scout** (label "scout-*") — continuous issue discovery:
@@ -43,14 +43,15 @@ Check always-on subagents via `sessions_list`:
   ```
   The PR monitor handles: merging approved PRs, bumping stale PRs, responding to questions, closing invalid PRs, updating pr-followup-state.md.
 
-**3. PR Analyst** (label "pr-analyst") — daily portfolio analysis:
-- Once daily (check date in `memory/pr-strategy.md`): spawn if not run today:
+**3. PR Analyst** (label "pr-analyst") — continuous portfolio analysis & strategy:
+- **Alive** (active in last 30 min): read `memory/pr-strategy.md` and `memory/repo-blocklist.md` — adjust issue selection and repo targeting based on latest analysis.
+- **Dead or missing**: Spawn:
   ```
-  sessions_spawn(task: <read templates/subagent-pr-analyst.md>, label: "pr-analyst", runTimeoutSeconds: 1800)
+  sessions_spawn(task: <read templates/subagent-pr-analyst.md>, label: "pr-analyst", mode: "session", thread: true, runTimeoutSeconds: 3600)
   ```
-- Read `memory/pr-strategy.md` and `memory/repo-blocklist.md` — adjust issue selection and repo targeting.
+  The PR analyst handles: failure mode classification, trust scoring, blocklist maintenance, P(merge) model calibration, strategy recommendations.
 
-Always-on subagents use 2 slots (scout + PR monitor). Remaining 8 are for implementation/follow-up. Total maxConcurrent = 10.
+Always-on subagents use 3 slots (scout + PR monitor + PR analyst). Remaining 7 are for implementation/follow-up. Total maxConcurrent = 10.
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
@@ -85,8 +86,8 @@ Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear st
 ### 3b. Count and Pick
 Count active impl/followup sub-agents (sessions_list, exclude main + always-on scouts/monitors + stale >30min).
 
-- **impl/followup active >= 8**: skip to step 6.
-- **impl/followup active < 8, queue has items**: pick next (urgent first, P(merge) >= 30, score >= 5). Gates:
+- **impl/followup active >= 7**: skip to step 6.
+- **impl/followup active < 7, queue has items**: pick next (urgent first, P(merge) >= 30, score >= 5). Gates:
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
   b. **DEDUP** (ALL 5 — check EVERY one): skip if in pr-ledger.md, open PR for repo (`gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` > 0), in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md (even for a different issue — ONE active agent per repo at a time), OR lock file exists (`memory/locks/{owner}_{repo}.lock`). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
   **LOCK FILE**: Before spawning, write lock: `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) {issue}" > memory/locks/{owner}_{repo}.lock`. Sub-agent deletes lock after PR creation or failure. Orchestrator cleans stale locks (>1 hour) in step 1 (stall recovery).
@@ -109,7 +110,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
      If > 0: skip with reason `already_fixed_upstream`. Also check if the issue itself is closed:
      `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state'` — if "closed", skip.
      **Submitting a fix for an already-resolved issue gets us flagged as bots and threatened with bans.**
-  After spawn, LOOP BACK until 8 active or queue empty.
+  After spawn, LOOP BACK until 7 active or queue empty.
 - **Queue < 5**: run oss-discover. Target 20-30 candidates, score >= 5.
 - **Queue >= 10**: skip discovery, drain first.
 
@@ -131,7 +132,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 `gh pr list --repo {owner}/{repo} --state open --json number,title,headRefName --limit 20`
 This gives the sub-agent awareness of what's in flight so it can avoid file conflicts.
 
-Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 10 (1 scout + 1 PR monitor + 8 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
+Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 10 (3 always-on + 7 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 
 ## 6. Handle Sub-Agent Results
 

@@ -41,27 +41,25 @@ Read the attached repo-conventions.md and issue-details.md.
    All work happens here.
    **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
 
-1a. FULL HEALTH CHECK (HARD GATE — run before ANY work):
+1a. HARD GATES (run ALL before any work — each exits 1 on failure):
    ```bash
-   # Run the full health check script — checks stars, merge velocity, anti-bot, review rate
-   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {repo}
-   if [ $? -ne 0 ]; then
-     echo "ABORT: repo health check failed for {repo}"
-     rm -rf $WORKDIR
-     # Write result as failure with reason "repo_health_fail: <details from script output>"
-     exit 1
-   fi
-   ```
-   If the script is not available, fall back to manual checks:
-   ```bash
-   STARS=$(gh api repos/{repo} --jq '.stargazers_count' 2>/dev/null || echo 0)
-   [ "$STARS" -lt 200 ] && echo "ABORT: $STARS stars (<200)" && rm -rf $WORKDIR && exit 1
+   SCRIPTS=/Users/kevinlin/clawOSS/scripts
+   bash $SCRIPTS/check-blocklist.sh {repo} || { echo "ABORT: repo blocklisted"; rm -rf $WORKDIR; exit 1; }
+   bash $SCRIPTS/repo-health-check.sh {repo} || { echo "ABORT: repo health check failed"; rm -rf $WORKDIR; exit 1; }
+   bash $SCRIPTS/check-already-fixed.sh {repo} {issue} || { echo "ABORT: already fixed"; rm -rf $WORKDIR; exit 1; }
+   bash $SCRIPTS/check-supersession.sh {repo} {issue} || { echo "ABORT: superseded"; rm -rf $WORKDIR; exit 1; }
    ```
 
 1b. READ REPO GUIDELINES (MANDATORY — repos close PRs that ignore these):
-   **BEFORE writing any code**, read these files thoroughly:
+   **BEFORE writing any code**, parse contribution metadata and read guidelines:
    ```bash
-   # Check for contribution guidelines
+   # Quick metadata extraction (JSON output)
+   REPO_META=$(bash $SCRIPTS/check-contributing-guide.sh {repo})
+   echo "$REPO_META" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d[\"target_branch\"]}, CLA: {d[\"cla_type\"]}, AI policy: {d[\"ai_disclosure\"]}, Anti-AI: {d[\"anti_ai_policy\"]}')"
+   # If anti_ai_policy is true, ABORT immediately
+   echo "$REPO_META" | python3 -c "import json,sys; d=json.load(sys.stdin); exit(1) if d['anti_ai_policy'] else exit(0)" || { echo "ABORT: anti-AI policy"; rm -rf $WORKDIR; exit 1; }
+
+   # Read full guidelines
    for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md AGENTS.md; do
      gh api "repos/{repo}/contents/$f" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null && echo "=== Found: $f ==="
    done
