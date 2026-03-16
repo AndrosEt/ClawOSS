@@ -29,7 +29,7 @@ Follow the oss-pr-review-handler skill workflow:
 2. Clone OUR FORK (not upstream) so we have push access:
    `gh repo clone BillionClaw/{repo} $WORKDIR -- --depth=50`
    Then checkout the PR branch (NOT main): `git checkout {branch}`
-   Check for AGENTS.md in repo root — if present, follow its agent-specific instructions.
+   Check for CONTRIBUTING.md and AGENTS.md in repo root — follow their conventions and instructions.
 
 3. Read ALL review comments — understand what each reviewer is asking
 
@@ -61,6 +61,8 @@ Follow the oss-pr-review-handler skill workflow:
 
 12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
     using the format defined in templates/subagent-result-schema.md
+    If reviewer approved or gave positive feedback, also append to memory/trust-repos.md
+    under the appropriate tier (Tier 1 if merged, Tier 2 if positive engagement).
 
 13. CLEANUP: rm -rf $WORKDIR
 

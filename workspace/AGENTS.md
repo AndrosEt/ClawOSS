@@ -51,6 +51,7 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - `google` — Google CLA
 - `meta-llama` — Meta CLA
 - For unknown repos: `scripts/repo-health-check.sh` detects CLA via .clabot files, CLA workflows, and CONTRIBUTING.md text. SKIP if detected.
+- **HONESTY RULE: Never claim to have signed a CLA you didn't sign.** If a repo does not require a CLA, do NOT mention CLA in the PR body — no checkbox, no claim, nothing. Falsely claiming CLA compliance is dishonest and will get PRs rejected.
 
 **Anti-AI policy detection** (check CONTRIBUTING.md before first PR to any repo):
 - HARD SKIP if repo mentions: "no bot", "no ai generated", "human only", "no automated PRs"

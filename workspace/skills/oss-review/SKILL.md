@@ -39,9 +39,9 @@ Review changes against all 8 quality gates before submission. **Gate 0 (Contribu
 
 **Gate 1 — Scope**: Changes related to target issue only, no unrelated files, target 25-100 LOC (max 200). Every changed line must be necessary. Multi-file changes are fine if the scope demands it.
 
-**Gate 2 — Code Quality**: Linter passes, no new warnings, matches repo style, no debug statements, no commented-out code
+**Gate 2 — Code Quality**: Linter passes, no new warnings, matches repo style, no debug statements, no commented-out code, no new dependencies unless essential for the fix
 
-**Gate 3 — Tests**: All existing tests pass. For bugs: new/modified test demonstrates the bug was fixed (fails before fix, passes after). For test additions: new tests pass and exercise the target code path. Test names follow repo conventions.
+**Gate 3 — Tests**: All existing tests pass (read `.github/workflows/` for full CI matrix — linting, type checking, formatters, not just unit tests). For bugs: new/modified test demonstrates the bug was fixed (fails before fix, passes after). For test additions: new tests pass and exercise the target code path. Test names follow repo conventions.
 
 **Gate 4 — Security**: No hardcoded secrets/API keys, no .env files staged, no eval() or dangerous patterns, no private paths
 

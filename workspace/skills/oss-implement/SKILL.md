@@ -126,10 +126,11 @@ Self-check diff with these questions:
 ### 6. SUBMIT
 Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(scope): desc`. Create PR:
 - Title clearly indicates the contribution type
-- PR body format:
-  - **Bug fixes**: Summary (Fixes #N), Root Cause Analysis, Reproduction steps, Before/After test evidence, AI disclosure
-  - **Docs/typo fixes**: Summary (Fixes #N), What was incorrect, What's now correct, How verified, AI disclosure
-  - **Test additions**: Summary, What's now tested, Why it matters, AI disclosure
+- **Check for PR template first**: `ls .github/PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null` — use it if present.
+- PR body: write like a human developer, not an AI. Be terse (3-5 sentences). No "This PR addresses...", "Upon investigation...", or other AI tells.
+  - **Bug fixes**: what broke + why (root cause) + what you changed + test evidence. Fixes #N.
+  - **Docs/typo fixes**: what was wrong + what's correct now. Fixes #N.
+  - **Test additions**: what's tested + why it matters. AI disclosure.
 - Push to fork.
 
 ## Constraints

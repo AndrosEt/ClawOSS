@@ -2,7 +2,7 @@
 
 **Author**: clawoss-architect
 **Date**: 2026-03-16
-**Status**: COMPLETE — 16 repo guides + 10 prompt/config fixes for autonomy
+**Status**: ACTIVE — 16 repo guides + 22 prompt/config fixes across 2 rounds
 
 ## Prompt Changes Made (autonomy improvements)
 
@@ -163,11 +163,13 @@ Top 3 features to adopt:
 
 Non-`main` target branches (sub-agents MUST check this):
 
-| Repo | Target Branch |
-|------|--------------|
-| dlt-hub/dlt | `devel` |
-| allegroai/clearml | `master` |
-| All others | `main` |
+| Repo | Target Branch | Notes |
+|------|--------------|-------|
+| dlt-hub/dlt | `devel` | |
+| allegroai/clearml | `master` | |
+| open-webui/open-webui | `dev` | Bot auto-rejects PRs to main |
+| langchain-ai/langchain | `main` | Requires issue assignment first |
+| All others | `main` | Always verify with `gh api` |
 
 ## CLA-Required Repos (sub-agents MUST handle)
 
@@ -194,11 +196,24 @@ Non-`main` target branches (sub-agents MUST check this):
 8. DONE: CLA SKIP instruction added to both heartbeat configs
 9. DONE: Reference cron config synced with live state
 
-### Still Needed (next session)
-1. Close duplicate PRs on cleanlab, taskcoach, azlin, arrow, devaiflow, jeeves-watcher (agent should self-clean on next heartbeat via step 2f)
-2. Withdraw flash.nvim #478 (agent should handle via fix_rejected flow)
-3. Enable OpenClaw memory_search for semantic recall (researcher recommendation)
-4. Enable session-memory hook for auto-persistence across compactions
-5. Add mem0ai/mem0 and FlowiseAI/Flowise to known repos (researcher recommendation)
-6. Focus follow-ups on approved PRs (ollama #14875 is APPROVED)
-7. Consider trust-building strategy: focus on 10-15 repos instead of 60+ (researcher recommendation #12)
+### Round 2 Actions (this session — closed PR analysis + defense-in-depth)
+10. DONE: Trust-building strategy across all prompts (AGENTS.md, HEARTBEAT.md, oss-discover)
+11. DONE: Defense-in-depth star check in subagent-implementation (catches queue bypass)
+12. DONE: Defense-in-depth CLA org reject in subagent-implementation
+13. DONE: Defense-in-depth title keyword reject in subagent-implementation
+14. DONE: Commit type gate enforced as actual bash script (not just instruction)
+15. DONE: HEARTBEAT follow-ups elevated to "#1 priority" with inline fetch instructions
+16. DONE: HEARTBEAT now closes `invalid_contribution` (feat: PRs) and `low_star_repo` PRs
+17. DONE: Issue readiness check (step 1d): won't-fix, active discussion, assigned to someone else
+18. DONE: Langchain requires issue assignment — added to known repo metadata
+19. DONE: open-webui targets dev — added to known repo metadata
+20. DONE: Repo-analyzer and oss-triage aligned with tiered health thresholds
+21. DONE: PR body writing guidelines with good/bad examples in subagent-implementation
+22. DONE: Stale PR closing message improved with "happy to reopen" language
+
+### Still Needed
+1. Close feat: PRs (autokey#1091, voicecrew#11, devaiflow#170) — agent handles via `invalid_contribution`
+2. Close CLA PRs (aider#4927, arrow#49520) — agent handles via known CLA orgs
+3. Close low-star PRs — agent handles via `low_star_repo` classification
+4. Enable OpenClaw memory_search for semantic recall (researcher recommendation)
+5. Enable session-memory hook for auto-persistence across compactions

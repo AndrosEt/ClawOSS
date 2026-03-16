@@ -49,18 +49,44 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
 ## Process
 1. Push branch to fork (or origin if write access)
 2. **Verify target branch:** `gh api repos/{owner}/{repo} --jq '.default_branch'` — create PR against THIS branch, not hardcoded 'main' or 'master'. Wrong target = instant close.
-3. Create PR using `gh pr create --base $DEFAULT_BRANCH`:
+3. **PR template check:** `ls .github/PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null` — if a template exists, use its structure (fill in sections, check checkboxes). If not, use our format below.
+4. Create PR using `gh pr create --base $DEFAULT_BRANCH`:
    - Title: `{type}(scope): description` following Conventional Commits — type must match contribution
    - Body: write like a developer, not an AI. Be terse (3-5 sentences). No filler.
-     - NO: "This PR addresses...", "I noticed...", "Upon investigation...", "This change ensures..."
-     - YES: State the problem. State the root cause. State the fix. Reference specific files/functions.
-     - **Bug fixes**: root cause + fix + test evidence (before/after)
-     - **Docs/typo fixes**: what was wrong + what's correct now
-     - **Test additions**: what's tested + why it matters
+     - **AI tells (NEVER USE)**: "This PR addresses...", "I noticed...", "Upon investigation...",
+     "This change ensures...", "This commit fixes...", "I identified...", "After analyzing...",
+     "The root cause was identified as...", "This resolves the issue by...", "Comprehensive fix for...",
+     bullet lists starting with "Ensures", "Improves", "Handles"
+   - **Human developer style (USE THIS)**: Jump straight to what's broken and what you did.
+     Write like you're leaving a note for a colleague, not writing a report.
+   - **GOOD example** (bug fix):
+     ```
+     `ProcessPoolTaskRunner.submit` silently swallows `BrokenProcessPool` exceptions
+     because the except clause catches `Exception` but doesn't re-raise after logging.
+
+     Changed the except block to re-raise after calling `self._report_failure()`.
+     Added test that confirms `BrokenProcessPool` propagates to the caller.
+
+     Fixes #21131
+     ```
+   - **BAD example** (same fix, AI slop):
+     ```
+     ## Summary
+     This PR addresses an issue where ProcessPoolTaskRunner silently swallows exceptions.
+     Upon investigation, I identified that the root cause is the broad Exception catch clause.
+     This change ensures that BrokenProcessPool exceptions are properly propagated.
+
+     ## Changes
+     - Modified the exception handling to re-raise after logging
+     - Added comprehensive test coverage for the error path
+     ```
+   - **Bug fixes**: what broke + why (1 sentence each) + what you changed + test evidence
+   - **Docs/typo fixes**: what was wrong + what's correct now (2-3 sentences total)
+   - **Test additions**: what's tested + why it matters (2-3 sentences total)
    - References: "Fixes #<issue-number>" in body
-4. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
-5. Log submission to memory: repo, issue, PR number, timestamp, contribution type
-6. Report to dashboard via dashboard-reporter skill
+5. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
+6. Log submission to memory: repo, issue, PR number, timestamp, contribution type
+7. Report to dashboard via dashboard-reporter skill
 
 ## Post-Submission
 - Monitor CI status on next heartbeat

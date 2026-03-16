@@ -83,6 +83,7 @@ Criteria:
 - No new blocking comments
 
 Action: Update pr-followup-state.md status to `approved`. No sub-agent needed.
+**High-value action**: Check if PR can be merged (CI passes, no merge conflicts). If yes, merge immediately with `gh pr merge {number} --repo {owner}/{repo} --squash`. An approved, unmerged PR is wasted value — merging is the highest-ROI action in the loop. Update trust-repos.md on successful merge.
 
 ### `stale`
 Criteria:
@@ -91,7 +92,45 @@ Criteria:
 
 Action: Close PR with polite comment. Update state to `closed_stale`.
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "Closing this PR as it hasn't received review activity in over a week. If the fix is still wanted, I'm happy to resubmit. Thank you for your time."
+gh pr close {number} --repo {owner}/{repo} --comment "Closing this as stale — no reviewer activity in 7+ days. Happy to reopen if there's interest."
+```
+
+### `fix_rejected`
+Criteria:
+- Issue reporter or maintainer says the fix doesn't work, wrong approach, or doesn't resolve the issue
+- Keywords: "doesn't work", "wrong approach", "doesn't fix", "still broken", "not the right fix"
+
+Action: Close PR with polite comment. Update state to `fix_rejected`. No sub-agent needed.
+```bash
+gh pr close {number} --repo {owner}/{repo} --comment "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
+```
+
+### `already_fixed_upstream`
+Criteria:
+- Maintainer says "already fixed", "fixed in latest release", "resolved upstream", "fixed in vX.Y"
+
+Action: Close PR with polite comment. Update state to `already_fixed_upstream`. No sub-agent needed.
+```bash
+gh pr close {number} --repo {owner}/{repo} --comment "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
+```
+
+### `invalid_contribution`
+Criteria:
+- PR title starts with `feat:` or PR adds features/refactors instead of fixing bugs/docs/typos/tests
+- Self-detected during follow-up scan
+
+Action: Close PR with polite comment. Update state to `invalid_contribution`. No sub-agent needed.
+```bash
+gh pr close {number} --repo {owner}/{repo} --comment "Closing — this was submitted as a feature rather than a bug fix. Apologies for the noise."
+```
+
+### `low_star_repo`
+Criteria:
+- PR targets a repo with < 200 stars (should not have been submitted)
+
+Action: Close PR with polite comment. Update state to `low_star_repo`. No sub-agent needed.
+```bash
+gh pr close {number} --repo {owner}/{repo} --comment "Closing — this was submitted in error. Apologies for the noise."
 ```
 
 ### `close_withdraw`

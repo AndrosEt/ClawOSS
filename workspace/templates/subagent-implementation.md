@@ -282,13 +282,12 @@ Read the attached repo-conventions.md and issue-details.md.
    Include AI disclosure in the PR body (MANDATORY — transparency builds trust):
    '> **Note:** This contribution was generated with AI assistance (@BillionClaw / ClawOSS).'
 
-   **CLA section (ONLY if repo requires it):** Check if repo has `.clabot`, CLA GitHub Action,
-   or mentions CLA in CONTRIBUTING.md. If YES, include at the bottom of PR body:
-   '## Contributor License Agreement
-   - [x] I have read and agree to the project's contributing guidelines
-   - [x] This contribution is my original work
-   - [x] I license this contribution under the project's existing license'
-   If NO CLA requirement detected, do NOT include this section — it confuses maintainers.
+   **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox or claim in the PR body
+   UNLESS the repo explicitly requires a CLA and you have actually completed their CLA process.
+   If the repo has a CLA requirement, you should have ABANDONED at step 1b (CLA org hard reject).
+   If you somehow reach this point with a CLA-required repo, ABANDON NOW — do not submit.
+   If the repo does NOT require a CLA, do NOT mention CLA at all — no checkbox, no claim, nothing.
+   Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected.
 
 9. Do NOT wait for remote CI. Submit and report result.
 

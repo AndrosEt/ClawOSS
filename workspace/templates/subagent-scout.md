@@ -91,12 +91,22 @@ bash scripts/repo-health-check.sh owner/repo
 The script outputs JSON with `pass: true/false`, `score`, and detailed metrics.
 Exit code 0 = healthy, 1 = skip. Use it — don't manually check.
 
+The script also detects CLA requirements and anti-bot policies — repos that fail these are auto-skipped.
+
 If the script is not available, manually check:
 - Stars >= 200
 - Last push < 2 weeks
 - Merged PRs in last 30 days > 0
 - Open PR count < 50
 - Review rate > 50%
+- No CLA required (known orgs: deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama)
+
+### Step 2b: Filter Issues
+
+Before scoring, discard issues that won't pass triage:
+- **Title keyword reject** (whole word, case-insensitive): `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
+- **Label reject**: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
+- **Age reject**: Skip issues > 30 days old
 
 ### Step 3: Score and Rank
 

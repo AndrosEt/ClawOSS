@@ -17,19 +17,22 @@ Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work
 ## 2. PR Follow-ups (HIGHEST PRIORITY — this is the #1 driver of merge rate)
 63 PRs at round 0 = 0 merges. Responding to reviews is MORE IMPORTANT than submitting new PRs.
 
-**2a. ALWAYS scan open PRs every cycle** (do NOT skip, do NOT rely on crons):
-Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then for the **top 5 most recently updated**, fetch review decision and comments:
+**2a. ALWAYS scan ALL open PRs every cycle** (do NOT skip, do NOT rely on crons):
+Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then check EVERY open PR for reviews AND issue comments — not just the top 5:
 ```bash
+# For EACH open PR, check BOTH endpoints:
 gh api repos/{owner}/{repo}/pulls/{number}/reviews --jq '.[] | {state, user: .user.login, submitted_at}'
-gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[] | {user: .user.login, created_at, body}'
+gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[-3:] | .[] | {user: .user.login, created_at, body}'
 ```
+CRITICAL: Reviews (CHANGES_REQUESTED, APPROVED) appear in the `pulls/reviews` endpoint. Maintainer questions and feedback appear in the `issues/comments` endpoint. You MUST check BOTH — missing a CHANGES_REQUESTED or a maintainer question costs more than the API calls.
 ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron contexts.
-**Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) comment_only, 4) ci_failing.
+**Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) maintainer questions/comments needing response, 4) ci_failing.
 
 **2b.** Read pr-followup-state.md. **SPAWNED_PENDING GUARD:** skip if `spawned_pending`. Classify each PR:
 - `approved`/`merged`: log success. **If approved, check: can it be merged? If merge button is available and CI passes, merge it immediately with `gh pr merge --squash`.** This is the highest-value action in the entire loop.
 - `changes_requested` (round < 3): spawn follow-up. Round >= 3: skip.
 - `comment_only`: spawn to respond. Counts as round only if code pushed.
+- `maintainer_question`: maintainer asks a question (e.g. "are you an AI?", "what CLA did you sign?", "can you explain X?"). Respond directly in the main session — no sub-agent needed. Keep response brief and honest.
 - `ci_failing` (our fault): treat as changes_requested.
 - `fix_rejected`: issue reporter or maintainer says fix doesn't work / wrong approach. Close PR with polite comment: "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
 - `already_fixed_upstream`: maintainer says "already fixed" / "fixed in latest release" / "resolved upstream". Close PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
