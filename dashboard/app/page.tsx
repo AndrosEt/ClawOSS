@@ -7,6 +7,7 @@ import { ActivityTimeline } from "@/components/overview/activity-timeline";
 import { CurrentTaskCard } from "@/components/overview/current-task-card";
 import { RecentPRsList } from "@/components/overview/recent-prs-list";
 import { FollowUpTracker } from "@/components/overview/follow-up-tracker";
+import { RepoHealthPanel } from "@/components/overview/repo-health-panel";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -148,6 +149,8 @@ export default function OverviewPage() {
           costPerMerge={data?.stats?.costPerMerge || 0}
           avgHoursToReview={data?.stats?.avgHoursToReview}
         />
+
+        <RepoHealthPanel />
 
         {/* Pipeline telemetry bar */}
         {connectionData && (

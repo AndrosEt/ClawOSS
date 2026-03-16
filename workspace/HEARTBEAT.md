@@ -44,10 +44,12 @@ Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementati
 - ALWAYS use branch naming: clawoss/fix/<description> (type MUST be "fix" — we only fix bugs)
 
 ### Quality (non-negotiable)
+- **We only contribute to repos that will actually review our work** -- repo health gate is mandatory
+- **Our goal is MERGED PRs, not submitted PRs** -- 50 unreviewed PRs = 0 impact
 - **Every PR must be a BUG FIX** -- no features, no refactors, no enhancements
 - **Every PR must FULLY resolve the bug** -- no partial fixes. Skip rather than submit half-baked work.
 - **Every PR must address the ROOT CAUSE** -- not just the surface symptom
-- **Prefer FRESH bugs** -- issues created in the last 3 days get top priority. Skip issues > 30 days old.
+- **Prefer FRESH bugs in HEALTHY repos** -- issues in last 3 days, repos with merge time < 14d, review rate > 50%
 - Read CONTRIBUTING.md before first PR to any repo
 - Understand the repo architecture BEFORE writing any code
 - Every code change must include a test proving the bug existed and is now fixed
@@ -282,6 +284,36 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
      `redesign`, `optimize`, `allow`, `provide`
      Match pattern: `\b{keyword}\b` (regex word boundary) or keyword appears at start of title
      followed by a space/punctuation. Examples: "Add dark mode" matches, "Unsupported operation crashes" does NOT.
+  f. **REPO HEALTH GATE (MANDATORY — check before spending tokens):**
+     Before triaging or spawning, verify the repo is worth our tokens. A merged PR is the ONLY
+     output that matters — skip repos where our PR will rot unreviewed.
+     Run these quick checks via `gh api` (cached in memory/repos/ — reuse if checked within 7 days):
+     ```bash
+     # 1. Last commit date
+     LAST_COMMIT=$(gh api repos/{owner}/{repo}/commits?per_page=1 --jq '.[0].commit.committer.date')
+     # 2. Open PR count (proxy for maintainer bandwidth)
+     OPEN_PRS=$(gh api "repos/{owner}/{repo}/pulls?state=open&per_page=1" -i 2>/dev/null | grep -i 'link:' | grep -o 'page=[0-9]*' | tail -1 | cut -d= -f2)
+     # If no pagination header, count directly:
+     # OPEN_PRS=$(gh api "repos/{owner}/{repo}/pulls?state=open&per_page=100" --jq 'length')
+     # 3. Merges in last 30 days (external contributors only)
+     THIRTY_DAYS_AGO=$(date -v-30d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d "30 days ago" +%Y-%m-%dT00:00:00Z)
+     RECENT_MERGES=$(gh api "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=50" \
+       --jq "[.[] | select(.merged_at != null and .merged_at > \"$THIRTY_DAYS_AGO\")] | length")
+     EXTERNAL_MERGES=$(gh api "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=30" \
+       --jq '[.[] | select(.merged_at != null)] | [.[] | select(.author_association != "OWNER" and .author_association != "MEMBER" and .author_association != "COLLABORATOR")] | length')
+     ```
+     **HARD SKIP the repo (remove issue from queue) if ANY:**
+     - No commits in 6+ months (dead repo — `LAST_COMMIT` older than 180 days)
+     - 50+ open PRs (overwhelmed maintainers — our PR will be ignored)
+     - Zero PRs merged in last 30 days (no merge velocity at all)
+     - Zero external contributor PRs merged in last 30 closed PRs (only merges from maintainers)
+     Write "SKIP: repo health fail — [reason]" and move to next queue item.
+     **PREFER repos with:**
+     - `good-first-issue` or `help-wanted` labels on the issue (+2 to priority)
+     - External merge rate > 30% (they actually merge outside contributions)
+     - Recent merges from non-maintainers (proven track record)
+     - Active development (commits within last week)
+     Cache the health check result in memory/repos/{owner}-{repo}.md for 7 days.
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
@@ -324,8 +356,18 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
    - Prefer issues with "expected vs actual" descriptions
    - **Prefer issues created in the last 3 days (freshest bugs get highest priority)**
    - Skip issues older than 30 days entirely — too stale
-   - Skip issues in repos with < 10 stars (low impact)
-5. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
+   - Skip issues in repos with < 50 stars (low impact — raised from 10)
+5. **REPO HEALTH GATE (mandatory — we only contribute to repos that will actually review our work):**
+   Run repo-analyzer (use cached results from memory/repos/ if < 7 days old).
+   **SKIP the issue if the repo fails ANY of these:**
+   - No commits in last 2 weeks (abandoned)
+   - 0 merged PRs in last 30 days (not merging anything)
+   - Avg merge time > 14 days (too slow)
+   - Review rate < 50% (maintainers not reviewing)
+   - 50+ open PRs (overwhelmed)
+   - < 50 stars or < 5 contributors (too small)
+   - Anti-AI-PR policy (hostile — skip permanently)
+   If repo health fails, remove from queue and cache the failure. Do NOT spawn.
 6. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent

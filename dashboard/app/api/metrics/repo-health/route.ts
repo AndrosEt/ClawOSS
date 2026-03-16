@@ -166,10 +166,17 @@ export async function GET(request: Request) {
       healthScore += Math.min(r.avgQuality ?? 0, 100) * 0.1;
       healthScore = Math.round(healthScore);
 
+      // Recommendation based on composite health
+      const recommendation: "target" | "watch" | "avoid" =
+        healthScore >= 50 && engagement === "responsive" ? "target"
+        : healthScore >= 30 ? "watch"
+        : "avoid";
+
       return {
         repo: r.repo,
         healthScore,
         engagement,
+        recommendation,
         prs: {
           total,
           merged,

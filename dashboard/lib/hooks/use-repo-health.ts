@@ -4,6 +4,7 @@ export interface RepoHealth {
   repo: string;
   healthScore: number;
   engagement: "responsive" | "slow" | "dead";
+  recommendation: "target" | "watch" | "avoid";
   prs: {
     total: number;
     merged: number;

@@ -1,14 +1,88 @@
 ---
 name: repo-analyzer
-description: "Analyze a repository: detect tech stack, code style, test framework, CI system, contribution guidelines, and bug-fix suitability (test infrastructure, issue templates, maintainer responsiveness). Cache results in memory for reuse."
+description: "Analyze repo health and conventions BEFORE queuing any issue. MANDATORY health gate: last commit <2wk, merge time <14d, review rate >50%, open PRs <50, stars >=50, contributors >=5. Skip repos that fail. Cache results."
 user-invocable: true
 ---
 
 # Repository Analyzer
 
-Understand a repository's conventions before contributing a bug fix.
+**We only contribute to repos that will actually review and merge our work.**
+The repo health gate is MANDATORY — run it BEFORE any other analysis.
 
-## Process
+## Repo Health Gate (run FIRST — before queuing ANY issue)
+
+These checks determine whether the repo is worth our tokens. A repo that fails
+the health gate wastes resources — PRs go unreviewed, unmerged, zero impact.
+
+### 1. Last Commit Date (activity check)
+```bash
+gh api repos/{owner}/{repo} --jq '.pushed_at'
+```
+- **SKIP** if no commits in the last 2 weeks — repo is inactive/abandoned
+
+### 2. PR Merge Velocity (how fast do PRs get merged?)
+```bash
+gh pr list --repo {owner}/{repo} --state merged --json mergedAt,createdAt --limit 10
+```
+- Calculate average days from created to merged for the last 10 merged PRs
+- **SKIP** if avg merge time > 14 days — too slow, our PR will sit for weeks
+- **SKIP** if zero merged PRs in the last 30 days — repo is not merging anything
+- **+5 score** if avg merge time < 3 days (fast reviewers)
+- **+3 score** if avg merge time < 7 days (responsive)
+- **+0 score** if avg merge time < 14 days (acceptable)
+
+### 3. Maintainer Responsiveness (do PRs get reviewed?)
+```bash
+gh pr list --repo {owner}/{repo} --state all --json comments,reviews,createdAt --limit 20
+```
+- Count what % of the last 20 PRs received at least one review comment or review
+- **SKIP** if < 50% of PRs get any review — maintainers are not reviewing
+- **+3 score** if > 80% of PRs get review comments (very responsive)
+- **-3 score** if 50-60% review rate (barely passing)
+
+### 4. Open PR Backlog (is the repo overwhelmed?)
+```bash
+gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
+```
+- **SKIP** if 50+ open PRs — the repo is overwhelmed, our PR will be buried
+- **SKIP** if 30+ open PRs AND avg merge time > 7 days — queue is growing, not draining
+
+### 5. Stars + Contributors (is this an established project?)
+```bash
+gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count}'
+gh api repos/{owner}/{repo}/contributors --jq 'length'
+```
+- **SKIP** if < 50 stars — low-impact repo, not worth our time
+- **SKIP** if < 5 contributors — bus-factor risk, single maintainer may vanish
+
+### 6. Bot-Friendly Signals (does the repo welcome contributions?)
+Check for presence of:
+- `CONTRIBUTING.md` — **+1 score** (they've documented how to contribute)
+- `.github/ISSUE_TEMPLATE/` or issue templates — **+1 score** (organized)
+- `.github/workflows/` or CI config — **+1 score** (automated testing)
+- Active issue labeling (> 50% of recent issues have labels) — **+1 score**
+- `good-first-issue` or `help-wanted` labels in use — **+2 score** (actively seeking contributions)
+- Anti-AI-PR policy in CONTRIBUTING.md — **SKIP permanently**
+
+### Health Gate Summary
+A repo **MUST pass ALL** of these to be eligible:
+1. Last commit within 2 weeks
+2. Avg merge time < 14 days AND at least 1 merged PR in last 30 days
+3. Review rate > 50%
+4. Open PR count < 50
+5. Stars >= 50 AND contributors >= 5
+
+**If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
+Write "SKIP: repo health gate failed — {reason}" and cache the result.
+
+### Repo Health Score (1-10)
+Sum the bonus scores from checks 2, 3, 6 above:
+- **8-10**: Excellent — prioritize issues from this repo
+- **5-7**: Good — standard priority
+- **3-4**: Marginal — only pick exceptionally clear bugs
+- **1-2**: Poor — skip (should have been caught by health gate)
+
+## Process (after health gate passes)
 1. Clone repo to /tmp/clawoss-workdir/<repo-name>/ (shallow clone)
 2. Read contribution docs:
    - CONTRIBUTING.md
@@ -23,16 +97,16 @@ Understand a repository's conventions before contributing a bug fix.
    - jest, pytest, go test, cargo test, etc.
 6. Detect CI system:
    - .github/workflows/, .circleci/, Jenkinsfile, etc.
-7. **Assess bug-fix suitability:**
-   - Does the repo have a test suite we can run? (critical for reproduce-first workflow)
-   - Does the repo have a bug report issue template? (indicates they welcome bug fixes)
-   - How responsive are maintainers to bug-fix PRs? (check recent merged PRs)
-   - Does the repo have anti-AI-PR policies? If yes, skip permanently.
-8. Check memory for cached repo conventions (skip re-analysis if recent)
-9. Store repo analysis in memory for reuse
+7. Check memory for cached repo conventions (skip re-analysis if recent)
+8. Store repo analysis + health score in memory for reuse
 
 ## Output
 Repo profile containing:
+- **Repo health score** (1-10) and individual check results
+- **Merge velocity**: avg days to merge, merged PRs in last 30 days
+- **Review rate**: % of PRs that get review comments
+- **Open PR backlog**: current count
+- **Merge probability**: high (health >= 8) / medium (5-7) / low (< 5, consider skipping)
 - Tech stack and language
 - Code style configuration
 - Test command to run
@@ -40,7 +114,10 @@ Repo profile containing:
 - CI expectations and required checks
 - PR conventions and template
 - Any special contribution requirements
-- **Bug-fix suitability score** (1-5): how suitable is this repo for our bug-fix contributions?
-  - 5: Great test infra, active maintainers, welcomes bug fix PRs
-  - 3: Decent test infra, moderate activity
-  - 1: No tests, inactive, hostile to external PRs
+- **Recommendation**: contribute / skip / skip-permanently (with reason)
+
+## Caching
+Cache repo health results in `memory/repos/{owner}_{repo}.md` for 7 days.
+Re-run health check if cache is older than 7 days.
+If a repo was previously skipped due to health gate failure, do NOT re-check
+for 14 days (they won't improve that fast).

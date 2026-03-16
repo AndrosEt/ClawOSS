@@ -79,7 +79,7 @@ For each change request:
 
 ### 5. Commit and Push
 ```bash
-git add -A
+git add -u
 git commit -m "fix: address review feedback
 
 - [summary of changes made in response to feedback]

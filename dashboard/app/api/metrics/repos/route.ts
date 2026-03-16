@@ -95,6 +95,49 @@ export async function GET(request: Request) {
             ? "moderate"
             : "slow";
 
+      // Composite health score (0-100) — weighted toward merge probability
+      let healthScore = 50; // baseline
+
+      // Merge rate impact (0-35 points) — the #1 signal
+      if (mergeRate >= 50) healthScore += 35;
+      else if (mergeRate >= 30) healthScore += 25;
+      else if (mergeRate >= 10) healthScore += 15;
+      else if (merged > 0) healthScore += 5;
+      else healthScore -= 15; // no merges at all
+
+      // Review responsiveness (0-25 points)
+      if (responsiveness === "fast") healthScore += 25;
+      else if (responsiveness === "moderate") healthScore += 15;
+      else if (responsiveness === "slow") healthScore += 5;
+      else healthScore -= 5; // unknown = no reviews
+
+      // Review coverage — are our PRs getting reviewed at all?
+      const reviewCoverage = total > 0 ? (reviewTime?.reviewedCount ?? 0) / total : 0;
+      if (reviewCoverage >= 0.5) healthScore += 15;
+      else if (reviewCoverage > 0) healthScore += 5;
+      else healthScore -= 10; // zero reviews
+
+      // Open PR backlog penalty
+      const openCount = r.open ?? 0;
+      if (openCount >= 5) healthScore -= 10; // many of our PRs sitting open
+      else if (openCount >= 3) healthScore -= 5;
+
+      // Sub-agent success rate bonus
+      if (runs && runs.totalRuns > 0) {
+        const successRate = (runs.successes ?? 0) / runs.totalRuns;
+        if (successRate >= 0.7) healthScore += 10;
+        else if (successRate >= 0.4) healthScore += 5;
+      }
+
+      // Clamp 0-100
+      healthScore = Math.max(0, Math.min(100, healthScore));
+
+      // Recommendation based on health score
+      const recommendation: "target" | "watch" | "avoid" =
+        healthScore >= 65 ? "target"
+        : healthScore >= 40 ? "watch"
+        : "avoid";
+
       return {
         repo: r.repo,
         prs: {
@@ -124,11 +167,15 @@ export async function GET(request: Request) {
               avgDurationMs: runs.avgDurationMs ?? 0,
             }
           : null,
+        health: {
+          score: healthScore,
+          recommendation,
+        },
       };
     });
 
-    // Sort by total PRs descending
-    repos.sort((a, b) => b.prs.total - a.prs.total);
+    // Sort by health score descending (best repos first), then by total PRs
+    repos.sort((a, b) => b.health.score - a.health.score || b.prs.total - a.prs.total);
 
     return NextResponse.json({ repos, range: `${days}d` });
   } catch (error) {
