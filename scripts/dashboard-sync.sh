@@ -69,7 +69,7 @@ try:
             'sessionKey': key
         }
     json.dump(result, sys.stdout)
-except Exception as e:
+except (json.JSONDecodeError, ValueError, AttributeError, TypeError, FileNotFoundError):
     print('{}', file=sys.stdout)
 " > "$SESSION_MAP" 2>/dev/null
 }
