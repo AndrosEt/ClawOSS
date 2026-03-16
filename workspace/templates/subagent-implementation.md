@@ -30,7 +30,9 @@ Read the attached repo-conventions.md and issue-details.md.
 
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
-   Clone repo INTO this directory. All work happens here.
+   Clone repo INTO this directory (shallow clone to save time/disk):
+   `gh repo clone {repo} $WORKDIR -- --depth=50`
+   All work happens here.
 
 1b. READ REPO GUIDELINES:
    Check for CONTRIBUTING.md and AGENTS.md in the repo root.
@@ -38,11 +40,13 @@ Read the attached repo-conventions.md and issue-details.md.
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
    If CONTRIBUTING.md requires a CLA you cannot sign, ABANDON with reason `cla_required`.
 
-1c. CHECK IF ALREADY FIXED UPSTREAM:
+1c. CHECK IF ALREADY FIXED OR IN PROGRESS:
    Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
    Also check: `git log --oneline --all --grep="{key error message or term}" -5`
    If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
-   This avoids wasting time and submitting duplicate fixes.
+   Also check: `gh pr list --repo {repo} --state open --search "{issue number or key term}" --json number,title --jq 'length'`
+   If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr: existing PR from another contributor`.
+   This avoids competing with existing PRs (atuin #3272 was closed because another contributor had it first).
 
 2. CLASSIFY & CONFIRM: Read the issue. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
@@ -113,6 +117,12 @@ Read the attached repo-conventions.md and issue-details.md.
    **If tests don't pass, ABANDON. Do not submit untested PRs. Do not submit with "I skipped
    these tests because..." — a broken CI wastes the maintainer's time and damages our
    reputation. One bad PR can get us blocked from a repo forever.**
+   **If the project uses a language/framework where you CANNOT run tests locally (e.g., C# with
+   specific SDK requirements, Lua plugins needing a host app, embedded targets), you MUST:
+   (a) state this clearly in the PR description: "Tested: [what you actually tested]. Unable to
+   run [specific tests] locally due to [reason]."
+   (b) only submit if you are confident the fix is correct from code analysis alone.
+   Never claim tests pass if you didn't actually run them — maintainers WILL check.**
 
 7. REVIEW — ACT AS A SKEPTICAL REVIEWER (not the author):
    Read your own diff as if you're a maintainer seeing it for the first time.
@@ -182,12 +192,23 @@ Read the attached repo-conventions.md and issue-details.md.
    If ANY open or recently-closed PR exists from us on this repo, ABANDON.
    This prevents the 5x-duplicate-PR-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
+   **FORK & PUSH (mandatory):** We don't have write access to upstream repos. Fork first, then push:
+   ```bash
+   # Fork the repo (idempotent — if already forked, this is a no-op)
+   gh repo fork {repo} --clone=false
+   # Add fork as remote and push
+   git remote add fork https://github.com/BillionClaw/{repo_name}.git 2>/dev/null || true
+   git push fork $BRANCH
+   ```
+   If push to fork fails, try `gh repo sync BillionClaw/{repo_name}` then retry.
+
    **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
    ```bash
    DEFAULT_BRANCH=$(gh api repos/{owner}/{repo} --jq '.default_branch')
    ```
    Create the PR against $DEFAULT_BRANCH — NOT hardcoded 'main' or 'master'.
    A PR targeting the wrong branch will be closed immediately.
+   Use `gh pr create --repo {repo} --head BillionClaw:$BRANCH --base $DEFAULT_BRANCH`.
    PR title should clearly describe the fix. PR body rules:
    - Write as a human developer, specific to THIS codebase. No generic AI phrasing.
    - NO: "I noticed this issue and...", "This PR addresses...", "Upon investigation..."
@@ -198,6 +219,9 @@ Read the attached repo-conventions.md and issue-details.md.
    - For docs/typos: what was wrong + what's now correct
    - For tests: what's now tested + why it matters
    - Reference the original issue (Fixes #{issue})
+   Include AI disclosure in the PR body (MANDATORY — transparency builds trust):
+   '> **Note:** This contribution was generated with AI assistance (@BillionClaw / ClawOSS).'
+
    Include a CLA confirmation section at the bottom of the PR body:
    '## Contributor License Agreement
    By submitting this pull request, I confirm that my contribution is made

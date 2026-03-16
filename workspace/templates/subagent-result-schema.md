@@ -141,6 +141,9 @@ tracking, pattern detection, and dashboard aggregation.
 | `clone_failed` | Could not clone or access the repository |
 | `self_review_fail` | Fix failed 3+ self-review checks |
 | `already_fixed_upstream` | Bug was fixed in a newer commit or PR before we could submit |
+| `duplicate_pr_other` | Another contributor already has an open PR for this issue |
+| `cla_required` | Repo requires CLA/DCO signing that we cannot do |
+| `wrong_target_branch` | PR targeted wrong branch (e.g., main instead of dev) |
 
 ### Follow-up Failures (caught during PR review handling)
 | Category | When to Use |
@@ -151,6 +154,7 @@ tracking, pattern detection, and dashboard aggregation.
 | `max_rounds_exceeded` | Hit 3-round follow-up limit |
 | `pr_closed_by_maintainer` | Maintainer closed the PR |
 | `branch_conflict` | PR branch has merge conflicts we cannot resolve |
+| `already_fixed_upstream` | Maintainer confirmed bug is fixed in a newer release |
 
 ### Infrastructure Failures
 | Category | When to Use |

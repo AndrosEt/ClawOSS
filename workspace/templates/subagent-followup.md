@@ -26,7 +26,9 @@ Follow the oss-pr-review-handler skill workflow:
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
 
-2. Clone repo and checkout the PR branch (NOT main): git checkout {branch}
+2. Clone OUR FORK (not upstream) so we have push access:
+   `gh repo clone BillionClaw/{repo} $WORKDIR -- --depth=50`
+   Then checkout the PR branch (NOT main): `git checkout {branch}`
    Check for AGENTS.md in repo root — if present, follow its agent-specific instructions.
 
 3. Read ALL review comments — understand what each reviewer is asking
