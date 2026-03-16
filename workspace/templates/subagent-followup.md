@@ -73,13 +73,9 @@ Follow the oss-pr-review-handler skill workflow:
     for maintainer to close. Comment: "Thanks for the feedback — happy to adjust the scope." Mark as scope_adjusted.
 
 10b. If issue reporter or reviewer says "fix doesn't work" / "doesn't resolve the issue" / "wrong approach":
-    **REWORK** — use the rework pipeline:
-    ```bash
-    REWORK=$(bash /Users/kevinlin/clawOSS/scripts/rework-pr.sh $WORKDIR {owner}/{repo} {pr} "feedback summary here")
-    echo "$REWORK"  # Provides review context, sets up workspace, comments on PR
-    ```
-    Then implement a different approach and force-push to the same branch.
-    Mark as rework_in_progress. Only mark fix_rejected if 2+ rework attempts also fail.
+    **REWORK** — read ALL review comments, understand the feedback, implement a different approach.
+    Force-push to the same branch. Comment on PR: "Thanks for the feedback — reworked with a different approach."
+    Mark as rework_in_progress. Only mark fix_rejected_terminal if 2+ rework attempts also fail.
 
 10c. If maintainer says "already fixed" / "fixed in latest release" / "resolved upstream":
     ```bash

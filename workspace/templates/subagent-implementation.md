@@ -41,21 +41,31 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh issue comment {issue} --repo {repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."`
    Keep it short, specific to this issue, and written like a human developer. No AI phrasing.
 
-1. SETUP WORKSPACE (one command — runs ALL gates, clones repo, reads CONTRIBUTING.md):
+1. SETUP WORKSPACE — run these checks yourself, then clone:
    ```bash
    SCRIPTS=/Users/kevinlin/clawOSS/scripts
-   SETUP=$(bash $SCRIPTS/workspace-setup.sh {repo} {issue})
-   if [ $? -ne 0 ]; then
-     echo "ABORT: $(echo "$SETUP" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"reason\",\"setup failed\"))')"
-     exit 1
-   fi
-   WORKDIR=$(echo "$SETUP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["workspace_path"])')
+
+   # Gate checks (each returns JSON, exit 1 = abort)
+   bash $SCRIPTS/check-blocklist.sh {repo} || exit 1
+   bash $SCRIPTS/check-already-fixed.sh {repo} {issue} || exit 1
+   bash $SCRIPTS/check-supersession.sh {repo} {issue} || exit 1
+   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {repo} || exit 1
+
+   # Lock repo (prevents duplicate agents)
+   bash $SCRIPTS/lock-repo.sh {repo} {issue} || exit 1
+
+   # Check for existing open PR by BillionClaw
+   EXISTING=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
+   [ "$EXISTING" -gt 0 ] && echo "ABORT: already have open PR" && bash $SCRIPTS/unlock-repo.sh {repo} && exit 1
+
+   # Clone
+   WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
+   mkdir -p $WORKDIR
+   gh repo clone {repo} $WORKDIR -- --depth=50 || exit 1
    cd $WORKDIR
-   echo "$SETUP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d[\"default_branch\"]}, CLA: {d[\"cla_type\"]}, Stars: {d[\"stars\"]}')"
+   DEFAULT_BRANCH=$(gh api repos/{repo} --jq '.default_branch' 2>/dev/null || echo main)
    ```
-   The setup script runs: blocklist check, repo health check, already-fixed check, supersession check,
-   dedup check, clone, CONTRIBUTING.md parsing, anti-AI policy check, lock acquisition.
-   **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
+   **IMPORTANT**: Use `python3` (not `python`). The `python` binary does not exist on macOS.
 
 1b. READ FULL REPO GUIDELINES (setup extracted metadata, now read the full text):
    ```bash
@@ -208,27 +218,33 @@ Read the attached repo-conventions.md and issue-details.md.
    - Verify EVERY claim matches the actual `git diff --stat HEAD~1`. Phantom changes = -51.7% merge rate.
    Include disclosure: '> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.'
 
-9. SUBMIT (one command — runs all gates, fork, push, create PR, post-PR dedup):
+9. SUBMIT — fork, push, create PR yourself:
    ```bash
-   SUBMIT=$(bash $SCRIPTS/workspace-submit.sh $WORKDIR {repo} {issue} "$PR_TITLE" --type $TYPE)
-   if [ $? -ne 0 ]; then
-     echo "ABORT: $(echo "$SUBMIT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"reason\",\"submit failed\"))')"
-     bash $SCRIPTS/workspace-cleanup.sh $WORKDIR
-     exit 1
-   fi
-   PR_URL=$(echo "$SUBMIT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"pr_url\",\"unknown\"))')
+   # Diff size gate (max 200 LOC)
+   TOTAL=$(git diff --stat HEAD~1 | tail -1 | grep -oE '[0-9]+ insertion|[0-9]+ deletion' | grep -oE '[0-9]+' | paste -sd+ - | bc 2>/dev/null || echo 0)
+   [ "$TOTAL" -gt 200 ] && echo "ABORT: $TOTAL lines (max 200)" && exit 1
+
+   # Fork and push
+   gh repo fork {repo} --clone=false 2>/dev/null || true
+   REPO_NAME=$(echo "{repo}" | cut -d/ -f2)
+   git remote add fork https://github.com/BillionClaw/$REPO_NAME.git 2>/dev/null || true
+   BRANCH=$(git branch --show-current)
+   [[ "$BRANCH" != clawoss/* ]] && git branch -m "clawoss/$BRANCH" && BRANCH="clawoss/$BRANCH"
+   git push fork $BRANCH --force
+
+   # Create PR
+   PR_URL=$(gh pr create --repo {repo} --head BillionClaw:$BRANCH --base $DEFAULT_BRANCH --title "$PR_TITLE" --body "$PR_BODY")
+   ```
    echo "PR created: $PR_URL"
    ```
-   The submit script runs: commit type gate, diff size gate (max 200 LOC), branch name check,
-   pre-push dedup, fork repo, push to fork, create PR with anti-slop description, post-PR dedup check.
    Do NOT wait for remote CI. Submit and report result.
 
 10. CLEANUP: After submit or abandon, ALWAYS run:
     ```bash
-    bash $SCRIPTS/unlock-repo.sh {repo}    # Release repo lock first
-    bash $SCRIPTS/workspace-cleanup.sh $WORKDIR  # Remove workspace files
+    bash $SCRIPTS/unlock-repo.sh {repo}    # Release repo lock
+    rm -rf $WORKDIR                         # Remove workspace
     ```
-    This is NON-OPTIONAL. Removes workspace + lock file. Cloned repos waste 500MB-2GB each.
+    This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 
 Tools: You have web_search, web_fetch, image, and apply_patch available.
 Use web_search to research error messages or find related upstream fixes.

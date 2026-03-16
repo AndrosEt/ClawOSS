@@ -1,6 +1,6 @@
 # V10 Monitor Status Report
 
-**Timestamp**: 2026-03-17 03:10 (UTC+8)
+**Timestamp**: 2026-03-17 03:18 (UTC+8)
 **Agent**: clawoss (main session)
 **Model**: kimi-coding/k2p5 (200k ctx)
 
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Agent is **DORMANT** -- cron next fire at 08:00 CST (~5 hours away). No heartbeat cycles will run until then. A **new critical error** appeared at 03:06: `"Channel is required (no configured channels detected)"` -- subagent completion announcements now fail with a hard config error, not just timeouts. Scripts PATH still broken. Dashboard reports merge rate critical at 3.4%.
+Agent **WOKE UP** at 03:12 after manual wake event. First heartbeat cycle executed successfully: cleaned stale state, spawned 4 always-on subagents, processed 3 pending results. PR monitor found follow-up items. Discovery running (rate limited). New subagent spawning at 03:17. HEARTBEAT.md updated with absolute script paths (P0 fix applied). Scripts PATH issue likely resolved.
 
 ## Agent Health
 

@@ -49,35 +49,31 @@ WHILE context < 70%:
 **DISCOVER repos by CRITERIA, not a hardcoded list.** Rotate through tiers each cycle.
 
 **Cycle A — Trusted repos first (check attachments for trust-repos.md):**
-Search each trusted repo for fresh issues:
+Search each trusted repo for fresh issues using `gh api` directly:
 ```bash
-# For each trusted repo in trust-repos.md:
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+repo:{owner}/{repo}" --tier 0 --limit 10
+THREE_DAYS_AGO=$(date -v-3d +%Y-%m-%d 2>/dev/null || date -d "3 days ago" +%Y-%m-%d)
+# For each trusted repo:
+gh api "/search/issues?q=is:issue+is:open+label:bug+repo:{owner}/{repo}+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=10" --jq '.items[] | {number, title, html_url, created_at}'
 ```
 Trusted repos get +8 score bonus. These are highest priority.
 
 **Cycle B — Agentic AI niche (highest value new repos):**
 ```bash
-# Discover repos by topic, get full profiles
+TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d)
+# Find repos by topic
 for TOPIC in llm agent rag generative-ai vector-database embedding; do
-  bash $SCRIPTS/discover-repos.sh "$TOPIC" --min-stars 200 --limit 10 --write
+  gh api "/search/repositories?q=topic:${TOPIC}+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
 done
 
-# Search for bug issues in Python and TypeScript
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 1 --lang python --limit 30
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 1 --lang typescript --limit 30
-
-# Easy wins (near-guaranteed merges)
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:documentation+stars:>200" --limit 20
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:help-wanted+stars:>200" --limit 30
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:good-first-issue+stars:>200" --limit 30
+# Search for issues (use gh api, not gh search — qualifier combos work better)
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:python+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url}'
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url}'
 ```
 
-**Cycle C — General bug search (high-star repos):**
+**Cycle C — General bug search:**
 ```bash
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:bug+stars:>200" --tier 2 --limit 50
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:defect+stars:>200" --tier 2 --limit 30
-bash $SCRIPTS/discover-issues.sh "is:issue+is:open+label:regression+stars:>200" --tier 2 --limit 30
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 ### Step 2: Analyze Codebase Direction (CRITICAL — V10 enhanced)
@@ -110,26 +106,21 @@ An issue about a deprecated module or a feature the maintainers are actively rep
 
 Write a "direction summary" for each analyzed repo to `memory/repos/{owner}_{repo}.md` so implementation subagents have context.
 
-### Step 3: Repo Profile (health + direction + contributing in one call)
+### Step 3: Repo Health Check
 
-For each unique repo found, run the full profile script:
+For each unique repo found, run the health check:
 ```bash
-bash $SCRIPTS/repo-profile.sh owner/repo --write
+bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh owner/repo
 ```
-Exit code 0 = healthy, 1 = skip. Runs health check, direction analysis, CLA detection, anti-AI check.
-Writes complete profile to `memory/repos/{owner}_{repo}.md` for implementation subagents.
-AI disclosure requirements are flagged as metadata (NOT a skip reason).
+Exit code 0 = healthy, 1 = skip. Checks stars, merge velocity, anti-bot policies.
 
-### Step 3b: Batch Filter Issues
+### Step 3b: Filter Issues (use small tools)
 
-Write discovered issues to a temp file (one `owner/repo#number` per line), then batch-check:
+For each candidate issue, run gate checks individually:
 ```bash
-# Write candidates to temp file
-echo "$CANDIDATES" > /tmp/scout-candidates.txt
-# Batch check: blocklist, health, already-fixed, supersession
-BATCH_RESULTS=$(bash $SCRIPTS/batch-check-issues.sh /tmp/scout-candidates.txt)
-# Filter to passing issues
-echo "$BATCH_RESULTS" | python3 -c "import json,sys; [print(f'{r[\"repo\"]}#{r[\"issue\"]}') for r in json.load(sys.stdin) if r['overall']=='pass']"
+bash $SCRIPTS/check-blocklist.sh owner/repo || continue      # skip blocklisted
+bash $SCRIPTS/check-already-fixed.sh owner/repo issue_num || continue  # skip fixed
+bash $SCRIPTS/check-supersession.sh owner/repo issue_num || continue   # skip claimed
 ```
 
 Also apply local filters (no API calls needed):

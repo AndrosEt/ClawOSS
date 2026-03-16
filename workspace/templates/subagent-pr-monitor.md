@@ -43,20 +43,28 @@ WHILE context < 70%:
   7. Wait ~15 minutes between cycles
 ```
 
-### Step 1+2: Fetch All Open PRs with Full Status (one call)
+### Step 1+2: Fetch All Open PRs
 
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
-ALL_PR_STATUS=$(bash $SCRIPTS/batch-fetch-pr-status.sh --open)
-echo "$ALL_PR_STATUS" | python3 -c "
-import json,sys
+# Fetch all open PRs
+ALL_PRS=$(gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt)
+
+# For each PR, scan reviews and comments using the small tool
+echo "$ALL_PRS" | python3 -c "
+import json, sys
 prs = json.load(sys.stdin)
 for pr in prs:
-    print(f'{pr.get(\"repo\",\"?\")}#{pr.get(\"pr\",0)} | {pr.get(\"classification\",\"unknown\")} | urgency:{pr.get(\"urgency\",\"?\")} | ci_failed:{pr.get(\"ci_failed\",False)}')
+    repo = pr['repository']['nameWithOwner']
+    num = pr['number']
+    print(f'{repo}#{num} | {pr[\"title\"][:60]}')
 print(f'Total: {len(prs)} PRs')
 "
 ```
-The batch script fetches ALL BillionClaw PRs in one pass with reviews and comments.
+Then for each PR that needs deeper analysis, use the scan tool:
+```bash
+bash $SCRIPTS/scan-pr-reviews.sh owner/repo pr_number
+```
 For PRs needing deeper analysis (changes_requested, ci_failing), run per-PR scan:
 ```bash
 DEEP_SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh {owner}/{repo} {pr_number})
@@ -117,14 +125,9 @@ case "$CLASSIFICATION" in
     gh pr close {number} --repo {owner}/{repo}
     ;;
   duplicate_pr)
-    # Keep newest, close older — handled by batch-close-invalid.sh
+    # Keep newest, close older — check for duplicates yourself using gh pr list
     ;;
 esac
-```
-
-**Batch cleanup** (run once per cycle to catch any invalid PRs missed above):
-```bash
-bash $SCRIPTS/batch-close-invalid.sh
 ```
 
 ### Step 5: Stage Complex Actions

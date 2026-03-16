@@ -286,22 +286,29 @@ Each test should:
 ## Summary
 
 ### P0 (system-breaking):
-- **PATH BUG**: HEARTBEAT.md + AGENTS.md + 3 skill files use relative `scripts/` paths. Agent workspace is wrong directory. ALL gate checks silently skipped. 12 fixes across 5 files. See collab_space/v10-critique-three-design-flaws.md.
+- ~~**PATH BUG**: HEARTBEAT.md + AGENTS.md + 3 skill files use relative `scripts/` paths~~ — **FIXED** (commit fc35c76)
 
-### P1 bugs (11 total — must fix before deploying):
-1. **P1-1**: workspace-setup.sh blocklist check is a no-op (piped grep -q)
-2. **P1-2**: workspace-setup.sh HEALTH_RESULT uninitialized in fallback
-3. **P1-3**: heartbeat-status.sh `grep -oP` doesn't work on macOS
-4. **P1-4**: pr-portfolio-stats.sh `--merged` flag doesn't exist for `gh search prs`
-5. **P1-5**: batch-close-invalid.sh auto-closes stale PRs, contradicts "never close" policy
-6. **P1-6**: workspace-submit.sh size gate 500→200
-7. **P1-7**: workspace-submit.sh PR body missing disclosure line
-8. **P1-8**: workspace-submit.sh dedup regex no word boundary
-9. **P1-9**: batch-fetch-pr-status.sh structurally broken (heredoc + stdin conflict)
-10. **P1-10**: batch-fetch-pr-status.sh $FILTER_REPO not interpolated in single-quoted heredoc
-11. **P1-11**: run-repo-tests.sh `timeout` command not found on macOS
+### P1 bugs (11 total — 7 FIXED, 4 remaining):
+1. ~~**P1-1**: workspace-setup.sh blocklist check~~ — **FIXED** (commit 653b680). Now handles backtick-wrapped names + date expiry.
+2. ~~**P1-2**: workspace-setup.sh HEALTH_RESULT uninitialized~~ — **FIXED** (commit 653b680). Default JSON initialized.
+3. ~~**P1-3**: heartbeat-status.sh `grep -oP`~~ — **FIXED** (commit 849fd21). Uses `sed -n` now.
+4. ~~**P1-4**: pr-portfolio-stats.sh `--merged` flag~~ — **FIXED** (commit 653b680). Uses `"is:merged"` now.
+5. ~~**P1-5**: batch-close-invalid.sh auto-closes stale PRs~~ — **FIXED** (commit 653b680). Stale auto-close removed.
+6. ~~**P1-6**: workspace-submit.sh size gate 500~~ — **FIXED** (commit 653b680). Now 200.
+7. ~~**P1-7**: workspace-submit.sh PR body missing disclosure~~ — **FIXED** (commit 653b680). Disclosure line added.
+8. ~~**P1-8**: workspace-submit.sh dedup regex~~ — **FIXED** (commit 653b680). Word boundary added.
+9. **P1-9**: batch-fetch-pr-status.sh structurally broken (heredoc + stdin conflict) — **STILL OPEN**
+10. **P1-10**: batch-fetch-pr-status.sh $FILTER_REPO not interpolated in single-quoted heredoc — **STILL OPEN**
+11. **P1-11**: run-repo-tests.sh `timeout` command not found on macOS — **STILL OPEN**
 
-### P2 bugs (13 total):
+### Additional unfixed items:
+- **P1-12**: subagent-pr-analyst.md lines 53+56 — `mergedAt` not valid for `gh search prs --json`, `--merged` not a valid flag — **STILL OPEN**
+- **P1-13**: config/openclaw.json heartbeat prompt says "8 impl/followup + 2 always-on = 10" but should be "7 + 3 = 10" — **STILL OPEN**
+
+### P0 config fix:
+- ~~**"Channel is required" error**: messages.queue.mode collect causes queue drain failures~~ — **FIXED** (commit 0f141fa). Changed to "steer". Deployed to live config.
+
+### P2 bugs (13 total — all still open):
 1. **P2-1**: workspace-cleanup.sh lock matching never works
 2. **P2-2**: compute-merge-probability.sh threshold 30 vs spec 40 (may be intentional)
 3. **P2-5**: responsiveness weight 15 vs adopted 20 (may be intentional)
@@ -313,8 +320,3 @@ Each test should:
 9. **P2-11**: rework-pr.sh triple-quoted Python strings break on review bodies with triple quotes
 10. **P2-12**: update-trust-repos.sh deprioritize always writes "permanent", no time-limited skip
 11. **P2-13**: batch-check-issues.sh bare `except: pass` — failed checks default to "pass"
-
-### Cross-file PATH bug (P0):
-- HEARTBEAT.md, AGENTS.md, 3 skill files use relative `scripts/` paths
-- Agent workspace is `/Users/kevinlin/clawoss/workspace/` — scripts resolve to wrong location
-- ALL gate checks silently skipped. See collab_space/v10-critique-three-design-flaws.md.
