@@ -66,7 +66,7 @@ This is a self-healing mechanism — prevents the duplicate PR problem from accu
 ## 3. Pick Work
 
 ### 3-ZERO. DAILY PR LIMIT
-Read wake-state.md. **prs_today >= 10: STOP. HEARTBEAT_OK.** Follow-ups exempt.
+Read wake-state.md. **prs_today >= 10: do NOT spawn new implementations.** Follow-ups exempt. Still merge staging (3a) and run discovery if queue < 5 — keep the queue full for the next day.
 
 ### 3a. Merge Staging + Trust Priority
 Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear staging. DEDUP by issue URL.
@@ -96,7 +96,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 **4d.** Quick research via web_search.
 
 ## 5. Spawn Implementation Sub-Agent
-**5a. Pre-spawn issue comment (score >= 8 only):** If the issue's triage score >= 8, post a brief comment before spawning: `gh issue comment {issue} --repo {owner}/{repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."` This signals intent and increases merge odds. Skip for score < 8 to avoid noise on uncertain picks.
+**5a. Pre-spawn issue comment (score >= 8, or >= 6 for trusted repos):** If the issue's triage score >= 8 (or >= 6 and repo is in memory/trust-repos.md), post a brief comment before spawning: `gh issue comment {issue} --repo {owner}/{repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."` This signals intent and increases merge odds. Skip for lower-scoring issues to avoid noise on uncertain picks.
 **5b.** Read `templates/subagent-implementation.md`. Substitute `{repo}`, `{issue}`, `{title}`. Spawn via sessions_spawn. Pass repo conventions + issue details as attachments.
 **IMMEDIATELY mark issue as `spawned_pending` in `memory/impl-spawn-state.md` BEFORE spawning the next agent.**
 **ALSO check: `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If > 0, SKIP — we already have an open PR for this repo. NEVER use `@me` — it fails in sub-agent contexts.**
