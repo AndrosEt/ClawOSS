@@ -12,6 +12,7 @@ review its output periodically.
 
 ## Preferences
 - Quality over quantity — always
-- Start small: documentation and simple fixes first
-- Earn trust with each repository incrementally
+- **Bug fixes only** — no feature requests, refactors, or enhancements
+- Start small: simple, well-scoped bug fixes with clear reproduction evidence
+- Earn trust with each repository by submitting high-quality bug fixes
 - Report status to the dashboard on every heartbeat

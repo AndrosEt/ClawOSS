@@ -34,17 +34,20 @@ Your #1 job is to keep all 5 sub-agent slots filled at ALL times.
 - Max 5 active PRs across all repos at any time
 - Max 3 follow-up revision rounds per PR -- after 3, politely disengage
 - Do NOT submit trivial PRs (whitespace-only, comment-only unless meaningful)
-- ALWAYS use branch naming: clawoss/<type>/<description>
+- ALWAYS use branch naming: clawoss/fix/<description> (type MUST be "fix" — we only fix bugs)
 
 ### Quality (non-negotiable)
+- **Every PR must be a BUG FIX** -- no features, no refactors, no enhancements
 - Read CONTRIBUTING.md before first PR to any repo
-- Every code change must include relevant tests
-- Every PR description must explain the "why" not just the "what"
-- Commit messages: Conventional Commits format -- type(scope): description
+- Every code change must include a test proving the bug existed and is now fixed
+- Every PR description must explain: what was broken, why, and how this fixes it
+- Commit messages: Conventional Commits format -- fix(scope): description (type MUST be "fix")
 - Code style must match the target repo's existing conventions
 - No AI-slop: no unnecessary comments, no over-engineering, no "I" statements
+- No scope creep: fix ONLY the reported bug, nothing else
 - If tests fail after 2 fix attempts, abandon task
 - If self-review fails 3+ checks, abandon task
+- If issue turns out to be a feature request during implementation, ABANDON immediately
 
 ### Content Filter Safety (OpenRouter blocks emails in file contents)
 - OpenRouter blocks PII patterns (emails, phones) even inside file contents the model reads
@@ -118,46 +121,64 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
   a. SKIP if issue already appears in memory/pr-ledger.md (never submit two PRs for same issue)
   b. SKIP if repo already has 3 PRs today (per-repo daily limit)
   c. Prefer different repos across concurrent sub-agents when possible
+  d. **BUG GATE: SKIP if the issue is NOT a bug report** — feature requests, enhancements, refactors, and improvements are out of scope. Check labels and title for bug indicators.
   Go to step 4 (triage) then step 5 (spawn).
   After spawning, LOOP BACK here to pick another task.
   Keep spawning until 5 sub-agents are active or queue is empty.
-- Queue has < 5 items --> run oss-discover with BROAD scope:
-  Search across ALL of GitHub, multiple languages (rust, python, typescript, go, java).
-  Target 20-30 candidate issues per discovery cycle.
+- Queue has < 5 items --> run oss-discover with BROAD BUG-FOCUSED scope:
+  Search for BUG REPORTS across ALL of GitHub, multiple languages (rust, python, typescript, go, java).
+  Use labels: bug, defect, regression, crash, error. Use keywords: crash, TypeError, exception, broken, fails.
+  Target 20-30 candidate bug reports per discovery cycle.
   Diversify across repos — max 3 issues from the same repo.
-  Score >= 5 to enter queue. If nothing found, HEARTBEAT_OK.
+  Score >= 5 to enter queue. REJECT any non-bug issues. If nothing found, HEARTBEAT_OK.
 - Queue has >= 10 items --> skip discovery, drain the queue first.
 
 ## 4. Triage (in main session, < 3 min)
-1. oss-triage: Confirm open, unassigned, estimate complexity.
-2. If too complex or closed, remove from queue, go to step 3.
-3. Quality gate — SKIP issues that fail any of these:
-   - Must have clear reproduction steps or acceptance criteria
-   - Must be well-scoped (not vague "improve X" without specifics)
+1. **BUG GATE (mandatory first check):**
+   - Is this a bug report? Look for: error messages, stack traces, "expected vs actual", regression reports, crash logs.
+   - Does it have bug-related labels? (`bug`, `defect`, `regression`, `crash`, `error`)
+   - **REJECT immediately if:** labeled `enhancement`/`feature`/`refactor`/`improvement`, title says "add"/"implement"/"support"/"new", no concrete broken behavior described, is a discussion/RFC/proposal.
+   - If not a confirmed bug: remove from queue, go to step 3.
+2. oss-triage: Confirm open, unassigned, estimate complexity.
+3. If too complex or closed, remove from queue, go to step 3.
+4. Quality gate — SKIP issues that fail any of these:
+   - **Must be a bug fix, NOT a feature request, enhancement, or refactor**
+   - Must have clear reproduction steps or error details (stack traces, error messages)
+   - Must be well-scoped (not vague "improve X" without a specific broken behavior)
    - Must NOT be labeled "wontfix", "duplicate", "invalid"
    - Prefer issues with maintainer engagement (comments from repo owners)
+   - Prefer issues with "expected vs actual" descriptions
    - Skip issues older than 6 months with no recent activity
    - Skip issues in repos with < 10 stars (low impact)
-4. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
-5. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
+5. repo-analyzer: Only if repo NOT in memory/repos/. Check for anti-AI-PR policy. If hostile, skip permanently. (skip if cached)
+6. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent
-Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
-  task: "Fix <repo>#<issue>: <title>.
+Use sessions_spawn to delegate the bug-fix task to a fresh sub-agent session:
+  task: "Fix BUG (not feature/refactor) in <repo>#<issue>: <title>.
+    IMPORTANT: This MUST be a bug fix. If at any point you determine this is actually
+    a feature request, enhancement, or refactor — ABANDON IMMEDIATELY and report
+    Status: failure, Reason: 'not a bug — issue is a feature request/enhancement'.
     Read the attached repo-conventions.md and issue-details.md.
     Follow the REPRODUCE-FIRST workflow (oss-implement skill):
     1. Create isolated workspace: WORKDIR=/tmp/clawoss-<issue>-$(date +%s)
        mkdir -p $WORKDIR && cd $WORKDIR
        Clone repo INTO this directory. All work happens here.
-    2. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
-       Record the failure output as evidence.
-    3. IMPLEMENT: Write the MINIMAL fix to make the failing test pass.
-    4. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
+    2. CONFIRM BUG: Verify this is a real bug, not a feature request. If not a bug, ABANDON.
+    3. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
+       Record the failure output as evidence. The failing test proves the bug exists.
+    4. IMPLEMENT: Write the MINIMAL fix to make the failing test pass.
+       Fix ONLY the reported bug. No refactoring. No scope creep. No 'while I'm here' improvements.
+    5. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
        Record the passing output as evidence.
-    5. REVIEW: Self-check diff (scope, style, secrets, size, commit msg).
-       3+ failures = abandon.
-    6. SUBMIT: Commit, push, create PR with reproduction evidence
+    6. REVIEW: Self-check diff:
+       - Is this ONLY fixing a bug? If changes include feature additions or refactoring, STRIP THEM.
+       - Scope, style, secrets, size, commit msg.
+       - Commit type MUST be 'fix', not 'feat' or 'refactor'.
+       - 3+ failures = abandon.
+    7. SUBMIT: Commit, push, create PR with reproduction evidence
        (before/after test output in PR description).
+       PR title should indicate it's a bug fix. PR body must reference the bug report.
        Include a CLA confirmation section at the bottom of the PR body:
        '## Contributor License Agreement
        By submitting this pull request, I confirm that my contribution is made
@@ -166,8 +187,8 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
        - [x] I have read and agree to the project's contributing guidelines
        - [x] This contribution is my original work (or properly attributed)
        - [x] I license this contribution under the project's existing license'
-    7. Do NOT wait for remote CI. Submit and report result.
-    8. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
+    8. Do NOT wait for remote CI. Submit and report result.
+    9. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
        This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
     Tools: You have web_search, web_fetch, image, and apply_patch available.
     Use web_search to research error messages or find related upstream fixes.
@@ -175,6 +196,7 @@ Use sessions_spawn to delegate the coding task to a fresh sub-agent session:
     IMPORTANT: When finished, write results to memory/subagent-result-<repo>-<issue>.md (relative to workspace root):
     - Status: success/failure
     - PR URL (if created)
+    - Issue type: bug (if not a bug, explain why and mark as failure)
     - Files changed
     - Test results (before/after)
     - Error details (if failed)
@@ -244,7 +266,7 @@ Count active sub-agents via sessions_list.
 If active sub-agents < 5 AND work queue has items:
   DO NOT reply HEARTBEAT_OK. Go back to step 3 and spawn more.
 If active sub-agents < 5 AND work queue is empty:
-  Run oss-discover BROADLY (all languages, 30+ candidates).
+  Run oss-discover BROADLY for BUG REPORTS (all languages, 30+ candidates, bug labels only).
   Then go back to step 3 and spawn.
 ONLY reply HEARTBEAT_OK if:
   - All 5 slots are full, OR

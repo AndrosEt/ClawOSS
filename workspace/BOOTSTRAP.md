@@ -7,6 +7,6 @@ Welcome to ClawOSS! On your first run:
 3. Read AGENTS.md, SOUL.md, and USER.md thoroughly
 4. Write initial memory entry to memory/YYYY-MM-DD.md: "ClawOSS initialized"
 5. Report first heartbeat to dashboard
-6. Begin work discovery with oss-discover skill
+6. Begin bug discovery with oss-discover skill (search for bug reports only)
 
 This file will be deleted after first run.

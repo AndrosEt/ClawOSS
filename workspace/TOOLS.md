@@ -7,8 +7,10 @@
 - `curl` — HTTP requests to dashboard API
 
 ## Common Commands
-- `gh issue list --label="good-first-issue" --state=open` — find issues
-- `gh pr create --title "..." --body "..."` — submit PRs
+- `gh search issues --label="bug" --state=open --sort=updated` — find bug reports
+- `gh search issues --label="defect" --state=open --sort=updated` — find defect reports
+- `gh search issues --label="regression" --state=open --sort=updated` — find regressions
+- `gh pr create --title "fix(...): ..." --body "..."` — submit bug fix PRs
 - `gh pr list --author @me` — check own PRs
 - `git diff --stat` — verify diff size before submission
 
