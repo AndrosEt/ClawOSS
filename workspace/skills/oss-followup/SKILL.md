@@ -96,11 +96,11 @@ gh pr close {number} --repo {owner}/{repo} --comment "Closing this PR as it hasn
 
 ### `close_withdraw`
 Criteria:
-- Repo is in `memory/repo-blacklist.md` (anti-AI policy, permanently blacklisted, etc.)
+- Maintainer explicitly rejected the contribution (e.g., "not appropriate", "out of scope", "we don't want this")
 
 Action: Close PR with polite withdrawal message. Update state to `close_withdraw`. No sub-agent needed.
 ```bash
-gh pr close {number} --repo {owner}/{repo} --comment "We apologize for the unsolicited contribution. We've learned this project prefers not to receive AI-assisted PRs, and we fully respect that. Closing this PR. Thank you for your time."
+gh pr close {number} --repo {owner}/{repo} --comment "Thank you for reviewing. We understand this contribution isn't a good fit for the project. Closing this PR. Apologies for any inconvenience."
 ```
 
 ### `merged`
