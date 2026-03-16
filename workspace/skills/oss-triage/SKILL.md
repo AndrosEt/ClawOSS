@@ -56,15 +56,16 @@ gh pr list --repo {owner}/{repo} --state all --json comments,reviews --limit 20
 gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 ```
 
-**HARD SKIP if ANY of these are true:**
+**HARD SKIP if `scripts/repo-health-check.sh` exits 1.** The script checks (with tiered thresholds for large repos):
 - Stars < 200
 - No commits in last 2 weeks
 - 0 merged PRs in last 30 days
-- Avg merge time > 14 days
-- Review rate < 50%
-- 50+ open PRs
-- Anti-bot/anti-AI policy detected in CONTRIBUTING.md (grep for "no bot", "no ai generated", "human only")
-- CLA required — detected via `scripts/repo-health-check.sh` (checks .clabot, CLA workflows, CONTRIBUTING.md text, and known CLA orgs). We cannot sign CLAs, so PRs can never merge.
+- Avg merge time exceeds limit (14d for <5000 stars, 30d for 5000+)
+- Review rate below minimum (50% for <5000 stars, 30% for 5000+)
+- Open PRs exceed limit (50 for <5000 stars, 500 for 5000+, 1000 for 20000+)
+- Anti-bot/anti-AI policy in CONTRIBUTING.md
+- CLA required (known orgs + .clabot + CLA workflows + CONTRIBUTING.md text)
+- Forking disabled
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
@@ -145,6 +146,12 @@ Score each issue 1-25:
 - **+0** Created 7-14 days ago (acceptable)
 - **-3** Created 14-30 days ago (getting stale — low priority)
 - **SKIP** Created > 30 days ago
+
+### Trust Signal (MOST impactful — depth over breadth)
+- **+8** Repo is in memory/trust-repos.md (we've had successful interactions before)
+- **+5** Repo merged a previous PR from us (check pr-ledger.md)
+- **+3** Repo engaged positively with a previous PR (approved, constructive feedback)
+- **-5** Repo closed our PR without review in < 24h (check pr-ledger.md)
 
 ### Niche Fit (agentic AI repos = highest ROI)
 - **+5** Repo is in the agentic AI / LLM niche (langchain, autogen, crewai, llama-index,

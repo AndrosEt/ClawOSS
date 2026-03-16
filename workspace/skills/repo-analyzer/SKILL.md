@@ -32,7 +32,7 @@ gh api repos/{owner}/{repo} --jq '.pushed_at'
 gh pr list --repo {owner}/{repo} --state merged --json mergedAt,createdAt --limit 10
 ```
 - Calculate average days from created to merged for the last 10 merged PRs
-- **SKIP** if avg merge time > 14 days — too slow, our PR will sit for weeks
+- **SKIP** if avg merge time exceeds tiered limit (14d for <5000 stars, 30d for 5000+)
 - **SKIP** if zero merged PRs in the last 30 days — repo is not merging anything
 - **+5 score** if avg merge time < 3 days (fast reviewers)
 - **+3 score** if avg merge time < 7 days (responsive)
@@ -49,9 +49,12 @@ gh pr list --repo {owner}/{repo} --state all --json comments,reviews,createdAt -
 
 ### 4. Open PR Backlog (is the repo overwhelmed?)
 ```bash
-gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
+gh api "/search/issues?q=is:pr+is:open+repo:{owner}/{repo}&per_page=1" --jq '.total_count'
 ```
-- **SKIP** if 50+ open PRs — the repo is overwhelmed, our PR will be buried
+Tiered limits (large repos have higher PR volume — a flat limit rejects healthy mega-repos):
+- **20000+ stars**: SKIP if 1000+ open PRs
+- **5000+ stars**: SKIP if 500+ open PRs
+- **<5000 stars**: SKIP if 50+ open PRs
 - **SKIP** if 30+ open PRs AND avg merge time > 7 days — queue is growing, not draining
 
 ### 5. Stars + Contributors (is this an established project?)
@@ -59,8 +62,8 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count}'
 gh api repos/{owner}/{repo}/contributors --jq 'length'
 ```
-- **SKIP** if < 200 stars — low-impact repo, not worth our time (raised from 50)
-- **SKIP** if < 5 contributors — bus-factor risk, single maintainer may vanish
+- **SKIP** if < 200 stars — low-impact repo, not worth our time
+- **-2 score** if < 5 contributors — bus-factor risk, single maintainer may vanish
 
 ### 6. Niche Fit (golden niche = agentic AI repos)
 Our highest-value targets are agentic AI / LLM framework repos. Check repo description and topics:
@@ -97,10 +100,11 @@ Check for presence of:
 A repo **MUST pass ALL** of these to be eligible:
 1. Stars >= 200
 2. Last commit within 2 weeks
-3. Avg merge time < 14 days AND at least 1 merged PR in last 30 days
-4. Review rate > 50%
-5. Open PR count < 50
-6. Contributors >= 5
+3. Avg merge time within tiered limit (14d for <5000 stars, 30d for 5000+) AND at least 1 merged PR in last 30 days
+4. Review rate within tiered limit (50% for <5000 stars, 30% for 5000+)
+5. Open PR count within tiered limit (50 for <5000 stars, 500 for 5000+, 1000 for 20000+)
+6. No CLA requirement (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama)
+7. No anti-bot policy in CONTRIBUTING.md
 
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
