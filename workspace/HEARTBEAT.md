@@ -19,12 +19,24 @@ Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work
 
 **2a. ALWAYS scan ALL open PRs every cycle** (do NOT skip, do NOT rely on crons):
 Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then check EVERY open PR for reviews AND issue comments — not just the top 5:
+Batch check using this pattern (5 PRs per batch for efficiency):
 ```bash
-# For EACH open PR, check BOTH endpoints:
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --jq '.[] | {state, user: .user.login, submitted_at}'
-gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[-3:] | .[] | {user: .user.login, created_at, body}'
+# BATCH 1: Check pulls/reviews for formal review decisions
+for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
+  IFS=':' read -r repo num <<< "$pr_info"
+  echo "=== $repo #$num ==="
+  gh api repos/$repo/pulls/$num/reviews --jq '.[] | {state, user: .user.login}' 2>/dev/null
+done
+
+# BATCH 2: ALWAYS check issues/comments SEPARATELY — this is where maintainer questions live
+# DO NOT SKIP THIS even if reviews returned empty
+for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
+  IFS=':' read -r repo num <<< "$pr_info"
+  echo "=== $repo #$num ==="
+  gh api repos/$repo/issues/$num/comments --jq '.[-3:] | .[] | select(.user.login | test("bot$") | not) | {user: .user.login, body: (.body | .[0:200])}' 2>/dev/null
+done
 ```
-CRITICAL: Reviews (CHANGES_REQUESTED, APPROVED) appear in the `pulls/reviews` endpoint. Maintainer questions and feedback appear in the `issues/comments` endpoint. You MUST check BOTH — missing a CHANGES_REQUESTED or a maintainer question costs more than the API calls.
+CRITICAL: Maintainer questions (e.g. "are you an AI?", "what CLA did you sign?", "this was already fixed") appear ONLY in `issues/comments`, NOT in `pulls/reviews`. If you only check reviews, you will miss all human feedback that isn't a formal review. The issues/comments batch is MANDATORY — run it for ALL PRs even if reviews found nothing.
 ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron contexts.
 **Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) maintainer questions/comments needing response, 4) ci_failing.
 

@@ -57,6 +57,11 @@ Follow the oss-pr-review-handler skill workflow:
     Close the PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
     Mark as already_fixed_upstream. Do NOT argue or ask for merge anyway.
 
+10d. CLA RULE (HONESTY — never lie): If a reviewer asks about CLA and the repo does NOT require one,
+    respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed."
+    Do NOT claim to have signed a CLA you didn't sign. If the repo DOES require a CLA we can't sign,
+    close the PR politely: "Apologies — we're unable to complete the CLA process. Closing this PR."
+
 11. If round 3: post polite disengagement message, do NOT close PR yourself
 
 12. Write results to memory/subagent-result-followup-{repo}-{pr}.md

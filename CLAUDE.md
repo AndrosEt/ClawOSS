@@ -28,7 +28,7 @@ ClawOSS is an autonomous OpenClaw agent configuration that discovers GitHub issu
 - The agent targets merge-optimized contributions: bug fixes, docs fixes, typo fixes, test additions. No features, refactors, or architectural changes.
 - Mix: 60% easy wins (docs, typos, tests) + 40% substantive bug fixes at responsive repos
 - Prioritize issues < 3 days old, skip > 30 days old
-- Only contribute to healthy repos: 500+ stars, active maintenance, responsive reviewers
+- Only contribute to healthy repos: 200+ stars, active maintenance, responsive reviewers
 - Sub-agents must deeply understand repo architecture before implementing fixes
 - All GitHub communication via `gh` CLI
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`

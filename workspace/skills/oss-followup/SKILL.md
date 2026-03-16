@@ -142,11 +142,19 @@ Action: Close PR with polite withdrawal message. Update state to `close_withdraw
 gh pr close {number} --repo {owner}/{repo} --comment "Thank you for reviewing. We understand this contribution isn't a good fit for the project. Closing this PR. Apologies for any inconvenience."
 ```
 
+### `maintainer_question`
+Criteria:
+- Maintainer asks a direct question (e.g., "are you an AI?", "what CLA did you sign?", "can you explain X?")
+- No code change requests — just a question needing a response
+
+Action: Respond directly in the main session — no sub-agent needed. Keep response brief and honest. Update `last_checked` timestamp.
+**CLA questions specifically**: If asked "what CLA did you sign?" and the repo does NOT require a CLA, respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed." Do NOT claim to have signed a CLA you didn't sign. If the repo DOES require a CLA we can't sign, close the PR politely.
+
 ### `merged`
 Criteria:
 - PR state is merged (won't appear in `--state open`, but check explicitly if needed)
 
-Action: Update state to `merged`. Log success.
+Action: Update state to `merged`. Log success. **Update memory/trust-repos.md — a merge is the strongest trust signal.**
 
 ### `no_new_activity`
 Criteria:

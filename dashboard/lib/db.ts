@@ -43,7 +43,7 @@ async function initSchema(): Promise<void> {
       created_at INTEGER NOT NULL, merged_at INTEGER,
       closed_at INTEGER, additions INTEGER DEFAULT 0,
       deletions INTEGER DEFAULT 0, files_changed INTEGER DEFAULT 0,
-      review_count INTEGER DEFAULT 0, html_url TEXT, metadata TEXT
+      review_count INTEGER DEFAULT 0, html_url TEXT, pr_type TEXT, metadata TEXT
     )`,
     `CREATE TABLE IF NOT EXISTS pr_reviews (
       id TEXT PRIMARY KEY, pr_id TEXT NOT NULL,
@@ -105,10 +105,26 @@ async function initSchema(): Promise<void> {
       key TEXT PRIMARY KEY, value TEXT NOT NULL,
       updated_at INTEGER NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS autonomy_snapshots (
+      id TEXT PRIMARY KEY, timestamp INTEGER NOT NULL,
+      score INTEGER NOT NULL, total_prs INTEGER,
+      merged_prs INTEGER, duplicate_count INTEGER,
+      oversized_count INTEGER, wasted_count INTEGER,
+      prompt_gaps INTEGER, metadata TEXT
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_autonomy_ts ON autonomy_snapshots(timestamp DESC)`,
   ];
 
   for (const stmt of statements) {
     await client.execute(stmt);
+  }
+
+  // Migrations: add columns that may not exist on older DBs
+  const migrations = [
+    `ALTER TABLE pull_requests ADD COLUMN pr_type TEXT`,
+  ];
+  for (const m of migrations) {
+    try { await client.execute(m); } catch { /* column already exists */ }
   }
 
 }

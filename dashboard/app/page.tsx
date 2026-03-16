@@ -11,6 +11,11 @@ import { RepoHealthPanel } from "@/components/overview/repo-health-panel";
 import { StalePRPanel } from "@/components/overview/stale-pr-panel";
 import { PRTypeBreakdown } from "@/components/overview/pr-type-breakdown";
 import { PRSizeHistogram } from "@/components/overview/pr-size-histogram";
+import { AutonomyHealthPanel } from "@/components/overview/autonomy-health-panel";
+import { PostMergeHealthPanel } from "@/components/overview/post-merge-health-panel";
+import { VelocityTimeline } from "@/components/overview/velocity-timeline";
+import { ResponseTimePanel } from "@/components/overview/response-time-panel";
+import { AlertsBanner } from "@/components/overview/alerts-banner";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -142,6 +147,8 @@ export default function OverviewPage() {
 
         {data?.agentStatus && <AgentStatusCard status={data.agentStatus} />}
 
+        <AlertsBanner />
+
         <MetricCards
           totalPRs={data?.stats?.totalPRs || 0}
           mergeRate={data?.stats?.mergeRate || 0}
@@ -150,8 +157,16 @@ export default function OverviewPage() {
           costToday={data?.stats?.costToday || 0}
           funnel={data?.funnel}
           costPerMerge={data?.stats?.costPerMerge || 0}
+          tokensPerMerge={data?.stats?.tokensPerMerge || 0}
           avgHoursToReview={data?.stats?.avgHoursToReview}
         />
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <AutonomyHealthPanel />
+          <PostMergeHealthPanel />
+        </div>
+
+        <VelocityTimeline />
 
         <RepoHealthPanel />
 
@@ -160,7 +175,10 @@ export default function OverviewPage() {
           <StalePRPanel />
         </div>
 
-        <PRSizeHistogram />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <PRSizeHistogram />
+          <ResponseTimePanel />
+        </div>
 
         {/* Pipeline telemetry bar */}
         {connectionData && (

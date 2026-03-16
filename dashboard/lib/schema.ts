@@ -144,3 +144,16 @@ export const settings = sqliteTable("settings", {
   value: text("value", { mode: "json" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
+
+export const autonomySnapshots = sqliteTable("autonomy_snapshots", {
+  id: text("id").primaryKey(),
+  timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
+  score: integer("score").notNull(),
+  totalPrs: integer("total_prs"),
+  mergedPrs: integer("merged_prs"),
+  duplicateCount: integer("duplicate_count"),
+  oversizedCount: integer("oversized_count"),
+  wastedCount: integer("wasted_count"),
+  promptGaps: integer("prompt_gaps"),
+  metadata: text("metadata", { mode: "json" }),
+});

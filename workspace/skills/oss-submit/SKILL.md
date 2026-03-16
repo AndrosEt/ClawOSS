@@ -85,7 +85,8 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
    - **Test additions**: what's tested + why it matters (2-3 sentences total)
    - References: "Fixes #<issue-number>" in body
 5. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
-6. Log submission to memory: repo, issue, PR number, timestamp, contribution type
+6. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo does require a CLA, you should have skipped it during triage (CLA-required orgs are hard-skipped).
+7. Log submission to memory: repo, issue, PR number, timestamp, contribution type
 7. Report to dashboard via dashboard-reporter skill
 
 ## Post-Submission

@@ -23,7 +23,7 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
 - Max 10 PRs/day, max 3 per repo/day, 30-min gap between same-repo PRs
-- Max 5 active PRs across all repos at any time
+- Max 5 concurrent sub-agents (implementation + follow-up combined)
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting

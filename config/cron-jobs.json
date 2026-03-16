@@ -7,7 +7,7 @@
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Run oss-discover in batch mode. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for cached health results and skip repos that fail the health gate.",
+      "message": "Run oss-discover in batch mode. Check memory/trust-repos.md FIRST — search trusted repos before broad queries. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). HARD REQUIREMENTS: repos must have >= 200 stars, active development, not CLA-required (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama). Max 3 NEW repos per day. Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for cached health results and skip repos that fail the health gate.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }

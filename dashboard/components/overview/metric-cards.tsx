@@ -19,6 +19,7 @@ interface MetricCardsProps {
   costToday: number;
   funnel?: FunnelData;
   costPerMerge?: number;
+  tokensPerMerge?: number;
   avgHoursToReview?: number | null;
 }
 
@@ -106,6 +107,7 @@ export function MetricCards({
   costToday,
   funnel,
   costPerMerge,
+  tokensPerMerge,
   avgHoursToReview,
 }: MetricCardsProps) {
   const mergeColor =
@@ -144,6 +146,13 @@ export function MetricCards({
       sub: costPerMerge && costPerMerge > 0 ? "avg cost per merged PR" : null,
       bar: { value: costPerMerge || 0, max: 10 },
       barColor: "bg-amber-500/40",
+    },
+    {
+      label: "Tok/Merge",
+      value: tokensPerMerge && tokensPerMerge > 0 ? formatTokens(tokensPerMerge) : "--",
+      sub: tokensPerMerge && tokensPerMerge > 0 ? "efficiency metric" : null,
+      bar: { value: Math.min((tokensPerMerge || 0) / 1000, 500), max: 500 },
+      barColor: "bg-violet-500/40",
     },
     {
       label: "Review Time",
@@ -215,6 +224,7 @@ export function MetricCards({
             <div className="relative h-3 mt-2">
               <div className="absolute inset-x-0 top-1 h-[1px] bg-foreground/[0.04]" />
               {[
+                { label: "AI avg", pct: 32.7, color: "text-muted-foreground/25" },
                 { label: "Copilot", pct: 35, color: "text-muted-foreground/30" },
                 { label: "Devin", pct: 49, color: "text-muted-foreground/40" },
                 { label: "Codex", pct: 64, color: "text-emerald-400/40" },
@@ -297,7 +307,7 @@ export function MetricCards({
       </div>
 
       {/* Secondary metrics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         {cards.map((card) => (
           <Card key={card.label} className="metric-card card-lift">
             <CardContent className="p-4 pb-3">
