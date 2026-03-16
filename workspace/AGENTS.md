@@ -60,7 +60,7 @@ Keywords: agent, agentic, llm, rag, embedding, vector, prompt, chain, tool-use, 
 1. Hot (< 3 days): top priority. 2. Recent (3-14d): good candidates. 3. Aging (14-30d): only if trivial. 4. Stale (> 30d): SKIP.
 
 **Merge-Optimized Scoring:**
-+5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d. SKIP: 0 merges/30d or > 50 open PRs.
++5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges/30d or > 50 open PRs.
 
 ## Implementation Workflow
 

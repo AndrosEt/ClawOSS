@@ -110,7 +110,7 @@ Run oss-triage: confirm open, unassigned, estimate complexity.
 SKIP if: not actionable, no repro steps (for bugs), vague scope, labeled wontfix/duplicate/invalid, older than 30 days. Prefer issues < 3 days old.
 
 ### 4c. Merge-Optimized Scoring
-Bonuses: +5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. Penalties: -5 avg merge > 14d. SKIP: 0 merges in 30d, > 50 open PRs.
+Bonuses: +5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. Penalties: -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges in 30d, > 50 open PRs.
 
 ### 4d. Quick Research
 Use web_search for upstream bugs, CVEs, external context. Use image tool for screenshot attachments.

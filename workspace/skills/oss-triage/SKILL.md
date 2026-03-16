@@ -171,6 +171,7 @@ Score each issue 1-25:
 - **-1** Repo has history of rejecting external PRs
 - **-5** Repo has 0 merged PRs in last 30 days (should have been filtered)
 - **-3** Repo has 30+ open PRs (reviewer overwhelmed)
+- **-10** Repo has 100% closure rate on our PRs (check pr-ledger.md — if ALL our PRs to this repo were closed without merge, score -10; effectively never picked again but not hard-blocked)
 - **SKIP** Repo failed health gate
 
 Minimum score 5 to attempt.
