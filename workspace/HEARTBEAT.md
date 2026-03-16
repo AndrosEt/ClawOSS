@@ -8,7 +8,7 @@ Keep all 5 sub-agent slots filled. Follow-ups FIRST, then new work.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 
 ## 0. Health Checks
-**0a. Context**: Call session_status. >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
+**0a. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
 **0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
 
 ## 1. Stall Recovery
