@@ -62,7 +62,7 @@ These are verified high-star, actively-maintained repos in our niche. The agent 
 Always run `scripts/repo-health-check.sh` before targeting — this list is not a bypass.
 
 **Agent Frameworks & Orchestration (highest value):**
-langchain-ai/langchain, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
+langchain-ai/langchain *(requires issue assignment — comment first)*, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
 langgenius/dify, langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0,
 CopilotKit/CopilotKit, elizaOS/eliza, SWE-agent/SWE-agent
 *(CLA-blocked: microsoft/autogen, microsoft/semantic-kernel, deepset-ai/haystack, google/adk-python)*

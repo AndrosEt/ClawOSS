@@ -72,6 +72,14 @@ Read the attached repo-conventions.md and issue-details.md.
    If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr_other: existing PR from another contributor`.
    This avoids competing with existing PRs (atuin #3272 was closed because another contributor had it first).
 
+1d. CHECK ISSUE READINESS:
+   Read the last 5 comments on the issue: `gh api repos/{repo}/issues/{issue}/comments --jq '.[-5:] | .[] | {user: .user.login, body: .body[:200]}'`
+   ABANDON if:
+   - Maintainer said "won't fix", "by design", "not a bug", "duplicate", "already fixed"
+   - Active design discussion still happening (people debating approach) — wait, don't jump in
+   - Issue was closed then reopened (controversial)
+   - Maintainer explicitly assigned the issue to someone else
+
 2. CLASSIFY & CONFIRM: Read the issue title and body. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
    - **docs-fix**: incorrect/outdated documentation

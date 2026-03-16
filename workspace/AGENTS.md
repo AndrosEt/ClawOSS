@@ -34,7 +34,12 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 **Non-main default branches** (gh api will detect these, but know them in advance):
 - `dlt-hub/dlt` targets `devel`
 - `allegroai/clearml` targets `master`
+- `open-webui/open-webui` targets `dev` (PRs to `main` are auto-rejected by bot)
 - Always verify with `gh api repos/{owner}/{repo} --jq '.default_branch'`
+
+**Repos requiring issue assignment** (auto-close unassigned PRs):
+- `langchain-ai/langchain` — comment on issue FIRST to get assigned, then submit PR
+- If repo has "require-issue-link" bot, self-assign or comment before PR creation
 
 **CLA-required orgs** (HARD SKIP — we cannot sign CLAs, PRs will never merge):
 - `deepset-ai` (haystack) — CLA-assistant bot
