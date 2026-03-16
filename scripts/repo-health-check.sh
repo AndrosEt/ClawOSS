@@ -65,7 +65,8 @@ REPO_DATA=$(gh api "repos/${REPO}" --jq '{
   pushed_at: .pushed_at,
   description: (.description // ""),
   topics: (.topics // []),
-  archived: .archived
+  archived: .archived,
+  allow_forking: .allow_forking
 }' 2>/dev/null || echo '{}')
 
 if [ "$REPO_DATA" = '{}' ]; then
@@ -77,10 +78,19 @@ PUSHED_AT=$(echo "$REPO_DATA" | jq -r '.pushed_at // ""')
 DESCRIPTION=$(echo "$REPO_DATA" | jq -r '.description // ""' | tr '[:upper:]' '[:lower:]')
 TOPICS=$(echo "$REPO_DATA" | jq -r '.topics // [] | join(" ")' | tr '[:upper:]' '[:lower:]')
 ARCHIVED=$(echo "$REPO_DATA" | jq -r '.archived // false')
+ALLOW_FORKING=$(echo "$REPO_DATA" | jq -r '.allow_forking // true')
 
 # ─── 0. Archived check ───
 if [ "$ARCHIVED" = "true" ]; then
   fail "repo is archived" "repo_health_fail: archived"
+fi
+
+# ─── 0b. Fork restriction check ───
+# GitHub allows repos to disable forking, which blocks external PRs entirely.
+# Also covers the Feb 2026 "restrict PRs to collaborators" setting indirectly —
+# if we can't fork, we can't submit PRs.
+if [ "$ALLOW_FORKING" = "false" ]; then
+  fail "forking disabled — cannot submit PRs" "repo_health_fail: forking disabled"
 fi
 
 # ─── 1. Stars ───
@@ -262,13 +272,27 @@ if [ -n "$CONTRIBUTING" ]; then
 fi
 
 # ─── 7b. CLA requirement detection ───
-# Repos requiring CLA that BillionClaw hasn't signed waste full implementation cycles
+# Repos requiring CLA that BillionClaw can't sign waste full implementation cycles.
+# Hard-fail: a PR that can never merge is worse than no PR at all.
 HAS_CLA=false
-CLABOT=$(gh api "repos/${REPO}/contents/.clabot" --jq '.content' 2>/dev/null || echo "")
-if [ -n "$CLABOT" ]; then
-  HAS_CLA=true
+
+# Known CLA-required orgs (maintained list — add orgs as we discover them)
+CLA_ORGS="deepset-ai iterative Aider-AI milvus-io apache microsoft google meta-llama"
+for org in $CLA_ORGS; do
+  if [ "$OWNER" = "$org" ]; then
+    HAS_CLA=true
+    break
+  fi
+done
+
+# Check for .clabot file
+if [ "$HAS_CLA" = "false" ]; then
+  CLABOT=$(gh api "repos/${REPO}/contents/.clabot" --jq '.content' 2>/dev/null || echo "")
+  if [ -n "$CLABOT" ]; then
+    HAS_CLA=true
+  fi
 fi
-# Also check for CLA GitHub Actions
+# Check for CLA GitHub Actions
 if [ "$HAS_CLA" = "false" ]; then
   CLA_ACTION=$(gh api "repos/${REPO}/contents/.github/workflows" \
     --jq '[.[] | select(.name | test("cla"; "i"))] | length' 2>/dev/null || echo "0")
@@ -276,9 +300,15 @@ if [ "$HAS_CLA" = "false" ]; then
     HAS_CLA=true
   fi
 fi
+# Check CONTRIBUTING.md for CLA mentions
+if [ "$HAS_CLA" = "false" ] && [ -n "$CONTRIB_TEXT" ]; then
+  if echo "$CONTRIB_TEXT" | grep -qiE "contributor license agreement|sign.*(cla|contributor agreement)|cla.*(required|must|need)"; then
+    HAS_CLA=true
+  fi
+fi
 if [ "$HAS_CLA" = "true" ]; then
-  warnings+=("CLA required — may block merge without signing")
-  score=$((score - 2))  # penalize but don't hard-fail (some CLAs are auto-signed)
+  reasons+=("CLA required — BillionClaw cannot sign CLAs, PR can never merge")
+  fail "CLA required" "repo_health_fail: CLA required, cannot sign"
 fi
 
 # ─── 8. Niche fit (agentic AI) ───
@@ -339,6 +369,7 @@ cat <<ENDJSON
     "external_merges": ${EXTERNAL_MERGES},
     "niche_fit": ${NICHE_FIT},
     "archived": ${ARCHIVED},
+    "allow_forking": ${ALLOW_FORKING},
     "has_ci": $([ "$HAS_CI" -gt 0 ] && echo true || echo false),
     "has_contributing": ${HAS_CONTRIBUTING},
     "has_cla": ${HAS_CLA},
