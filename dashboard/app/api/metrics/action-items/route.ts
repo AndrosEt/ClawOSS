@@ -152,34 +152,7 @@ export async function GET() {
       });
     }
 
-    // P0: CLA honesty — detect if PRs falsely claim CLA compliance
-    let claBotCount = 0;
-    try {
-      const claReviews = await db
-        .select({ prId: prReviews.prId, reviewer: prReviews.reviewer, body: prReviews.body })
-        .from(prReviews);
-      const claPrIds = new Set<string>();
-      for (const rev of claReviews) {
-        const isClaBot = /cla/i.test(rev.reviewer) || /cla.*not.*signed|sign.*cla|contributor.*license/i.test(rev.body || "");
-        if (isClaBot) claPrIds.add(rev.prId);
-      }
-      claBotCount = claPrIds.size;
-    } catch {
-      // non-critical
-    }
-
-    if (claBotCount > 0) {
-      items.push({
-        id: "fix-cla-honesty",
-        priority: "P0",
-        category: "tooling",
-        title: "Fix CLA handling — never claim CLA compliance unless repo requires it",
-        problem: `${claBotCount} PR(s) were flagged by CLA bots. The agent must ONLY mention CLA if the repo explicitly requires one. Falsely claiming CLA compliance is dishonest and gets PRs rejected.`,
-        suggestedFix: "Update PR templates (subagent-implementation.md, oss-submit SKILL.md, pr-template.md): Remove any hardcoded CLA checkbox. Before submitting, check CONTRIBUTING.md for CLA requirement. If no CLA required, do NOT mention CLA at all.",
-        impactEstimate: "Eliminates dishonest claims, prevents automatic CLA rejections",
-        dataPoint: `${claBotCount} PRs blocked by CLA bots`,
-      });
-    }
+    // Note: CLA is no longer flagged — agent now signs CLAs automatically
 
     // P1: High close rate — rework instead of abandoning
     if (total >= 10 && closed / total > 0.3) {
@@ -189,7 +162,7 @@ export async function GET() {
         category: "quality",
         title: "Rework closed PRs instead of abandoning them",
         problem: `${closed}/${total} PRs (${Math.round((closed / total) * 100)}%) were closed without merge. Many of these could be salvaged by addressing feedback and reopening.`,
-        suggestedFix: "Implement rework pipeline: when a PR is closed with feedback, spawn a follow-up subagent to rework with a different approach and force-push to the same branch. Never give up on a PR unless fundamentally invalid (wrong repo, feature not bug fix, CLA required).",
+        suggestedFix: "Implement rework pipeline: when a PR is closed with feedback, spawn a follow-up subagent to rework with a different approach and force-push to the same branch. Never give up on a PR unless fundamentally invalid (wrong repo, feature not bug fix).",
         impactEstimate: "Converting even 20% of closed PRs to merges would significantly boost merge rate",
         dataPoint: `${closed} closed PRs (${Math.round((closed / total) * 100)}% close rate)`,
       });

@@ -129,8 +129,6 @@ export interface DashboardSettings {
     onAgentOffline: boolean;
   };
   dailyBudgetUsd: number;
-  maxPRsPerDay: number;
-  maxPRsPerRepoPerDay: number;
 }
 
 export interface ConversationMessage {
@@ -222,9 +220,7 @@ export interface DashboardOverview {
   recentPRs: PullRequestSummary[];
   dailyBudget: {
     dailyPRs: number;
-    dailyLimit: number;
     perRepo: Record<string, number>;
-    repoLimit: number;
   };
 }
 

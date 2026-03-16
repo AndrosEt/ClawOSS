@@ -21,8 +21,6 @@ const DEFAULT_SETTINGS: DashboardSettings = {
     onAgentOffline: true,
   },
   dailyBudgetUsd: 50,
-  maxPRsPerDay: 10,
-  maxPRsPerRepoPerDay: 3,
 };
 
 export async function GET() {

@@ -142,3 +142,37 @@ No `scout-report-*.md` files were generated during the V9 run. The scout system 
 | AI identity deflection | MISSING | **Needs prompt fix — see Issue 1** |
 | python3 specification | MISSING | **Needs prompt fix — see Issue 3** |
 | Model fallback | MISSING | **Needs config fix — see Issue 6** |
+
+---
+
+## Full PR Review Scan (all 46 open PRs checked 2026-03-17)
+
+### APPROVED (merge-ready)
+| PR | Repo | Reviewer | Notes |
+|----|------|----------|-------|
+| #14875 | ollama/ollama | guicybercode | APPROVED. Mergeable but CI blocked (0 check runs — needs maintainer trigger) |
+| #21025 | run-llama/llama_index | logan-markewich | APPROVED by core maintainer. Same CI situation. **Highest-value merge candidate.** |
+
+### CHANGES_REQUESTED (need follow-up)
+| PR | Repo | Reviewer | Notes |
+|----|------|----------|-------|
+| #3102 | huggingface/peft | BenjaminBossan | Requested signature change + test. BillionClaw already responded. Awaiting re-review. Reviewer said "I had a very similar solution" — aligned on approach. |
+| #39919 | tenstorrent/tt-metal | jbaumanTT | "If you don't have access to tenstorrent chips, it doesn't make sense to submit." **TERMINAL — close with acknowledgment.** |
+
+### MAINTAINER FEEDBACK (need response)
+| PR | Repo | Commenter | Notes |
+|----|------|-----------|-------|
+| #1394 | manaflow-ai/cmux | wobondar | Positive: "fixes one real part...looks right to me...probably completes the cmux-side reorder fix." Partial fix acknowledged. **TRUSTED REPO — previously merged.** High priority follow-up. |
+| #1404 | crosspoint-reader/crosspoint-reader | znelson, jpirnay | Made competing #1405, asking questions about approach. Needs engagement. |
+
+### NO REVIEWS YET (33 PRs)
+All other PRs have zero reviews or comments (excluding bots). Most are < 3 days old — normal review timeline.
+
+### Priority Follow-Up Queue (for agent restart)
+1. Merge ollama #14875 (approved)
+2. Merge llama_index #21025 (approved)
+3. Respond to cmux #1394 (trusted repo, positive feedback)
+4. Check peft #3102 re-review status
+5. Close tt-metal #39919 (can't test on hardware)
+6. Engage crosspoint-reader #1404 discussion
+7. Close 12 dead-weight PRs (CLA + low-star)

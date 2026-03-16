@@ -149,7 +149,7 @@ Criteria:
 - No code change requests — just a question needing a response
 
 Action: Respond directly in the main session — no sub-agent needed. Keep response brief and honest. Update `last_checked` timestamp.
-**CLA questions specifically**: If asked "what CLA did you sign?" and the repo does NOT require a CLA, respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed." Do NOT claim to have signed a CLA you didn't sign. If the repo DOES require a CLA we can't sign, close the PR politely.
+**CLA questions specifically**: If asked "what CLA did you sign?" and the repo does NOT require a CLA, respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed." If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`). Do NOT claim to have signed a CLA you didn't sign — complete the signing process first, then confirm.
 
 ### `merged`
 Criteria:

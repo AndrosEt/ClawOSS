@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { useStalePRs, type StalePR } from "@/lib/hooks/use-stale-prs";
 
 const recConfig = {
-  close: {
-    label: "CLOSE",
-    color: "text-red-400 border-red-500/25 bg-red-500/8",
-    description: "No human engagement, close to reduce spam footprint",
+  rework: {
+    label: "REWORK",
+    color: "text-orange-400 border-orange-500/25 bg-orange-500/8",
+    description: "No engagement — rework with a different approach",
   },
   followup: {
     label: "FOLLOW UP",
@@ -107,14 +107,14 @@ export function StalePRPanel() {
     <Card className="metric-card card-lift">
       <CardHeader>
         <CardTitle className="text-sm font-medium flex items-center justify-between">
-          <span>Stale PR Cleanup</span>
+          <span>Stale PR Rework</span>
           <div className="flex items-center gap-2">
-            {summary && summary.close > 0 && (
+            {summary && summary.rework > 0 && (
               <Badge
                 variant="outline"
-                className="text-[10px] h-4 px-1.5 font-mono text-red-400 border-red-500/25"
+                className="text-[10px] h-4 px-1.5 font-mono text-orange-400 border-orange-500/25"
               >
-                {summary.close} to close
+                {summary.rework} to rework
               </Badge>
             )}
             {summary && summary.followup > 0 && (

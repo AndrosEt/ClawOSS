@@ -39,10 +39,11 @@ Read the attached repo-conventions.md and issue-details.md.
    Clone repo INTO this directory (shallow clone to save time/disk):
    `gh repo clone {repo} $WORKDIR -- --depth=50`
    All work happens here.
+   **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
 
 1a. FULL HEALTH CHECK (HARD GATE — run before ANY work):
    ```bash
-   # Run the full health check script — checks stars, merge velocity, CLA, anti-bot, review rate
+   # Run the full health check script — checks stars, merge velocity, anti-bot, review rate
    bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {repo}
    if [ $? -ne 0 ]; then
      echo "ABORT: repo health check failed for {repo}"
@@ -57,16 +58,26 @@ Read the attached repo-conventions.md and issue-details.md.
    [ "$STARS" -lt 200 ] && echo "ABORT: $STARS stars (<200)" && rm -rf $WORKDIR && exit 1
    ```
 
-1b. READ REPO GUIDELINES:
-   Check for CONTRIBUTING.md and AGENTS.md in the repo root.
-   - CONTRIBUTING.md: follow its style/process/commit conventions
-   - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
-   If CONTRIBUTING.md requires a CLA you cannot sign, ABANDON with reason `cla_required`.
+1b. READ REPO GUIDELINES (MANDATORY — repos close PRs that ignore these):
+   **BEFORE writing any code**, read these files thoroughly:
+   ```bash
+   # Check for contribution guidelines
+   for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md AGENTS.md; do
+     gh api "repos/{repo}/contents/$f" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null && echo "=== Found: $f ==="
+   done
+   ```
 
-   **CLA ORG HARD REJECT (defense-in-depth):** Extract the repo owner from {repo}.
-   If the owner is ANY of: `deepset-ai`, `iterative`, `Aider-AI`, `milvus-io`, `apache`,
-   `microsoft`, `google`, `meta-llama`, `BerriAI` — ABANDON with reason `cla_required: org requires CLA`.
-   We cannot sign CLAs, so PRs to these orgs can NEVER merge.
+   **You MUST follow every requirement in CONTRIBUTING.md**, including:
+   - Code style, linting, formatting requirements
+   - Commit message conventions (some repos require specific formats)
+   - PR template requirements (fill out their template, not ours)
+   - Branch naming conventions (some repos have their own)
+   - Test requirements (some require specific test frameworks or patterns)
+   - **AI disclosure policy**: If the repo has an AI policy, follow it EXACTLY. Some repos require explicit AI disclosure in a specific format. Search CONTRIBUTING.md for "AI", "bot", "automated", "generated". If they require disclosure, add it in their specified format.
+   - **CLA/DCO**: If required, sign it. CLA-assistant: click the bot link. DCO: use `git commit -s` to add Signed-off-by.
+   - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
+
+   **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.** This has happened (qdrant closed our PR for ignoring contribution guides). Read it. Follow it. No exceptions.
 
 1c. PR CONFLICT & SUPERSESSION CHECK (CRITICAL — do ALL of these before writing any code):
 

@@ -14,12 +14,12 @@ export interface StalePR {
   latestReviewState: string | null;
   qualityScore: number | null;
   htmlUrl: string | null;
-  recommendation: "close" | "wait" | "followup";
+  recommendation: "rework" | "wait" | "followup";
 }
 
 export interface StalePRSummary {
   total: number;
-  close: number;
+  rework: number;
   followup: number;
   wait: number;
   avgDaysOpen: number;

@@ -242,9 +242,7 @@ export async function GET() {
       recentPRs,
       dailyBudget: {
         dailyPRs,
-        dailyLimit: 10,
         perRepo,
-        repoLimit: 3,
       },
     });
   } catch (error) {

@@ -3,9 +3,9 @@
     "defaults": {
       "compaction": {
         "mode": "safeguard",
-        "reserveTokens": 30000,
+        "reserveTokens": 112000,
         "keepRecentTokens": 20000,
-        "maxHistoryShare": 0.6,
+        "maxHistoryShare": 0.5,
         "recentTurnsPreserve": 3,
         "identifierPolicy": "strict",
         "qualityGuard": {
@@ -14,7 +14,8 @@
         },
         "memoryFlush": {
           "enabled": true,
-          "softThresholdTokens": 150000
+          "softThresholdTokens": 30000,
+          "prompt": "Before compaction, write current state to workspace files: 1) Active sub-agents and their repos to memory/impl-spawn-state.md, 2) PR follow-up queue to memory/pr-followup-state.md, 3) Work queue status to memory/work-queue.md, 4) Any pending scout reports. Then compact."
         },
         "postCompactionSections": [
           "Orchestrator + Sub-Agent Architecture",
@@ -52,7 +53,7 @@
           "model": "kimi-coding/k2p5",
           "session": "main",
           "target": "none",
-          "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK.\n\nGOAL: MERGED PRs. Not submitted PRs — MERGED. A PR that never gets reviewed is zero output.\n\nPRIORITY ORDER (follow this EVERY cycle):\n1. FOLLOW-UPS FIRST: Check ALL open PRs for new reviews/comments. Respond to every review. Merge approved PRs. This is MORE IMPORTANT than new work.\n2. TRUSTED REPOS: Search memory/trust-repos.md repos for new issues. Depth > breadth.\n3. NEW DISCOVERY: Only after follow-ups handled and trusted repos checked.\n\nTRUST-BUILDING: Stop spray-and-pray. Focus on 10-15 repos where we build reputation. Return to repos that merged our PRs. A repo that merged your PR is 10x more likely to merge the next one.\n\nFINDING REPOS: Discover target repos using CRITERIA, not a hardcoded list. Stars >= 200, active development, merge velocity > 0, review rate > 50%, open PRs < 50. Search: 'topic:llm/agent/rag/ai' + 'label:bug/help-wanted'. Check trusted repos FIRST.\n\nPR TYPES: Bug fixes, docs fixes, typo fixes, test additions. NOT features or refactors.\nMIX: 60% easy wins (docs, typos, tests) + 40% bug fixes. A merged typo fix > an unreviewed bug fix.\n\nCLA SKIP: NEVER submit to CLA/DCO repos. Known: deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI.\n\nQUALITY: Understand codebase deeply. Trace root causes. Read .github/workflows/. Target 25-100 LOC (max 200). PR descriptions: write like a human developer, not an AI. No 'This PR addresses...', 'Upon investigation...', 'I identified...'. Jump straight to what's broken and what you did.\n\nSUPERSESSION CHECK: Before starting ANY issue, check: is it assigned? Does it have linked PRs from other contributors? If yes, SKIP — working on superseded issues wastes cycles and annoys maintainers.\n\nDEDUP: Max 1 active PR per repo (check 'gh search prs --author BillionClaw --repo OWNER/REPO --state open' — NEVER use @me). Follow-ups get priority. No daily caps — ship as many quality PRs as possible.\n\nIf work exists, DO IT. HEARTBEAT_OK only when zero work available.",
+          "prompt": "You are autonomous. Read HEARTBEAT.md and execute EVERY step 0-7. Do NOT just reply HEARTBEAT_OK.\n\nGOAL: MERGED PRs. Not submitted PRs — MERGED. A PR that never gets reviewed is zero output.\n\nPRIORITY ORDER (follow this EVERY cycle):\n1. FOLLOW-UPS FIRST: Check ALL open PRs for new reviews/comments. Respond to every review. Merge approved PRs. This is MORE IMPORTANT than new work.\n2. TRUSTED REPOS: Search memory/trust-repos.md repos for new issues. Depth > breadth.\n3. NEW DISCOVERY: Only after follow-ups handled and trusted repos checked.\n\nTRUST-BUILDING: Stop spray-and-pray. Focus on 10-15 repos where we build reputation. Return to repos that merged our PRs. A repo that merged your PR is 10x more likely to merge the next one.\n\nFINDING REPOS: Discover target repos using CRITERIA, not a hardcoded list. Stars >= 200, active development, merge velocity > 0, review rate > 50%, open PRs < 50. Search: 'topic:llm/agent/rag/ai' + 'label:bug/help-wanted'. Check trusted repos FIRST.\n\nPR TYPES: Bug fixes, docs fixes, typo fixes, test additions. NOT features or refactors.\nMIX: 60% easy wins (docs, typos, tests) + 40% bug fixes. A merged typo fix > an unreviewed bug fix.\n\nCLA/DCO REPOS: Sign CLAs when prompted. For DCO, use git commit -s. Do NOT skip repos because of CLA requirements.\n\nQUALITY: Understand codebase deeply. Trace root causes. Read .github/workflows/. Target 25-100 LOC (max 200). PR descriptions: write like a human developer, not an AI. No 'This PR addresses...', 'Upon investigation...', 'I identified...'. Jump straight to what's broken and what you did.\n\nSUPERSESSION CHECK: Before starting ANY issue, check: is it assigned? Does it have linked PRs from other contributors? If yes, SKIP — working on superseded issues wastes cycles and annoys maintainers.\n\nDEDUP: Max 1 active PR per repo (check 'gh search prs --author BillionClaw --repo OWNER/REPO --state open' — NEVER use @me). Follow-ups get priority. No daily caps — ship as many quality PRs as possible.\n\nIf work exists, DO IT. HEARTBEAT_OK only when zero work available.",
           "lightContext": false
         }
       }

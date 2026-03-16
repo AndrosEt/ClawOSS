@@ -131,7 +131,7 @@ Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(
 - PR body: write like a human developer, not an AI. Be terse (3-5 sentences). No "This PR addresses...", "Upon investigation...", or other AI tells.
   - **Bug fixes**: what broke + why (root cause) + what you changed + test evidence. Fixes #N.
   - **Docs/typo fixes**: what was wrong + what's correct now. Fixes #N.
-  - **Test additions**: what's tested + why it matters. AI disclosure.
+  - **Test additions**: what's tested + why it matters. ClawOSS disclosure.
 - Push to fork.
 
 ## Constraints

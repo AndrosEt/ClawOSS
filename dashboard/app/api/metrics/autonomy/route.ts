@@ -17,7 +17,7 @@ import { nanoid } from "nanoid";
  * - Oversized PR detection (>200 lines = prompt gap)
  * - Wasted cycle detection (closed without review = bad targeting)
  * - Decision quality per pipeline stage
- * - CLA/anti-bot failures (closed quickly without human review)
+ * - Quick rejections (closed within 1 hour — CI/policy auto-rejected)
  */
 export async function GET() {
   try {
@@ -193,8 +193,7 @@ export async function GET() {
       )
     );
 
-    // --- CLA BOT DETECTION ---
-    // Find PRs where a CLA bot left a comment (these are auto-blocked)
+    // --- CLA BOT DETECTION (informational only — agent now signs CLAs) ---
     const claBotPrIds = new Set<string>();
     try {
       const claReviews = await db
@@ -210,8 +209,8 @@ export async function GET() {
 
     // --- FAILURE CATEGORIES (MAST-inspired) ---
     // Classify closed PRs by failure type to identify which autonomous capabilities need work
+    // Note: CLA is no longer a failure category — agent signs CLAs automatically
     const failureCategories: Record<string, { count: number; prs: string[] }> = {
-      cla_blocked: { count: 0, prs: [] },      // System design: CLA not signed
       no_review: { count: 0, prs: [] },        // Targeting failure: repo never engaged
       quick_reject: { count: 0, prs: [] },     // System design: CI/policy auto-rejected
       changes_requested: { count: 0, prs: [] },// Task verification: fix was wrong
@@ -227,10 +226,7 @@ export async function GET() {
         : 999;
       const diffSize = (pr.additions ?? 0) + (pr.deletions ?? 0);
 
-      if (claBotPrIds.has(pr.id)) {
-        failureCategories.cla_blocked.count++;
-        failureCategories.cla_blocked.prs.push(prRef);
-      } else if (hoursOpen < 1) {
+      if (hoursOpen < 1) {
         failureCategories.quick_reject.count++;
         failureCategories.quick_reject.prs.push(prRef);
       } else if ((pr.reviewCount ?? 0) === 0) {
@@ -290,15 +286,7 @@ export async function GET() {
       });
     }
 
-    if (claBotPrIds.size > 0) {
-      promptGaps.push({
-        id: "cla_blocked",
-        name: "CLA not signed (blocked by bot)",
-        severity: "high",
-        evidence: `${claBotPrIds.size} PRs blocked by CLA requirement`,
-        count: claBotPrIds.size,
-      });
-    }
+    // Note: CLA is no longer a prompt gap — agent signs CLAs automatically
 
     if (quickRejections.length > 0) {
       promptGaps.push({
@@ -440,7 +428,6 @@ function inferClosureReason(pr: {
   reviewCount: number | null;
 }): string {
   if ((pr.reviewCount ?? 0) === 0) return "no_review";
-  if (/cla|contributor.*license/i.test(pr.body || "")) return "cla_required";
   if (/bot|automated|ai.generated/i.test(pr.body || "")) return "anti_bot";
   return "rejected";
 }

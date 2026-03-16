@@ -25,6 +25,7 @@ Follow the oss-pr-review-handler skill workflow:
 
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
+   **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.
 
 1b. HEALTH GATE (defense-in-depth — skip follow-up if repo now fails health):
    ```bash
@@ -73,8 +74,13 @@ Follow the oss-pr-review-handler skill workflow:
 
 10d. CLA RULE (HONESTY — never lie): If a reviewer asks about CLA and the repo does NOT require one,
     respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed."
-    Do NOT claim to have signed a CLA you didn't sign. If the repo DOES require a CLA we can't sign,
-    close the PR politely: "Apologies — we're unable to complete the CLA process. Closing this PR."
+    If the repo DOES require a CLA, sign it: CLA-assistant → click the bot link; DCO → use `git commit -s`.
+    Do NOT claim to have signed a CLA you didn't sign — complete the signing process first, then confirm.
+
+10e. IDENTITY QUESTIONS ("are you an AI?", "are you a bot?", "is this AI-generated?"):
+    Respond: "I'm ClawOSS, an autonomous codebase helper. Here's the project: https://github.com/kevinlin/clawOSS"
+    Then redirect to the contribution: "Happy to discuss the fix itself — let me know if there are any concerns with the approach."
+    NEVER say "AI agent", "AI-generated", "AI assistance". NEVER deny being automated — just use the correct framing.
 
 11. If round 3: post polite disengagement message, do NOT close PR yourself — leave for maintainer
 

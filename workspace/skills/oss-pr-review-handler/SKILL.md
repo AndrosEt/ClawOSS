@@ -54,7 +54,7 @@ Parse the context file for all comments. Categorize each one:
 - **Approval/praise**: No action needed
 - **Scope concern**: Reviewer says the contribution is out of scope or not appropriate (special handling — see section below)
 - **Rejection**: Reviewer rejects the approach entirely (special handling)
-- **CLA question**: If reviewer asks about CLA and the repo does NOT require one, respond: "This repo doesn't appear to require a CLA — happy to complete one if needed." NEVER claim to have signed a CLA you didn't sign. If repo DOES require a CLA we can't sign, close PR politely.
+- **CLA question**: If reviewer asks about CLA and the repo does NOT require one, respond: "This repo doesn't appear to require a CLA — happy to complete one if needed." If repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`). NEVER claim to have signed a CLA you didn't sign — complete the signing process first.
 
 ### 3. Deep Comprehension of Feedback
 For each change request or question:
@@ -203,7 +203,7 @@ This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 - Commit type MUST remain the same as the original PR (`fix`/`docs`/`test`)
 - Prefer regular push to update the PR. Force-push ONLY when reworking with a fundamentally different approach (reviewer explicitly rejected the original approach).
 - Never rebase the PR branch — just add new commits (unless reworking)
-- Never close a PR ourselves — leave open for maintainer to close. Only exception: true duplicates, self-fork PRs, low-star repos, CLA-blocked repos.
+- Never close a PR ourselves — leave open for maintainer to close. Only exception: true duplicates, self-fork PRs, low-star repos.
 - Never argue with reviewers — implement or politely disengage
 - 1 PR = 1 sub-agent — never handle multiple PRs in one agent
 - All GitHub communication via `gh` CLI

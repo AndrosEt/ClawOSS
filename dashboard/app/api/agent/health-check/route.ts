@@ -67,8 +67,47 @@ export async function GET() {
       .where(eq(pullRequests.status, "closed"));
     const closed = closedResult[0]?.count || 0;
 
+    // Approved PRs ready to merge (highest priority action)
+    let approvedPRs: { repo: string; number: number; title: string; htmlUrl: string | null }[] = [];
+    try {
+      const approvedReviews = await db
+        .select({
+          prId: prReviews.prId,
+        })
+        .from(prReviews)
+        .where(eq(prReviews.state, "approved"));
+
+      const approvedPrIds = [...new Set(approvedReviews.map((r) => r.prId))];
+
+      if (approvedPrIds.length > 0) {
+        const openApproved = await db
+          .select({
+            id: pullRequests.id,
+            repo: pullRequests.repo,
+            number: pullRequests.number,
+            title: pullRequests.title,
+            htmlUrl: pullRequests.htmlUrl,
+          })
+          .from(pullRequests)
+          .where(eq(pullRequests.status, "open"));
+
+        approvedPRs = openApproved.filter((pr) => approvedPrIds.includes(pr.id)).map((pr) => ({
+          repo: pr.repo,
+          number: pr.number,
+          title: pr.title,
+          htmlUrl: pr.htmlUrl,
+        }));
+      }
+    } catch {
+      // non-critical
+    }
+
     // Quick directives
     const directives: string[] = [];
+
+    if (approvedPRs.length > 0) {
+      directives.unshift("MERGE NOW: " + approvedPRs.length + " approved PR(s) ready to merge: " + approvedPRs.map((pr) => pr.repo + "#" + pr.number).join(", ") + ". Run `gh pr merge --squash` if CI passes, or comment asking maintainer to trigger CI.");
+    }
 
     if (total > 0 && merged / total < 0.05) {
       directives.push("MERGE RATE CRITICAL: Only " + ((merged / total) * 100).toFixed(1) + "%. Target trusted repos, keep PRs under 50 lines, reference real issues.");
@@ -97,6 +136,7 @@ export async function GET() {
         mergeRate: total > 0 ? Math.round((merged / total) * 1000) / 10 : 0,
         reworkRate: total > 0 ? Math.round((closed / total) * 1000) / 10 : 0,
       },
+      approvedPRs,
       avoidRepos,
       reposWithOpenPRs,
       directives,

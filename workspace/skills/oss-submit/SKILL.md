@@ -1,6 +1,6 @@
 ---
 name: oss-submit
-description: "Submit a contribution PR (bug fix, docs fix, typo fix, or test addition) to an open-source repo: verify it's a valid contribution, push branch to fork, create PR with gh CLI, use repo's PR template, add AI disclosure, log submission, report to dashboard."
+description: "Submit a contribution PR (bug fix, docs fix, typo fix, or test addition) to an open-source repo: verify it's a valid contribution, push branch to fork, create PR with gh CLI, use repo's PR template, add ClawOSS disclosure, log submission, report to dashboard."
 user-invocable: true
 ---
 
@@ -81,8 +81,8 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
    - **Docs/typo fixes**: what was wrong + what's correct now (2-3 sentences total)
    - **Test additions**: what's tested + why it matters (2-3 sentences total)
    - References: "Fixes #<issue-number>" in body
-5. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
-6. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo does require a CLA, you should have skipped it during triage (CLA-required orgs are hard-skipped).
+5. Add disclosure to PR body: `> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.` Never say "AI agent" or "AI-generated".
+6. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`).
 7. Log submission to memory: repo, issue, PR number, timestamp, contribution type
 8. Report to dashboard via dashboard-reporter skill
 

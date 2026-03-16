@@ -105,9 +105,8 @@ For each unique repo found, run the health check script:
 ```bash
 bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh owner/repo
 ```
-Exit code 0 = healthy, 1 = skip. The script checks stars, merge velocity, CLA, anti-bot policies.
-
-**CLA org hard skip**: deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI.
+Exit code 0 = healthy, 1 = skip. The script checks stars, merge velocity, anti-bot policies.
+CLA/DCO repos are allowed — the agent signs CLAs when prompted.
 
 **Anti-AI policy check**: Read CONTRIBUTING.md for anti-bot phrases. HARD SKIP if found.
 

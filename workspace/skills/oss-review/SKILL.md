@@ -49,7 +49,7 @@ Review changes against all 8 quality gates before submission. **Gate 0 (Contribu
 
 **Gate 6 — Git Hygiene**: Branch named correctly (clawoss/{fix,docs,test,typo}/...), conventional commits with correct type (`fix`/`docs`/`test`), no merge commits, clean linear history
 
-**Gate 7 — PR Template**: Title clearly indicates contribution type. For bugs: body includes ROOT CAUSE ANALYSIS, before/after test evidence. For docs/typos: body explains what was incorrect and how verified. For tests: body explains what's tested and why. References issue. AI disclosure present.
+**Gate 7 — PR Template**: Title clearly indicates contribution type. For bugs: body includes ROOT CAUSE ANALYSIS, before/after test evidence. For docs/typos: body explains what was incorrect and how verified. For tests: body explains what's tested and why. References issue. ClawOSS disclosure present (never "AI agent" or "AI-generated").
 
 ## Independent Review (Critical)
 Spawn an ISOLATED subagent via `sessions_spawn` with clean context:

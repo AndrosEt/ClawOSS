@@ -69,7 +69,7 @@ Always run `scripts/repo-health-check.sh` before targeting — this list is not 
 langchain-ai/langchain *(requires issue assignment — comment first)*, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
 langgenius/dify, langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0,
 CopilotKit/CopilotKit, elizaOS/eliza, SWE-agent/SWE-agent
-*(CLA-blocked: microsoft/autogen, microsoft/semantic-kernel, deepset-ai/haystack, google/adk-python)*
+*(CLA repos — sign when prompted: microsoft/autogen, microsoft/semantic-kernel, deepset-ai/haystack, google/adk-python)*
 
 **LLM Inference & Serving:**
 ollama/ollama, vllm-project/vllm, BerriAI/litellm, hiyouga/LlamaFactory,
@@ -78,18 +78,18 @@ unslothai/unsloth, mudler/LocalAI, janhq/jan, dottxt-ai/outlines
 **RAG & Document Processing:**
 run-llama/llama_index, infiniflow/ragflow, HKUDS/LightRAG,
 Unstructured-IO/unstructured, firecrawl/firecrawl, labring/FastGPT
-*(CLA-blocked: microsoft/graphrag)*
+*(CLA repo — sign when prompted: microsoft/graphrag)*
 
 **Vector Databases & Search:**
 chroma-core/chroma, qdrant/qdrant, weaviate/weaviate,
 meilisearch/meilisearch, lancedb/lancedb
-*(CLA-blocked: milvus-io/milvus — requires DCO sign-off)*
+*(DCO repo — use `git commit -s`: milvus-io/milvus)*
 
 **AI SDKs & Developer Tools:**
 instructor-ai/instructor, vercel/ai, pydantic/pydantic,
 gradio-app/gradio, streamlit/streamlit, marimo-team/marimo, continuedev/continue,
 Portkey-AI/gateway, tensorzero/tensorzero, browser-use/browser-use
-*(CLA-blocked: openai/openai-python)*
+*(CLA repo — sign when prompted: openai/openai-python)*
 
 **High-Impact General (Python/TS, massive star counts):**
 fastapi/fastapi, huggingface/transformers, open-webui/open-webui, ray-project/ray,
@@ -201,8 +201,9 @@ For each candidate issue, quick-check the repo:
 3. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
 4. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 7 days old).
 5. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
-6. **Anti-bot/anti-AI policy and CLA detection** — handled automatically by `scripts/repo-health-check.sh`.
-   The script checks CONTRIBUTING.md for anti-bot phrases and detects CLA requirements via .clabot files, CLA GitHub Actions, CONTRIBUTING.md text, and a maintained org list (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI). HARD SKIP if detected.
+6. **Anti-bot/anti-AI policy detection** — handled automatically by `scripts/repo-health-check.sh`.
+   The script checks CONTRIBUTING.md for anti-bot phrases. HARD SKIP if anti-bot policy detected.
+   CLA/DCO repos are allowed — the agent signs CLAs when prompted. The script reports CLA as informational metadata.
 
 If a repo fails the pre-filter, SKIP all issues from that repo. Cache the failure.
 

@@ -272,44 +272,24 @@ if [ -n "$CONTRIBUTING" ]; then
   fi
 fi
 
-# ─── 7b. CLA requirement detection ───
-# Repos requiring CLA that BillionClaw can't sign waste full implementation cycles.
-# Hard-fail: a PR that can never merge is worse than no PR at all.
+# ─── 7b. CLA detection (informational — NOT a blocker) ───
+# CLA repos are allowed. We sign CLAs. This just records the info for subagents.
 HAS_CLA=false
-
-# Known CLA-required orgs (maintained list — add orgs as we discover them)
 CLA_ORGS="deepset-ai iterative Aider-AI milvus-io apache microsoft google meta-llama BerriAI"
 for org in $CLA_ORGS; do
-  if [ "$OWNER" = "$org" ]; then
-    HAS_CLA=true
-    break
-  fi
+  if [ "$OWNER" = "$org" ]; then HAS_CLA=true; break; fi
 done
-
-# Check for .clabot file
 if [ "$HAS_CLA" = "false" ]; then
   CLABOT=$(gh api "repos/${REPO}/contents/.clabot" --jq '.content' 2>/dev/null || echo "")
-  if [ -n "$CLABOT" ]; then
-    HAS_CLA=true
-  fi
+  [ -n "$CLABOT" ] && HAS_CLA=true
 fi
-# Check for CLA GitHub Actions
 if [ "$HAS_CLA" = "false" ]; then
   CLA_ACTION=$(gh api "repos/${REPO}/contents/.github/workflows" \
     --jq '[.[] | select(.name | test("cla|dco"; "i"))] | length' 2>/dev/null || echo "0")
-  if [ "$CLA_ACTION" -gt 0 ]; then
-    HAS_CLA=true
-  fi
-fi
-# Check CONTRIBUTING.md for CLA mentions
-if [ "$HAS_CLA" = "false" ] && [ -n "$CONTRIB_TEXT" ]; then
-  if echo "$CONTRIB_TEXT" | grep -qiE "contributor license agreement|sign.*(cla|contributor agreement)|cla.*(required|must|need)|developer certificate of origin|dco.*sign|signed-off-by.*required"; then
-    HAS_CLA=true
-  fi
+  [ "$CLA_ACTION" -gt 0 ] && HAS_CLA=true
 fi
 if [ "$HAS_CLA" = "true" ]; then
-  reasons+=("CLA required — BillionClaw cannot sign CLAs, PR can never merge")
-  fail "CLA required" "repo_health_fail: CLA required, cannot sign"
+  warnings+=("CLA/DCO required — sign it before submitting PR")
 fi
 
 # ─── 8. Niche fit (agentic AI) ───

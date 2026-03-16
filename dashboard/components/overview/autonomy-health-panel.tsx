@@ -322,7 +322,6 @@ export function AutonomyHealthPanel() {
           const totalFailures = Object.values(cats).reduce((s, c) => s + c.count, 0);
           if (totalFailures === 0) return null;
           const categoryLabels: Record<string, { label: string; color: string }> = {
-            cla_blocked: { label: "CLA Not Signed", color: "text-orange-400/70" },
             no_review: { label: "No Review (bad targeting)", color: "text-red-400/70" },
             quick_reject: { label: "Auto-Rejected (CI/bot)", color: "text-orange-400/70" },
             changes_requested: { label: "Fix Rejected", color: "text-amber-400/70" },

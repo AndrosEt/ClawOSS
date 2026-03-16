@@ -162,9 +162,9 @@ export async function GET() {
     if (todayCount > 30) {
       alerts.push({
         id: "high-volume",
-        severity: "warning",
+        severity: "info",
         title: "High PR volume today",
-        detail: `${todayCount} PRs submitted today. High volume often correlates with lower quality. Consider throttling.`,
+        detail: `${todayCount} PRs submitted today. Ensure quality checks (linter, tests, size limits) are running for each submission.`,
         metric: "daily_prs",
         value: todayCount,
         threshold: "30",

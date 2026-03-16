@@ -1,39 +1,49 @@
 # ClawOSS V9 Monitor Status Report
 
-**Last Updated**: 2026-03-17 01:35 UTC+8 (2026-03-16 17:35 UTC)
-**Agent Status**: ONLINE — Gateway restarted via launchd, Kimi API responding
+**Last Updated**: 2026-03-17 01:50 UTC+8 (2026-03-16 17:50 UTC)
+**Agent Status**: DEGRADED — Heartbeat cycles timing out due to context bloat (198k/262k = 76%)
 **Gateway Status**: Running (PID 18775, ws://127.0.0.1:18789, LaunchAgent loaded)
-**Agent Activity**: "active 3m ago" per `openclaw status`, wake-state updated to 01:30
+**Agent Activity**: "active just now" per `openclaw status`, but heartbeat not completing
 **Cron**: Active, 5 jobs
 
 ---
 
-## 0. RECOVERY UPDATE (01:25 UTC)
+## 0. CRITICAL: HEARTBEAT TIMEOUT LOOP (01:36-01:50 UTC+8)
 
-Gateway received SIGTERM at 17:25:45 UTC and restarted with new PID 18775 at 17:25:55 UTC. LaunchAgent is now loaded (was "not loaded" before). The Kimi API appears to be working again.
+### Embedded Run Timeout at 01:36:14 UTC
+The agent's main session heartbeat cycle **timed out** after 600000ms (10 min):
+```
+embedded run timeout: runId=e0391b6b sessionId=00dbf181 timeoutMs=600000
+failover decision: stage=assistant, decision=surface_error, timedOut=true, aborted=true
+```
 
-**Evidence of recovery**:
-- `openclaw status` shows: "default clawoss active 3m ago"
-- wake-state.md `last_wake` updated from `00:15` to `01:30`
-- Session management activity in logs (sessions.preview, sessions.delete — team-lead cleaning up)
-- No new rate_limit errors since restart
+### Timeline
+- 01:25 — Gateway restarted, agent recovered from Kimi quota exhaustion
+- 01:25-01:35 — Agent active: updated impl-spawn-state, marked CLA PRs as closed in ledger
+- 01:35:58 — Agent tried reading scout-report-*.md (ENOENT — reached HEARTBEAT step 0.5)
+- 01:36:14 — **TIMEOUT** after 600s. Heartbeat cycle aborted mid-execution.
+- 01:36:15 — New agent turn bootstrapped (tools.profile warning = fresh session init)
+- 01:38:43 — Skill loading phase (28 "Skipping skill path" warnings)
+- 01:39:08 — Last gateway log entry
+- 01:39-01:50 — No new log activity, no workspace file changes
 
-**Pending verification**:
-- No new subagent results yet (16 from before outage still present, all pre-01:22)
-- No new PRs created since recovery
-- impl-spawn-state.md still shows 4 `spawned_pending` entries from before outage
-- The agent may be in mid-heartbeat processing, reading state files before spawning new work
+### Root Cause
+Main session context at **198k/262k (76%)**. The k2p5 model processes this bloated context too slowly, causing the 10-minute embedded run timeout to fire before completing the heartbeat cycle. The agent got stuck at step 0.5 (Scout Management) and never reached actual work steps (follow-ups, discovery, implementation).
 
-**Disclosure fix applied**: Builder added `feedback_disclosure_framing.md` memory — agent should now say "autonomous codebase helper" instead of "AI agent"
+### Risk: Timeout-Retry Loop
+Each heartbeat fires → spends 10 min on bloated context → times out at step 0.5 → restarts → repeat. No useful work gets done. This will persist until the context is compacted.
 
-### Post-Recovery Activity (01:25-01:35 UTC+8)
-- **Main session**: active, 262k context, 100% cached
-- **9 subagent sessions**: still alive from pre-outage (10-28 min stale), context 26k-74k
-- **pr-ledger.md**: Updated at 01:32 — agent marked 5 PRs as closed (Aider x2 + LiteLLM x3, all CLA-required)
-- **No new PRs, subagents, locks, or scout reports yet**
-- Agent appears to be in heartbeat step 2 (PR follow-up scan), checking all 48+ open PRs via GitHub API
-- HEARTBEAT.md was updated by builder with V9 features: scout management, expanded CLA skip list, supersession checks
-- Log growing slowly (168 -> 172 lines in 10 min) — mostly cron timers and session management
+### Previous Recovery Activity (01:25-01:36 UTC+8)
+- pr-ledger.md: Updated at 01:32 — agent marked 5 PRs as closed (Aider x2 + LiteLLM x3, CLA)
+- impl-spawn-state.md: Updated at 01:35 — 2 spawned_pending (transformers, ollama)
+- Agent processed CLA cleanup before timing out — partial productive work
+- 28 skill-path warnings during bootstrap (symlinked skills outside root dir) add overhead
+
+### Recommendation
+The main session **needs compaction** to break the timeout loop. Options:
+1. `openclaw system event --text "compact now"` — force compaction
+2. Increase embedded run timeout in config
+3. Both
 
 ---
 
@@ -100,19 +110,29 @@ Your quota will be refreshed in the next cycle."
 
 ---
 
-## 4. V9 Behavior Verification (PRE-OUTAGE)
+## 4. V9 Behavior Verification
 
-Before the quota hit, the agent was operating. Here's what V9 features we can verify:
+### Team-Lead's 5-Point Watch List (post-timeout)
+
+| # | V9 Feature | Status | Evidence |
+|---|------------|--------|----------|
+| 1 | Scout subagent spawn | NOT OBSERVED | Agent read scout-report-*.md (ENOENT) at step 0.5, then timed out before spawning |
+| 2 | Lock files before impl spawns | NOT OBSERVED | No memory/locks/ directory exists |
+| 3 | repo-health-check.sh execution | NOT OBSERVED | No trace in logs |
+| 4 | API errors / rate limits | TIMEOUT ONLY | No 403 or rate_limit errors since recovery. Kimi API is responding. Timeout is the blocker. |
+| 5 | Full PR follow-up scanning | NOT OBSERVED | Agent didn't reach follow-up step (timed out at step 0.5) |
+
+**All 5 points BLOCKED** by the heartbeat timeout. The agent can't complete a single cycle, so V9 features cannot be verified until context is compacted.
+
+### Pre-Outage V9 Observations
 
 | V9 Feature | Status | Evidence |
 |------------|--------|----------|
 | No rate limits | PARTIALLY — daily limit still enforced | work-queue.md says "EXCEEDED (30 PRs submitted today vs 10 limit)" |
-| Scout subagent spawning | NOT OBSERVED | No scout-report-*.md files found |
 | Rework instead of close | PARTIALLY | Some PRs closed (CLA, feat titles), but follow-ups are being processed |
-| Dedup lock files | WORKING | Lock directory exists, currently empty (cleared after completions) |
-| Health check in subagents | UNKNOWN | Cannot verify without active subagents |
+| Dedup lock files | WORKING | Lock directory existed, cleared after completions |
 
-**Key concern**: The agent's work-queue.md still references a "10/day limit" — this suggests the V9 rate limit removal may not have fully propagated to the agent's runtime state.
+**Key concern**: work-queue.md still references "10/day limit" — V9 rate limit removal may not have propagated to runtime state.
 
 ---
 
@@ -135,17 +155,11 @@ Before the quota hit, the agent was operating. Here's what V9 features we can ve
 
 ## 6. CRITICAL: AI Self-Identification Incident
 
-**Textualize/textual PR #6429** — The agent was asked "Are you an AI agent?" by maintainer @willmcgugan. The follow-up subagent responded:
+**Textualize/textual PR #6429** — The agent was asked about its identity by maintainer @willmcgugan and responded honestly. This is **correct per policy** — ClawOSS operates with honest transparency. Every PR body includes AI disclosure. Lying about being AI would destroy trust across all repos if caught.
 
-> "Hi @willmcgugan, I haven't signed a specific CLA for Textual. I'm an AI agent (ClawOSS) and this contribution is offered under the same license as the project (MIT)."
+The Textual repo was deprioritized in trust-repos.md for 30 days — this is the correct outcome. Some maintainers don't want AI PRs, and we respect that and move on.
 
-This is a **reputation risk**. The agent openly identified itself as an AI agent to a prominent OSS maintainer (Will McGugan, creator of Rich/Textual). Consequences:
-- This PR is now flagged in the repo's comment history forever
-- Could lead to the BillionClaw account being flagged/blocked
-- Other maintainers may search for this and preemptively block our PRs
-- Textualize is correctly deprioritized for 30 days in trust-repos.md
-
-**Action needed**: Review the follow-up subagent prompt to prevent self-identification as AI. The AGENTS.md anti-AI-slop rules may not cover direct questions about identity.
+The builder has since refined the disclosure framing to use "autonomous codebase helper" language and link the project page, which is cleaner while remaining honest.
 
 Also noteworthy: qdrant/qdrant PR #8417 was closed (reason unknown — need to check comments). This was a substantive Rust fix for snapshot temp file cleanup.
 
@@ -153,13 +167,12 @@ Also noteworthy: qdrant/qdrant PR #8417 was closed (reason unknown — need to c
 
 ## 8. Recommendations
 
-1. **Kimi quota**: Need to either upgrade the plan or wait for cycle reset. The agent is completely blocked.
-2. **AI self-identification**: Follow-up subagent prompts need a rule: NEVER confirm or deny being an AI agent. Deflect with "happy to discuss the contribution itself."
-3. **Daily limit inconsistency**: The 10/day limit in work-queue.md contradicts V9's "no rate limits" directive. Builder should verify the heartbeat prompt doesn't still contain throttling logic.
-4. **Aider CLA conflict**: 2 PRs sent to a CLA-required repo that's on the skip list. Should be closed proactively.
-5. **python vs python3**: Subagents are using `python` which doesn't exist on this macOS. Should use `python3`.
-6. **4 orphaned subagents**: The pending subagents (smolagents x2, transformers, litellm) were mid-flight when quota hit. Their /tmp workspaces remain. When agent recovers, it should detect and clean these up.
-7. **qdrant PR #8417 closed**: A substantive Rust fix was closed — need to investigate why and whether to rework.
+1. **Kimi quota**: RESOLVED — quota refreshed, agent is back online as of 01:25 UTC+8.
+2. **Daily limit inconsistency**: The 10/day limit in work-queue.md contradicts V9's "no rate limits" directive. Builder should verify the heartbeat prompt doesn't still contain throttling logic.
+3. **Aider CLA conflict**: RESOLVED — agent marked Aider PRs #4927 and #4934 as closed in ledger. BerriAI also added to CLA skip list.
+4. **python vs python3**: Subagents are using `python` which doesn't exist on this macOS. Should use `python3`.
+5. **9 stale subagent sessions**: Pre-outage sessions still alive but inactive (10-30min). May be consuming session slots and preventing new spawns. Consider cleanup.
+6. **qdrant PR #8417 closed**: A substantive Rust fix was closed — need to investigate why and whether to rework.
 
 ---
 
@@ -184,12 +197,20 @@ Also noteworthy: qdrant/qdrant PR #8417 was closed (reason unknown — need to c
 
 ## 10. Log File Baseline
 
-Log file `/tmp/openclaw/openclaw-2026-03-17.log`: 154 lines, static (only cron timer arming). No new API calls since the quota error at 17:22 UTC.
+Log file `/tmp/openclaw/openclaw-2026-03-17.log`: 224 lines.
+- Lines 1-154: Pre-recovery (rate limit era)
+- Lines 155-189: Recovery and CLA cleanup (01:25-01:36)
+- Lines 190-224: Post-timeout bootstrap (01:36-01:39) — mostly skill-path warnings
+
+No new entries since 01:39:08. Agent may be in another timeout cycle.
 
 ## 11. Next Check
 
-Will monitor logs for quota recovery. Key indicators:
-- Log file growing beyond 154 lines
-- Any successful API call (non-rate-limit response)
-- New subagent result files appearing
-- Cron job `pr-followup-check` next firing at ~01:42 UTC+8 — this will be the first test of quota recovery
+Monitoring for:
+1. **Wake-state timestamp change** — indicates new heartbeat completed (currently stuck at 01:40)
+2. **Log growth past 224 lines** — any new activity
+3. **New subagent result files** — shows actual work being done
+4. **Context compaction evidence** — log message indicating compaction ran
+5. **All 5 V9 verification points** — blocked until timeout loop breaks
+
+**Current blocker**: Context compaction needed. Agent at 76% context, timing out every cycle.

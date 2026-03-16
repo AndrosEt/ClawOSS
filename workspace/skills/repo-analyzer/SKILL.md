@@ -103,7 +103,7 @@ A repo **MUST pass ALL** of these to be eligible:
 3. Avg merge time within tiered limit (14d for <5000 stars, 30d for 5000+) AND at least 1 merged PR in last 30 days
 4. Review rate within tiered limit (50% for <5000 stars, 30% for 5000+)
 5. Open PR count within tiered limit (50 for <5000 stars, 500 for 5000+, 1000 for 20000+)
-6. No CLA requirement (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama)
+6. CLA/DCO repos are allowed — agent signs when prompted (informational: deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI require CLAs)
 7. No anti-bot policy in CONTRIBUTING.md
 
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**

@@ -99,23 +99,23 @@ export async function GET(request: Request) {
         latestState: null,
       };
 
-      // Recommendation logic:
-      // - close: no human review after 7+ days, or 14+ days with only bot reviews
-      // - wait: has human review (changes_requested or commented), might still convert
-      // - followup: has human review but stale, worth a ping
-      let recommendation: "close" | "wait" | "followup";
+      // Recommendation logic (V9: never close PRs, rework instead):
+      // - rework: rework with a different approach and push updates
+      // - followup: has human review, respond to feedback
+      // - wait: recently submitted, give maintainers time
+      let recommendation: "rework" | "wait" | "followup";
       if (reviewInfo.hasHuman) {
         if (reviewInfo.latestState === "changes_requested") {
           recommendation = "followup"; // They asked for changes, we should respond
         } else if (daysOpen > 21) {
-          recommendation = "close"; // Even with human review, 3 weeks is too long
+          recommendation = "rework"; // Stale with review but no merge — try a different approach
         } else {
           recommendation = "wait";
         }
       } else if (daysOpen > 14) {
-        recommendation = "close"; // 2 weeks, no human interest
+        recommendation = "rework"; // 2 weeks, no human interest — rework with better targeting
       } else {
-        recommendation = "close"; // Past stale threshold with zero engagement
+        recommendation = "rework"; // Past stale threshold with zero engagement — needs a fresh approach
       }
 
       return {
@@ -136,16 +136,16 @@ export async function GET(request: Request) {
       };
     });
 
-    // Sort: close recommendations first, then by days open descending
+    // Sort: rework recommendations first, then by days open descending
     stalePRs.sort((a, b) => {
-      const recOrder = { close: 0, followup: 1, wait: 2 };
+      const recOrder = { rework: 0, followup: 1, wait: 2 };
       const orderDiff = recOrder[a.recommendation] - recOrder[b.recommendation];
       if (orderDiff !== 0) return orderDiff;
       return b.daysOpen - a.daysOpen;
     });
 
     // Summary stats
-    const closeCount = stalePRs.filter((p) => p.recommendation === "close").length;
+    const reworkCount = stalePRs.filter((p) => p.recommendation === "rework").length;
     const followupCount = stalePRs.filter((p) => p.recommendation === "followup").length;
     const waitCount = stalePRs.filter((p) => p.recommendation === "wait").length;
     const avgDaysOpen =
@@ -167,7 +167,7 @@ export async function GET(request: Request) {
       stalePRs,
       summary: {
         total: stalePRs.length,
-        close: closeCount,
+        rework: reworkCount,
         followup: followupCount,
         wait: waitCount,
         avgDaysOpen,

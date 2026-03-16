@@ -142,7 +142,7 @@ tracking, pattern detection, and dashboard aggregation.
 | `self_review_fail` | Fix failed 3+ self-review checks |
 | `already_fixed_upstream` | Bug was fixed in a newer commit or PR before we could submit |
 | `duplicate_pr_other` | Another contributor already has an open PR for this issue |
-| `cla_required` | Repo requires CLA/DCO signing that we cannot do |
+| `cla_signing_failed` | CLA/DCO signing process failed after attempt (web form unreachable, OAuth error, etc.) |
 | `wrong_target_branch` | PR targeted wrong branch (e.g., main instead of dev) |
 
 ### Follow-up Failures (caught during PR review handling)

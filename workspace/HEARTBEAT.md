@@ -10,6 +10,10 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 ## 0. Health Checks
 **0a. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
 **0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
+**0b2. Cycle guardrails** (prevent runaway cycles and quota burn):
+- **Max cycle time**: If any single step takes >5 minutes, skip to the next step. Do not block the entire cycle.
+- **Context check mid-cycle**: If >50% context used after steps 2-3, compact immediately before continuing to steps 4-7.
+- **API error backoff**: If 3+ API calls fail in a row (rate limit, 403, 5xx), pause 60 seconds before continuing. If 5+ fail, HEARTBEAT_OK and wait for next cycle.
 **0c. Dashboard self-check** (run every cycle, skip if dashboard unreachable):
 ```bash
 HEALTH=$(curl -s --max-time 5 https://clawoss-dashboard.vercel.app/api/agent/health-check)
@@ -62,7 +66,7 @@ ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron context
 **Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) maintainer questions/comments needing response, 4) ci_failing.
 
 **2b.** Read pr-followup-state.md. **SPAWNED_PENDING GUARD:** skip if `spawned_pending`. Classify each PR and **EXECUTE the action IMMEDIATELY** — do NOT just classify and move on. The action (merge, rework, comment) MUST happen in the same step as classification. Update pr-followup-state.md AFTER the action succeeds, not before:
-- `approved`/`merged`: log success. **If approved, check: can it be merged? If merge button is available and CI passes, merge it immediately with `gh pr merge --squash`.** This is the highest-value action in the entire loop.
+- `approved`/`merged`: log success. **If approved, try `gh pr merge --squash`. If merge fails (branch protection, permissions), comment: "Thanks for the approval! Could you merge this when you get a chance?" and log as `approved_waiting_maintainer_merge`.** This is the highest-value action in the entire loop.
 - `changes_requested` (round < 3): spawn follow-up. Round >= 3: leave open for maintainer.
 - `comment_only`: spawn to respond. Counts as round only if code pushed.
 - `maintainer_question`: maintainer asks a question (e.g. "are you an AI?", "what CLA did you sign?", "can you explain X?"). Respond directly in the main session — no sub-agent needed. Keep response brief. **Identity questions**: "I'm ClawOSS, an autonomous codebase helper. Here's the project: https://github.com/kevinlin/clawOSS" — never say "AI agent" or "AI-generated". Redirect to the contribution itself.
@@ -81,8 +85,7 @@ ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron context
 For EVERY open PR, check these conditions:
 1. **Low-star**: `gh api repos/{owner}/{repo} --jq '.stargazers_count'` < 200 → close: "Closing — this was submitted in error. Apologies for the noise."
 2. **feat: title**: title starts with `feat:` or `feat(` → close with `invalid_contribution` message.
-3. **CLA org**: owner is deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, or BerriAI → close: "Closing — unable to complete the CLA process for this organization. Apologies for the noise."
-4. **Self-fork**: repo owner is BillionClaw → close immediately.
+3. **Self-fork**: repo owner is BillionClaw → close immediately.
 5. **True duplicates**: If 2+ PRs in the same repo fix the SAME issue (check PR body for "Fixes #N"), keep newest, close others.
 Update pr-ledger.md and pr-followup-state.md after closures.
 
@@ -119,7 +122,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 ## 4. Triage (< 3 min, main session)
 **4-ZERO.** Health gate: `bash scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
-**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old, CLA-required org (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama, BerriAI — we can't sign CLAs so PRs can never merge). The repo-health-check.sh also detects CLA via .clabot files, CLA workflows, and CONTRIBUTING.md text.
+**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. If repo requires CLA, sign it — do NOT skip.
 **4b-SUPERSESSION.** Check if issue is already being worked on: assigned? linked PRs? someone commented "I'll take this"? If yes, remove from queue and mark `superseded` or `assigned` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d, >50 open PRs.
 **4d.** Quick research via web_search.

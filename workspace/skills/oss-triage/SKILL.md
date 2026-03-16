@@ -64,8 +64,8 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 - Review rate below minimum (50% for <5000 stars, 30% for 5000+)
 - Open PRs exceed limit (50 for <5000 stars, 500 for 5000+, 1000 for 20000+)
 - Anti-bot/anti-AI policy in CONTRIBUTING.md
-- CLA required (known orgs + .clabot + CLA workflows + CONTRIBUTING.md text)
 - Forking disabled
+- Note: CLA/DCO repos are allowed — the agent signs CLAs when prompted
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
