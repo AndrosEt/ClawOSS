@@ -9,6 +9,7 @@ import {
   BarChart3,
   ScrollText,
   Radio,
+  GitFork,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const navItems = [
   { title: "Overview", href: "/", icon: LayoutDashboard },
   { title: "Live Feed", href: "/live", icon: Radio },
   { title: "Pull Requests", href: "/prs", icon: GitPullRequest },
+  { title: "Repo Health", href: "/repos", icon: GitFork },
   { title: "Health", href: "/health", icon: Activity },
   { title: "Quality", href: "/quality", icon: BarChart3 },
   { title: "Logs", href: "/logs", icon: ScrollText },

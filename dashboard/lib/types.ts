@@ -190,11 +190,31 @@ export interface DashboardOverview {
   agentStatus: AgentStatus;
   stats: {
     totalPRs: number;
+    mergedPRs: number;
+    openPRs: number;
+    closedPRs: number;
+    reviewedPRs: number;
     mergeRate: number;
     tokensUsedToday: number;
     inputTokensToday: number;
     outputTokensToday: number;
     costToday: number;
+    totalCostAllTime: number;
+    costPerMerge: number;
+    tokensPerMerge: number;
+    avgHoursToReview: number | null;
+  };
+  funnel: {
+    submitted: number;
+    reviewed: number;
+    merged: number;
+    rejected: number;
+    open: number;
+  };
+  followUps: {
+    total: number;
+    active: number;
+    ledToMerge: number;
   };
   recentActivity: ActivityItem[];
   currentTask: TaskInfo | null;

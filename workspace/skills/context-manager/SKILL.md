@@ -2,7 +2,6 @@
 name: context-manager
 description: "Manage context window: monitor usage, flush state to memory at 80% capacity, write work-in-progress summary, trigger compaction, re-read memory after compaction."
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Context Manager

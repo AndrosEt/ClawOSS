@@ -6,6 +6,7 @@ import { MetricCards } from "@/components/overview/metric-cards";
 import { ActivityTimeline } from "@/components/overview/activity-timeline";
 import { CurrentTaskCard } from "@/components/overview/current-task-card";
 import { RecentPRsList } from "@/components/overview/recent-prs-list";
+import { FollowUpTracker } from "@/components/overview/follow-up-tracker";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -143,6 +144,8 @@ export default function OverviewPage() {
           inputTokensToday={data?.stats?.inputTokensToday || 0}
           outputTokensToday={data?.stats?.outputTokensToday || 0}
           costToday={data?.stats?.costToday || 0}
+          funnel={data?.funnel}
+          costPerMerge={data?.stats?.costPerMerge || 0}
         />
 
         {/* Pipeline telemetry bar */}
@@ -172,7 +175,11 @@ export default function OverviewPage() {
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-5">
                 <CurrentTaskCard task={data?.currentTask || null} />
-                <TerminalLoop />
+                <FollowUpTracker
+                  total={data?.followUps?.total || 0}
+                  active={data?.followUps?.active || 0}
+                  ledToMerge={data?.followUps?.ledToMerge || 0}
+                />
               </div>
               <RecentPRsList prs={data?.recentPRs || []} />
             </div>
@@ -181,6 +188,8 @@ export default function OverviewPage() {
           {/* Sidebar: curated art gallery */}
           <div className="space-y-5">
             <AgentStatePanel state={stateData?.state || null} isLoading={stateLoading} />
+
+            <TerminalLoop />
 
             {/* Game of Life -- living art piece */}
             <div className="art-frame relative rounded-md overflow-hidden">

@@ -129,12 +129,12 @@ Reply to each inline comment individually so reviewers see responses in context.
   Thank you for the review. I understand this change doesn't align with what
   the project needs as a bug fix. I'll close this PR. Apologies for the noise.
   ```
-- Mark result as `Status: closed_scope_concern`
+- Set `followup_outcome: closed_scope_concern` in result file YAML frontmatter
 - This is a learning opportunity — log the feedback for future triage improvement
 
 **Rejection (approach is fundamentally wrong):**
 - Close the PR politely
-- Mark result as `Status: closed_rejected`
+- Set `followup_outcome: closed_rejected` in result file YAML frontmatter
 - Log the reason — it helps us avoid similar mistakes
 
 **Round 3 (max revision limit reached):**
@@ -145,28 +145,44 @@ Reply to each inline comment individually so reviewers see responses in context.
   standards, I understand — please feel free to close this PR. I appreciate
   the time you've taken to review.
   ```
-- Mark result as `Status: disengaged_max_rounds`
+- Set `followup_outcome: disengaged_max_rounds` in result file YAML frontmatter
 - Do NOT close the PR yourself on round 3 — leave it for the maintainer to decide
 
 ### 8. Write Result File
-Write results to `memory/subagent-result-followup-{repo}-{pr}.md` (relative to workspace root):
+Write results to `memory/subagent-result-followup-{repo}-{pr}.md` using the YAML frontmatter
+format defined in `templates/subagent-result-schema.md`. Example:
 
 ```markdown
+---
+type: followup
+status: success
+repo: {owner}/{repo}
+pr_number: {pr}
+pr_url: https://github.com/{owner}/{repo}/pull/{pr}
+branch: {branch}
+followup_round: {round}
+followup_outcome: changes_pushed
+files_changed: 2
+additions: 15
+deletions: 5
+---
+
 # Follow-up Result: {owner}/{repo}#{pr}
 
-- Status: success / closed_scope_concern / closed_rejected / disengaged_max_rounds / failure
-- PR URL: https://github.com/{owner}/{repo}/pull/{pr}
-- Original Issue: #{issue}
-- Revision Round: {round}
-- Classification: changes_requested / comment_only
-- Comments Addressed: {count}
-- Changes Made:
-  - [list of changes]
-- Files Modified: [list]
-- Tests: pass / fail
-- Reviewer Response Posted: yes / no
-- Error Details: (if failed)
+## Summary
+Addressed reviewer feedback in round {round}. [describe what was done]
+
+## Reviewer Interaction
+- [What reviewers asked for and how we responded]
+
+## Changes Made
+- [list of files and changes]
 ```
+
+For terminal outcomes, use the appropriate `followup_outcome`:
+- `closed_scope_concern` — reviewer said this is not a bug fix
+- `closed_rejected` — reviewer rejected the approach
+- `disengaged_max_rounds` — round 3 polite disengagement
 
 ### 9. Cleanup
 ```bash

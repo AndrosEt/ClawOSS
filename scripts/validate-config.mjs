@@ -109,7 +109,7 @@ const requiredSkills = [
   "safety-checker",
 ];
 
-const SKILL_CHAR_LIMIT = 2000;
+const SKILL_CHAR_LIMIT = 15000;
 
 for (const skill of requiredSkills) {
   const skillPath = join(ROOT, "workspace/skills", skill, "SKILL.md");

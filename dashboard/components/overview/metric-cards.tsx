@@ -1,7 +1,15 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatTokens, formatCost, formatPercentage } from "@/lib/utils";
+import { formatTokens, formatCost } from "@/lib/utils";
+
+interface FunnelData {
+  submitted: number;
+  reviewed: number;
+  merged: number;
+  rejected: number;
+  open: number;
+}
 
 interface MetricCardsProps {
   totalPRs: number;
@@ -9,9 +17,21 @@ interface MetricCardsProps {
   inputTokensToday: number;
   outputTokensToday: number;
   costToday: number;
+  funnel?: FunnelData;
+  costPerMerge?: number;
 }
 
-function MiniBar({ value, max, segments = 12, color }: { value: number; max: number; segments?: number; color?: string }) {
+function MiniBar({
+  value,
+  max,
+  segments = 12,
+  color,
+}: {
+  value: number;
+  max: number;
+  segments?: number;
+  color?: string;
+}) {
   const filled = Math.round((value / Math.max(max, 1)) * segments);
   const barColor = color || "bg-emerald-500/50";
   return (
@@ -28,26 +48,59 @@ function MiniBar({ value, max, segments = 12, color }: { value: number; max: num
   );
 }
 
+function FunnelStage({
+  label,
+  count,
+  total,
+  color,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  color: string;
+}) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  const barWidth = total > 0 ? Math.max((count / total) * 100, 4) : 4;
+  return (
+    <div className="flex items-center gap-2 text-[10px] font-mono">
+      <span className="w-16 text-right text-muted-foreground/50 shrink-0">
+        {label}
+      </span>
+      <div className="flex-1 h-[6px] bg-foreground/5 rounded-[2px] overflow-hidden">
+        <div
+          className={`h-full rounded-[2px] transition-all ${color}`}
+          style={{ width: `${barWidth}%` }}
+        />
+      </div>
+      <span className="w-8 text-right tabular-nums text-foreground/60 shrink-0">
+        {count}
+      </span>
+      <span className="w-10 text-right tabular-nums text-muted-foreground/30 shrink-0">
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
 export function MetricCards({
   totalPRs,
   mergeRate,
   inputTokensToday,
   outputTokensToday,
   costToday,
+  funnel,
+  costPerMerge,
 }: MetricCardsProps) {
+  const mergeColor =
+    mergeRate >= 50
+      ? "text-emerald-400"
+      : mergeRate >= 25
+        ? "text-amber-400"
+        : mergeRate > 0
+          ? "text-red-400"
+          : "text-muted-foreground/40";
+
   const cards = [
-    {
-      label: "PRs",
-      value: totalPRs.toString(),
-      sub: totalPRs > 0 ? "across repos" : null,
-      bar: { value: totalPRs, max: 20 },
-    },
-    {
-      label: "Merge Rate",
-      value: formatPercentage(mergeRate),
-      sub: mergeRate >= 10 ? "healthy" : mergeRate > 0 ? "warming up" : null,
-      bar: { value: mergeRate, max: 100 },
-    },
     {
       label: "Input/24h",
       value: formatTokens(inputTokensToday),
@@ -68,22 +121,140 @@ export function MetricCards({
       sub: costToday > 0 ? "kimi k2.5" : null,
       bar: { value: costToday, max: 5 },
     },
+    {
+      label: "$/Merge",
+      value: costPerMerge && costPerMerge > 0 ? formatCost(costPerMerge) : "--",
+      sub: costPerMerge && costPerMerge > 0 ? "avg cost per merged PR" : null,
+      bar: { value: costPerMerge || 0, max: 10 },
+      barColor: "bg-amber-500/40",
+    },
   ];
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-      {cards.map((card) => (
-        <Card key={card.label} className="metric-card card-lift">
-          <CardContent className="p-4 pb-3">
-            <div className="stat-label">{card.label}</div>
-            <div className="stat-value mt-1.5 tabular-nums">{card.value}</div>
-            {card.sub && (
-              <div className="text-[10px] font-mono text-muted-foreground/35 mt-1">{card.sub}</div>
-            )}
-            <MiniBar value={card.bar.value} max={card.bar.max} color={card.barColor} />
+    <div className="space-y-4">
+      {/* Hero: Merge Rate + Funnel */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Hero merge rate */}
+        <Card className="metric-card card-lift card-elevated accent-top corner-brackets">
+          <CardContent className="p-6">
+            <div className="stat-label">Merge Rate</div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className={`text-5xl font-bold tabular-nums tracking-tighter ${mergeColor}`}>
+                {mergeRate > 0 ? mergeRate.toFixed(1) : "--"}
+              </span>
+              {mergeRate > 0 && (
+                <span className={`text-xl font-bold ${mergeColor} opacity-60`}>%</span>
+              )}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-mono ${
+                mergeRate >= 20
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : mergeRate >= 10
+                    ? "bg-amber-500/10 text-amber-400"
+                    : mergeRate > 0
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-foreground/5 text-muted-foreground/40"
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  mergeRate >= 20 ? "bg-emerald-500" : mergeRate >= 10 ? "bg-amber-500" : mergeRate > 0 ? "bg-red-500" : "bg-foreground/20"
+                }`} />
+                {mergeRate >= 30 ? "strong" : mergeRate >= 20 ? "healthy" : mergeRate >= 10 ? "warming up" : mergeRate > 0 ? "needs work" : "no data"}
+              </span>
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground/40 mt-3 flex items-center gap-2 flex-wrap">
+              <span>{totalPRs} submitted</span>
+              <span className="text-muted-foreground/15">|</span>
+              <span className="text-emerald-400/70">{funnel?.merged || 0} merged</span>
+              <span className="text-muted-foreground/15">|</span>
+              <span className="text-red-400/70">{funnel?.rejected || 0} rejected</span>
+              <span className="text-muted-foreground/15">|</span>
+              <span>{funnel?.open || 0} open</span>
+            </div>
+            <MiniBar
+              value={mergeRate}
+              max={100}
+              segments={20}
+              color={
+                mergeRate >= 20
+                  ? "bg-emerald-500/50"
+                  : mergeRate >= 10
+                    ? "bg-amber-500/50"
+                    : "bg-red-500/50"
+              }
+            />
           </CardContent>
         </Card>
-      ))}
+
+        {/* PR Funnel */}
+        {funnel && (
+          <Card className="metric-card card-lift">
+            <CardContent className="p-6 space-y-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="stat-label">PR Funnel</div>
+                {funnel.submitted > 0 && (
+                  <span className="text-[10px] font-mono text-muted-foreground/30 tabular-nums">
+                    {funnel.submitted > 0 ? `${Math.round((funnel.reviewed / funnel.submitted) * 100)}% reviewed` : ""}
+                    {funnel.reviewed > 0 ? ` / ${Math.round((funnel.merged / funnel.reviewed) * 100)}% of reviews merged` : ""}
+                  </span>
+                )}
+              </div>
+              <FunnelStage
+                label="submit"
+                count={funnel.submitted}
+                total={funnel.submitted}
+                color="bg-foreground/30"
+              />
+              <FunnelStage
+                label="review"
+                count={funnel.reviewed}
+                total={funnel.submitted}
+                color="bg-cyan-500/50"
+              />
+              <FunnelStage
+                label="merge"
+                count={funnel.merged}
+                total={funnel.submitted}
+                color="bg-emerald-500/50"
+              />
+              <FunnelStage
+                label="reject"
+                count={funnel.rejected}
+                total={funnel.submitted}
+                color="bg-red-500/40"
+              />
+              <FunnelStage
+                label="open"
+                count={funnel.open}
+                total={funnel.submitted}
+                color="bg-amber-500/40"
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Secondary metrics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {cards.map((card) => (
+          <Card key={card.label} className="metric-card card-lift">
+            <CardContent className="p-4 pb-3">
+              <div className="stat-label">{card.label}</div>
+              <div className="stat-value mt-1.5 tabular-nums">{card.value}</div>
+              {card.sub && (
+                <div className="text-[10px] font-mono text-muted-foreground/35 mt-1">
+                  {card.sub}
+                </div>
+              )}
+              <MiniBar
+                value={card.bar.value}
+                max={card.bar.max}
+                color={card.barColor}
+              />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

@@ -211,33 +211,10 @@ Contents:
 ```
 
 ### 2d. Spawn Follow-up Sub-Agent
-Use sessions_spawn to delegate the follow-up to a fresh sub-agent:
-
-```
-task: "Handle PR review feedback for {owner}/{repo}#{pr} (round {round}).
-  IMPORTANT: This is a FOLLOW-UP on an existing bug-fix PR, not new work.
-  Read the attached followup context file for all review comments and PR details.
-  Follow the oss-pr-review-handler skill workflow:
-  1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
-     mkdir -p $WORKDIR && cd $WORKDIR
-  2. Clone repo and checkout the PR branch (NOT main): git checkout {branch}
-  3. Read ALL review comments — understand what each reviewer is asking
-  4. For change requests: implement the requested modifications
-  5. For questions: prepare clear technical responses
-  6. Run tests to verify no regressions
-  7. Commit and push to the SAME branch (updates the PR automatically)
-  8. Respond to reviewers:
-     - General comments: gh pr comment {number} --repo {owner}/{repo} --body '...'
-     - Inline replies: gh api repos/{owner}/{repo}/pulls/{number}/comments -X POST -f body='...' -F in_reply_to={comment_id}
-  9. Stay within bug-fix scope — do NOT expand to features even if reviewer suggests
-  10. If reviewer says 'this is not a bug fix': close PR politely, mark as closed_scope_concern
-  11. If round 3: post polite disengagement message, do NOT close PR yourself
-  12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
-  13. CLEANUP: rm -rf $WORKDIR
-  Then reply: ANNOUNCE_SKIP"
-label: "followup-{repo}#{pr}"
-attachments: [followup-{repo}-{pr}.md]
-```
+Read the spawn template from `templates/subagent-followup.md`.
+Substitute the variables: `{owner}`, `{repo}`, `{pr}`, `{branch}`, `{round}`, `{number}`.
+Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
+Use the Spawn Config from the template for `label` and `attachments`.
 
 **Follow-up sub-agents get PRIORITY over implementation sub-agents.**
 Count active sub-agents. If follow-ups + implementations would exceed 5, defer new implementations.
@@ -334,82 +311,10 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 6. Quick research: If the issue references upstream bugs, CVEs, or external context, use web_search to understand before spawning. If issue has screenshot attachments, use image tool to analyze them.
 
 ## 5. Spawn Implementation Sub-Agent
-Use sessions_spawn to delegate the bug-fix task to a fresh sub-agent session:
-  task: "Fix BUG (not feature/refactor) in <repo>#<issue>: <title>.
-    IMPORTANT: This MUST be a bug fix. If at any point you determine this is actually
-    a feature request, enhancement, or refactor — ABANDON IMMEDIATELY and report
-    Status: failure, Reason: 'not a bug — issue is a feature request/enhancement'.
-    Read the attached repo-conventions.md and issue-details.md.
-    Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
-    1. Create isolated workspace: WORKDIR=/tmp/clawoss-<issue>-$(date +%s)
-       mkdir -p $WORKDIR && cd $WORKDIR
-       Clone repo INTO this directory. All work happens here.
-    2. CONFIRM BUG: Verify this is a real bug, not a feature request. If not a bug, ABANDON.
-    3. DEEP COMPREHENSION (do NOT skip this):
-       a. Read the repo's architecture: directory structure, key modules, how components connect.
-       b. Trace the bug through the FULL execution path — start from the entry point,
-          follow every function call to where the error occurs. Do NOT just look at the
-          file mentioned in the stack trace.
-       c. Understand WHY the bug exists, not just WHERE it manifests. Is it a logic error?
-          Edge case? Race condition? Incorrect assumption? Missing validation?
-       d. Search for similar patterns elsewhere in the codebase (grep/search). Could the
-          same root cause affect other code paths?
-       e. Plan a COMPLETE fix that addresses the root cause. If the fix needs to touch
-          multiple files across the codebase, that's fine — do it right.
-       f. If the bug is too complex to fully resolve, ABANDON rather than submit a partial fix.
-    4. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
-       The test should target the root cause, not just the surface symptom.
-       Record the failure output as evidence. The failing test proves the bug exists.
-    5. IMPLEMENT: Write a COMPREHENSIVE fix that addresses the root cause.
-       Fix the bug COMPLETELY — no partial fixes. The PR must fully resolve the issue.
-       If the proper fix spans multiple files, that's expected — a correct 3-file fix
-       beats a hacky 1-file workaround.
-       No refactoring. No scope creep. No 'while I'm here' improvements.
-       But DO fix the reported bug thoroughly and completely.
-    6. VERIFY: Run tests again. The failing test MUST now pass. No regressions.
-       Record the passing output as evidence.
-       Verify the fix addresses root cause, not just symptom.
-    7. REVIEW: Self-check diff:
-       - Does this FULLY resolve the reported bug? Partial fixes = abandon.
-       - Does it fix the root cause, not just the symptom?
-       - Is this ONLY fixing a bug? If changes include feature additions or refactoring, STRIP THEM.
-       - Scope, style, secrets, size, commit msg.
-       - Commit type MUST be 'fix', not 'feat' or 'refactor'.
-       - 3+ failures = abandon.
-    8. SUBMIT: Commit, push, create PR with reproduction evidence
-       (before/after test output in PR description).
-       PR title should indicate it's a bug fix. PR body must include:
-       - Root Cause Analysis: explain WHY the bug existed
-       - Fix explanation: how this addresses the root cause
-       - Before/after test evidence
-       - Reference to the bug report
-       Include a CLA confirmation section at the bottom of the PR body:
-       '## Contributor License Agreement
-       By submitting this pull request, I confirm that my contribution is made
-       under the terms of the project's license and I have the right to submit
-       it. I agree that my contributions may be distributed under the project license.
-       - [x] I have read and agree to the project's contributing guidelines
-       - [x] This contribution is my original work (or properly attributed)
-       - [x] I license this contribution under the project's existing license'
-    9. Do NOT wait for remote CI. Submit and report result.
-    10. CLEANUP: After submit or abandon, ALWAYS run: rm -rf $WORKDIR
-        This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
-    Tools: You have web_search, web_fetch, image, and apply_patch available.
-    Use web_search to research error messages or find related upstream fixes.
-    Use image to analyze any screenshots attached to the issue.
-    IMPORTANT: When finished, write results to memory/subagent-result-<repo>-<issue>.md (relative to workspace root):
-    - Status: success/failure
-    - PR URL (if created)
-    - Issue type: bug (if not a bug, explain why and mark as failure)
-    - Root cause: brief explanation of why the bug existed
-    - Fix completeness: full/partial (partial = failure)
-    - Files changed
-    - Test results (before/after)
-    - Error details (if failed)
-    Then run: rm -rf $WORKDIR
-    Then reply: ANNOUNCE_SKIP"
-  label: "<repo>#<issue>"
-  attachments: [repo-conventions.md, issue-details.md]
+Read the spawn template from `templates/subagent-implementation.md`.
+Substitute the variables: `{repo}` (owner/repo), `{issue}` (issue number), `{title}` (issue title).
+Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
+Use the Spawn Config from the template for `label` and `attachments`.
 
 Read memory files for repo conventions and issue details BEFORE spawning.
 Pass them as attachments since sub-agents cannot access memory tools.
@@ -425,14 +330,15 @@ If web_search results were gathered during triage, include a summary in the atta
 - ANNOUNCE_SKIP bypasses the announce model call — no content filter risk, faster completion
 - NO hard timeout — sub-agents take as long as they need to do quality work
 - maxConcurrent: 5 — up to 5 sub-agents can work in parallel (follow-ups + implementations combined)
-- Result file must include: status, PR URL, files changed, test results, or error details
+- Result file must use YAML frontmatter format from templates/subagent-result-schema.md
 - Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
 
-### Disk Cleanup (non-negotiable)
+### Disk Cleanup (self-cleanup only)
 - Implementation sub-agents clone repos to /tmp/clawoss-<issue>-<timestamp>/ — isolated per task
 - Follow-up sub-agents clone repos to /tmp/clawoss-followup-<pr>-<timestamp>/ — isolated per PR
-- After PR submit or task abandon, sub-agent MUST rm -rf its workdir
-- Orchestrator runs cleanup of stale workdirs (>60 min old) every cycle in step 6
+- After PR submit or task abandon, the sub-agent MUST rm -rf its OWN workdir
+- **ONLY the sub-agent that created a workspace may delete it** — no external cleanup
+- The orchestrator NEVER deletes /tmp/clawoss-* directories — active sub-agents may be working in them
 - NEVER clone to /tmp/clawoss-workdir (shared dir causes conflicts between sub-agents)
 - Expected disk: /tmp/clawoss-* should be <2GB total during peak (5 active sub-agents)
 
@@ -447,48 +353,49 @@ Check ALL active sub-agents via sessions_list.
 
 ### 6a. Implementation Results
 List memory/subagent-result-*.md files (excluding followup-* files) to find completed results.
-For each result file:
-- Read it to get the sub-agent's outcome.
-- If Status: success — VALIDATE before counting:
-  - Check that the result file contains a PR URL (starts with https://github.com/ and contains /pull/)
-  - If PR URL is MISSING or EMPTY:
+For each result file, parse the YAML frontmatter (see templates/subagent-result-schema.md):
+- Extract `status`, `pr_url`, `repo`, `issue`, `failure_reason` from the YAML block between `---` markers.
+- If status: `success` — VALIDATE before counting:
+  - Check that `pr_url` is present and starts with `https://github.com/` and contains `/pull/`
+  - If `pr_url` is MISSING or EMPTY:
     - Do NOT count as a submitted PR
     - Log as "incomplete — no PR URL" in memory/work-queue.md
     - Re-queue the issue for retry (once). If already retried, mark as failed.
     - Delete the result file.
-  - If PR URL is PRESENT and valid:
+  - If `pr_url` is PRESENT and valid:
     - Update memory/pipeline-state.md with new PR.
     - Remove the issue from memory/work-queue.md.
     - **Add new entry to memory/pr-followup-state.md** with status `pending_review`, round 0.
     - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via launchd).
       It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
-- If Status: failure: log reason in memory/work-queue.md.
-- If timeout/error: increment errors_this_hour in wake-state.md.
+- If status: `failure` or `abandoned`: log `failure_reason` in memory/work-queue.md.
+- If status: `already_fixed`: remove from work-queue.md, no PR to track.
+- If no valid YAML frontmatter: treat as legacy format, fall back to text search for "Status:" and "PR URL:".
 - Delete the result file after processing.
 
 ### 6b. Follow-up Results
 List memory/subagent-result-followup-*.md files to find completed follow-up results.
-For each follow-up result file:
-- Read it to get the follow-up outcome.
+For each follow-up result file, parse the YAML frontmatter (see templates/subagent-result-schema.md):
+- Extract `status`, `followup_round`, `followup_outcome`, `pr_number`, `repo` from the YAML block.
 - Update memory/pr-followup-state.md:
   - Increment the round count for this PR
   - Update the last-checked timestamp
-  - Set status based on result:
-    - `success` → `follow_up_round_{N}` (N = new round count)
+  - Set status based on `followup_outcome` field:
+    - `changes_pushed` or `question_answered` → `follow_up_round_{N}` (N = new round count)
     - `closed_scope_concern` → `closed_scope_concern` (terminal — no more sub-agents)
     - `closed_rejected` → `closed_rejected` (terminal — no more sub-agents)
     - `disengaged_max_rounds` → `disengaged` (terminal — no more sub-agents)
-    - `failure` → keep current status, log error, retry once on next cycle
+    - If `status: failure` → keep current status, log `failure_reason`, retry once on next cycle
 - If round count reaches 3: mark as `disengaged`, never spawn another sub-agent for this PR
 - If PR was closed by the sub-agent: remove from pipeline-state.md
 - Delete the follow-up result file after processing.
 
-### 6c. Disk Cleanup
-Run disk cleanup for both implementation and follow-up workdirs:
-```bash
-find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} +
-```
-This catches any workdirs left behind by crashed/stalled sub-agents.
+### 6c. Verify Self-Cleanup
+Do NOT run external cleanup commands (no `find /tmp -name 'clawoss-*' -exec rm -rf`).
+Active sub-agents may be working in those directories.
+
+Each sub-agent is responsible for cleaning up its OWN workspace (`rm -rf $WORKDIR`)
+as the final step before replying ANNOUNCE_SKIP. This is enforced in the spawn templates.
 
 For sub-agents still running (no result file yet): leave them running, check next cycle.
 

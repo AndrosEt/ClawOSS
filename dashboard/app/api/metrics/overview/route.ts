@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
-import { heartbeats, pullRequests, metricsTokens, agentLogs, conversationMessages } from "@/lib/schema";
+import { heartbeats, pullRequests, prReviews, metricsTokens, agentLogs, conversationMessages, subagentRuns } from "@/lib/schema";
 import { desc, gte, sql, eq } from "drizzle-orm";
 
 export async function GET() {
@@ -37,18 +37,45 @@ export async function GET() {
       else break;
     }
 
-    // PR stats
-    const [totalPRsResult, mergedPRsResult] = await Promise.all([
+    // PR stats - full breakdown
+    const [totalPRsResult, mergedPRsResult, openPRsResult, closedPRsResult] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(pullRequests),
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(pullRequests)
-        .where(eq(pullRequests.status, "merged")),
+      db.select({ count: sql<number>`count(*)` }).from(pullRequests).where(eq(pullRequests.status, "merged")),
+      db.select({ count: sql<number>`count(*)` }).from(pullRequests).where(eq(pullRequests.status, "open")),
+      db.select({ count: sql<number>`count(*)` }).from(pullRequests).where(eq(pullRequests.status, "closed")),
     ]);
 
     const totalPRs = totalPRsResult[0]?.count || 0;
     const mergedPRs = mergedPRsResult[0]?.count || 0;
+    const openPRs = openPRsResult[0]?.count || 0;
+    const closedPRs = closedPRsResult[0]?.count || 0;
     const mergeRate = totalPRs > 0 ? Math.round((mergedPRs / totalPRs) * 1000) / 10 : 0;
+
+    // PRs that have received at least one review
+    const reviewedPRsResult = await db
+      .select({ count: sql<number>`count(DISTINCT ${prReviews.prId})` })
+      .from(prReviews);
+    const reviewedPRs = reviewedPRsResult[0]?.count || 0;
+
+    // Follow-up sub-agent stats
+    let followUpStats = { total: 0, active: 0, ledToMerge: 0 };
+    try {
+      const fuResults = await db
+        .select({
+          total: sql<number>`count(*)`,
+          active: sql<number>`sum(case when ${subagentRuns.outcome} = 'in_progress' then 1 else 0 end)`,
+          success: sql<number>`sum(case when ${subagentRuns.outcome} = 'success' then 1 else 0 end)`,
+        })
+        .from(subagentRuns)
+        .where(eq(subagentRuns.type, "followup"));
+      followUpStats = {
+        total: fuResults[0]?.total || 0,
+        active: fuResults[0]?.active || 0,
+        ledToMerge: fuResults[0]?.success || 0,
+      };
+    } catch {
+      // subagent_runs table might not exist
+    }
 
     // Today's token usage and cost from metrics_tokens table
     const todayMetrics = await db
@@ -147,6 +174,37 @@ export async function GET() {
       }
     }
 
+    // Average time-to-first-review (hours)
+    let avgHoursToReview: number | null = null;
+    try {
+      const reviewTimeResult = await db
+        .select({
+          avgHours: sql<number>`round(avg((${prReviews.submittedAt} - ${pullRequests.createdAt}) / 3600.0), 1)`,
+        })
+        .from(pullRequests)
+        .innerJoin(prReviews, eq(prReviews.prId, pullRequests.id));
+      avgHoursToReview = reviewTimeResult[0]?.avgHours ?? null;
+    } catch {
+      // No reviews yet
+    }
+
+    // Total cost for cost-per-merge calculation
+    const totalCostResult = await db
+      .select({ total: sql<number>`COALESCE(SUM(cost_usd), 0)` })
+      .from(metricsTokens);
+    const totalCostAllTime = totalCostResult[0]?.total || 0;
+    const costPerMerge = mergedPRs > 0 ? totalCostAllTime / mergedPRs : 0;
+
+    // Total tokens for cost-per-merge
+    const totalTokensResult = await db
+      .select({
+        input: sql<number>`COALESCE(SUM(input_tokens), 0)`,
+        output: sql<number>`COALESCE(SUM(output_tokens), 0)`,
+      })
+      .from(metricsTokens);
+    const totalTokensAllTime = (totalTokensResult[0]?.input || 0) + (totalTokensResult[0]?.output || 0);
+    const tokensPerMerge = mergedPRs > 0 ? Math.round(totalTokensAllTime / mergedPRs) : 0;
+
     return NextResponse.json({
       agentStatus: {
         isOnline,
@@ -157,12 +215,28 @@ export async function GET() {
       },
       stats: {
         totalPRs,
+        mergedPRs,
+        openPRs,
+        closedPRs,
+        reviewedPRs,
         mergeRate,
         tokensUsedToday,
         inputTokensToday,
         outputTokensToday,
         costToday,
+        totalCostAllTime,
+        costPerMerge,
+        tokensPerMerge,
+        avgHoursToReview,
       },
+      funnel: {
+        submitted: totalPRs,
+        reviewed: reviewedPRs,
+        merged: mergedPRs,
+        rejected: closedPRs,
+        open: openPRs,
+      },
+      followUps: followUpStats,
       recentActivity,
       currentTask,
       recentPRs,

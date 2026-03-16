@@ -91,7 +91,8 @@ Follow-up sub-agents get PRIORITY over implementation sub-agents:
 - Sub-agents are independent — one failing doesn't affect others
 - Implementation results: `memory/subagent-result-<repo>-<issue>.md`
 - Follow-up results: `memory/subagent-result-followup-<repo>-<pr>.md`
-- The orchestrator checks all result files on each heartbeat cycle (step 6a + 6b)
+- All result files use YAML frontmatter format defined in `templates/subagent-result-schema.md`
+- The orchestrator parses YAML frontmatter at heartbeat step 6a (implementation) and 6b (follow-up)
 - Target: 5 concurrent sub-agents at all times (mix of follow-ups and implementations)
 
 ## Session Start Checklist

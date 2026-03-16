@@ -39,27 +39,71 @@ else
     echo "[OK] Workspace already linked"
 fi
 
-# 5. Deploy config (substitute path placeholders)
-sed \
+# 5. Deploy config (deep-merge repo config into deployed config, preserving gateway-managed sections)
+DEPLOYED_CONFIG="$HOME/.openclaw/openclaw.json"
+
+# First, build the repo config with path placeholders substituted
+REPO_CONFIG_RESOLVED=$(sed \
     -e "s|__WORKSPACE_PATH__|$PROJECT_DIR/workspace|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
     -e "s|__HOME_DIR__|$HOME|g" \
-    "$PROJECT_DIR/config/openclaw.json" > "$HOME/.openclaw/openclaw.json"
-# Re-inject env vars (they're not in the repo config)
+    "$PROJECT_DIR/config/openclaw.json")
+
+# Merge repo config into deployed config (preserving gateway-managed keys like meta, commands, plugins, gateway.auth)
+# If no deployed config exists yet, just use the repo config as-is
+_REPO_CONFIG="$REPO_CONFIG_RESOLVED" \
+_DEPLOYED="$DEPLOYED_CONFIG" \
+_KIMI_KEY="${KIMI_API_KEY:-}" \
+_OR_KEY="${OPENROUTER_API_KEY:-}" \
+_GH_TOKEN="${GITHUB_TOKEN:-}" \
+_DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
+_CLAW_KEY="${CLAW_API_KEY:-}" \
 python3 -c "
-import json
-with open('$HOME/.openclaw/openclaw.json') as f: c = json.load(f)
-c.setdefault('env', {})
-c['env']['KIMI_API_KEY'] = '${KIMI_API_KEY:-}'
-c['env']['OPENROUTER_API_KEY'] = '${OPENROUTER_API_KEY:-}'
-c['env']['GITHUB_TOKEN'] = '${GITHUB_TOKEN:-}'
-c['env']['DASHBOARD_URL'] = '${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}'
-c['env']['CLAW_API_KEY'] = '${CLAW_API_KEY:-}'
-# Remove empty values
-c['env'] = {k:v for k,v in c['env'].items() if v}
-with open('$HOME/.openclaw/openclaw.json', 'w') as f: json.dump(c, f, indent=2)
+import json, os
+
+def deep_merge(base, override):
+    \"\"\"Merge override into base. Override wins for non-dict values.\"\"\"
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+repo_config = json.loads(os.environ['_REPO_CONFIG'])
+deployed_path = os.environ['_DEPLOYED']
+
+# Load existing deployed config (if it exists)
+try:
+    with open(deployed_path) as f:
+        deployed = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    deployed = {}
+
+# Deep-merge: repo config overrides deployed, but deployed's gateway-managed
+# sections survive if not in repo config
+merged = deep_merge(deployed, repo_config)
+
+# Inject env vars
+merged.setdefault('env', {})
+env_vars = {
+    'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
+    'OPENROUTER_API_KEY': os.environ.get('_OR_KEY', ''),
+    'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
+    'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
+    'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
+}
+for k, v in env_vars.items():
+    if v:
+        merged['env'][k] = v
+# Remove empty env values
+merged['env'] = {k: v for k, v in merged['env'].items() if v}
+
+with open(deployed_path, 'w') as f:
+    json.dump(merged, f, indent=2)
 " 2>/dev/null
-echo "[OK] Config deployed with env vars"
+echo "[OK] Config deployed (deep-merged with env vars)"
 
 # 6. Clean stale sessions
 rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null
@@ -78,8 +122,7 @@ echo "[OK] Wake state reset"
 
 # 8. Create required directories
 # Sub-agents create their own /tmp/clawoss-<issue>-<timestamp>/ dirs
-# Clean up any stale ones from previous runs
-find /tmp -maxdepth 1 -name 'clawoss-*' -type d -mmin +60 -exec rm -rf {} + 2>/dev/null
+# Sub-agents self-cleanup after completing — do NOT delete externally (active agents may be working)
 mkdir -p "$HOME/.openclaw/logs"
 mkdir -p "$PROJECT_DIR/workspace/memory/repos"
 mkdir -p "$PROJECT_DIR/workspace/memory/issues"

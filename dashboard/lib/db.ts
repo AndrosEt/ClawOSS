@@ -91,6 +91,16 @@ async function initSchema(): Promise<void> {
       pipeline_state TEXT, active_repos TEXT,
       metadata TEXT
     )`,
+    `CREATE TABLE IF NOT EXISTS subagent_runs (
+      id TEXT PRIMARY KEY, session_id TEXT,
+      repo TEXT NOT NULL, issue_or_pr TEXT,
+      type TEXT NOT NULL, started_at INTEGER NOT NULL,
+      finished_at INTEGER, duration_ms INTEGER,
+      outcome TEXT NOT NULL, failure_reason TEXT,
+      pr_number INTEGER, metadata TEXT
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_subagent_runs_repo ON subagent_runs(repo)`,
+    `CREATE INDEX IF NOT EXISTS idx_subagent_runs_started ON subagent_runs(started_at DESC)`,
     `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY, value TEXT NOT NULL,
       updated_at INTEGER NOT NULL

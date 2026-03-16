@@ -119,6 +119,23 @@ export const agentState = sqliteTable("agent_state", {
   metadata: text("metadata", { mode: "json" }),
 });
 
+export const subagentRuns = sqliteTable("subagent_runs", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id"),
+  repo: text("repo").notNull(),
+  issueOrPr: text("issue_or_pr"),
+  type: text("type", { enum: ["implementation", "followup"] }).notNull(),
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+  finishedAt: integer("finished_at", { mode: "timestamp" }),
+  durationMs: integer("duration_ms"),
+  outcome: text("outcome", {
+    enum: ["success", "failure", "abandoned", "in_progress"],
+  }).notNull(),
+  failureReason: text("failure_reason"),
+  prNumber: integer("pr_number"),
+  metadata: text("metadata", { mode: "json" }),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value", { mode: "json" }).notNull(),
