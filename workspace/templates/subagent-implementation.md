@@ -20,6 +20,12 @@ If at any point you determine this is actually a large feature request, enhancem
 or refactor — ABANDON IMMEDIATELY and report
 Status: failure, Reason: 'not actionable — issue is a feature request/enhancement'.
 
+TITLE KEYWORD GATE: If the issue title contains ANY of these as whole words, ABANDON immediately:
+`add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`,
+`support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`,
+`redesign`, `optimize`, `allow`, `provide`
+(Word boundary only — "Unsupported" does NOT match "support".)
+
 Read the attached repo-conventions.md and issue-details.md.
 
 0. COMMENT ON THE ISSUE (if orchestrator indicated high-confidence):
@@ -34,11 +40,29 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh repo clone {repo} $WORKDIR -- --depth=50`
    All work happens here.
 
+1a. QUICK HEALTH CHECK (defense-in-depth — before investing time):
+   ```bash
+   STARS=$(gh api repos/{repo} --jq '.stargazers_count' 2>/dev/null || echo 0)
+   if [ "$STARS" -lt 200 ]; then
+     echo "ABORT: repo has only $STARS stars (minimum 200)"
+     rm -rf $WORKDIR
+     # Write result as failure with reason "repo_health_fail: stars $STARS below 200"
+     exit 1
+   fi
+   ```
+   The orchestrator should have already verified this, but if the queue was populated
+   by a cron job that skipped health checks, this prevents wasting an entire cycle.
+
 1b. READ REPO GUIDELINES:
    Check for CONTRIBUTING.md and AGENTS.md in the repo root.
    - CONTRIBUTING.md: follow its style/process/commit conventions
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
    If CONTRIBUTING.md requires a CLA you cannot sign, ABANDON with reason `cla_required`.
+
+   **CLA ORG HARD REJECT (defense-in-depth):** Extract the repo owner from {repo}.
+   If the owner is ANY of: `deepset-ai`, `iterative`, `Aider-AI`, `milvus-io`, `apache`,
+   `microsoft`, `google`, `meta-llama` — ABANDON with reason `cla_required: org requires CLA`.
+   We cannot sign CLAs, so PRs to these orgs can NEVER merge.
 
 1c. CHECK IF ALREADY FIXED OR IN PROGRESS:
    Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
@@ -48,12 +72,20 @@ Read the attached repo-conventions.md and issue-details.md.
    If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr_other: existing PR from another contributor`.
    This avoids competing with existing PRs (atuin #3272 was closed because another contributor had it first).
 
-2. CLASSIFY & CONFIRM: Read the issue. Determine the contribution type:
+2. CLASSIFY & CONFIRM: Read the issue title and body. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
    - **docs-fix**: incorrect/outdated documentation
    - **typo-fix**: typo in code, docs, comments, or error messages
    - **test-addition**: missing test coverage for existing code
-   If it's a feature request, enhancement, or refactor — ABANDON.
+
+   **TITLE KEYWORD REJECT (defense-in-depth — check even if orchestrator already triaged):**
+   If the issue title contains ANY of these as whole words (case-insensitive), ABANDON immediately:
+   `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`,
+   `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`,
+   `optimize`, `allow`, `provide`.
+   Exception: substrings don't count — "Unsupported operation crashes" does NOT match `support`.
+
+   If it's a feature request, enhancement, or refactor — ABANDON with reason `not_a_bug`.
 
 3. ROUTE BY TYPE — follow the workflow for YOUR contribution type:
 
@@ -142,13 +174,19 @@ Read the attached repo-conventions.md and issue-details.md.
 
 8. SUBMIT: Commit, push, create PR with evidence.
 
-   **COMMIT TYPE GATE (mandatory):** Your commit MUST use one of these prefixes:
-   - `fix(scope): ...` — for bug fixes
-   - `docs(scope): ...` — for documentation fixes
-   - `test(scope): ...` — for test additions
-   NEVER use `feat:`, `chore:`, `refactor:`, `perf:`, or `style:`. If your commit starts with `feat:`, you are submitting a feature — ABANDON IMMEDIATELY. We only contribute fixes, docs, and tests.
+   **COMMIT TYPE GATE (mandatory — RUN THIS CHECK):**
+   ```bash
+   # Check commit message prefix — ABORT if feature/refactor
+   COMMIT_MSG=$(git log -1 --format=%s)
+   if echo "$COMMIT_MSG" | grep -qE '^(feat|chore|refactor|perf|style)(\(|:)'; then
+     echo "ABORT: commit type '$(echo $COMMIT_MSG | cut -d: -f1)' is not allowed. We only submit fix/docs/test."
+     # Write result as failure with reason "not_a_bug: commit type indicates feature/refactor"
+     rm -rf $WORKDIR && exit 1
+   fi
+   ```
+   Valid prefixes: `fix(scope):`, `docs(scope):`, `test(scope):`. If your commit starts with `feat:`, you are submitting a feature — ABANDON IMMEDIATELY.
 
-   **DIFF SIZE HARD GATE (mandatory — check BEFORE pushing):**
+   **DIFF SIZE HARD GATE (mandatory — RUN THIS CHECK before pushing):**
    ```bash
    DIFF_STATS=$(git diff --stat HEAD~1 | tail -1)
    INSERTIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
@@ -157,10 +195,10 @@ Read the attached repo-conventions.md and issue-details.md.
    if [ "$TOTAL" -gt 200 ]; then
      echo "ABORT: diff is $TOTAL lines (max 200). Smaller PRs merge 40% faster."
      # Write result as failure with reason "scope_creep: diff too large ($TOTAL lines)"
-     # Clean up and exit
+     rm -rf $WORKDIR && exit 1
    fi
    ```
-   If total insertions + deletions > 200, ABANDON. Do not submit large PRs.
+   **YOU MUST ACTUALLY RUN the above script.** Do not skip it. PRs > 200 lines are NEVER submitted.
 
    **BRANCH NAME CHECK (mandatory):** Verify your branch starts with `clawoss/`:
    ```bash
@@ -216,27 +254,33 @@ Read the attached repo-conventions.md and issue-details.md.
    **PR TEMPLATE CHECK:** Before writing the PR body, check if the repo has a PR template:
    `ls .github/PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null`
    If a template exists, use its structure (fill in sections, check checkboxes). If not, use our format.
-   PR body rules:
-   - Write as a human developer, specific to THIS codebase. No generic AI phrasing.
-   - NO: "I noticed this issue and...", "This PR addresses...", "Upon investigation..."
-   - YES: State the bug/problem in 1 sentence. State root cause in 1 sentence. State fix in 1 sentence.
-   - Be terse: 3-5 sentences total for the description. Maintainers skim, not read.
-   - Reference codebase-specific files, functions, and line numbers.
-   - For bugs: root cause + fix + before/after test evidence
-   - For docs/typos: what was wrong + what's now correct
-   - For tests: what's now tested + why it matters
+   PR body rules — WRITE LIKE A HUMAN DEVELOPER (AI PRs get 4.6x slower review pickup):
+   - Jump straight to what's broken and what you did. Write like leaving a note for a colleague.
+   - **AI tells (NEVER USE)**: "This PR addresses...", "I noticed...", "Upon investigation...",
+     "This change ensures...", "This commit fixes...", "I identified...", "After analyzing...",
+     "The root cause was identified as...", "This resolves the issue by...", "Comprehensive fix for...",
+     bullet lists starting with "Ensures", "Improves", "Handles"
+   - **Write like this** (bug fix example):
+     `ProcessPoolTaskRunner.submit` swallows `BrokenProcessPool` — the except clause
+     catches `Exception` but doesn't re-raise after logging. Changed to re-raise after
+     `self._report_failure()`. Test added confirming propagation. Fixes #21131
+   - **NOT like this**: "This PR addresses an issue where ProcessPoolTaskRunner silently
+     swallows exceptions. Upon investigation, I identified that the root cause is..."
+   - Be terse: 3-5 sentences max. Maintainers skim. Reference specific files/functions/lines.
+   - For bugs: what broke + why (root cause) + what you changed + test evidence
+   - For docs/typos: what was wrong + what's correct now (2-3 sentences)
+   - For tests: what's tested + why it matters (2-3 sentences)
    - Reference the original issue (Fixes #{issue})
    Include AI disclosure in the PR body (MANDATORY — transparency builds trust):
    '> **Note:** This contribution was generated with AI assistance (@BillionClaw / ClawOSS).'
 
-   Include a CLA confirmation section at the bottom of the PR body:
+   **CLA section (ONLY if repo requires it):** Check if repo has `.clabot`, CLA GitHub Action,
+   or mentions CLA in CONTRIBUTING.md. If YES, include at the bottom of PR body:
    '## Contributor License Agreement
-   By submitting this pull request, I confirm that my contribution is made
-   under the terms of the project's license and I have the right to submit
-   it. I agree that my contributions may be distributed under the project license.
    - [x] I have read and agree to the project's contributing guidelines
-   - [x] This contribution is my original work (or properly attributed)
+   - [x] This contribution is my original work
    - [x] I license this contribution under the project's existing license'
+   If NO CLA requirement detected, do NOT include this section — it confuses maintainers.
 
 9. Do NOT wait for remote CI. Submit and report result.
 

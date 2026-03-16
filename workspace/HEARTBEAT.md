@@ -14,21 +14,33 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
 
-## 2. PR Follow-ups (HIGHEST PRIORITY)
-**2a.** Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then for each PR, fetch review decision and comments. ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron contexts.
+## 2. PR Follow-ups (HIGHEST PRIORITY — this is the #1 driver of merge rate)
+63 PRs at round 0 = 0 merges. Responding to reviews is MORE IMPORTANT than submitting new PRs.
+
+**2a. ALWAYS scan open PRs every cycle** (do NOT skip, do NOT rely on crons):
+Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then for the **top 5 most recently updated**, fetch review decision and comments:
+```bash
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --jq '.[] | {state, user: .user.login, submitted_at}'
+gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[] | {user: .user.login, created_at, body}'
+```
+ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron contexts.
+**Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) comment_only, 4) ci_failing.
+
 **2b.** Read pr-followup-state.md. **SPAWNED_PENDING GUARD:** skip if `spawned_pending`. Classify each PR:
+- `approved`/`merged`: log success. **If approved, check: can it be merged? If merge button is available and CI passes, merge it immediately with `gh pr merge --squash`.** This is the highest-value action in the entire loop.
 - `changes_requested` (round < 3): spawn follow-up. Round >= 3: skip.
 - `comment_only`: spawn to respond. Counts as round only if code pushed.
-- `approved`/`merged`: log success.
 - `ci_failing` (our fault): treat as changes_requested.
 - `fix_rejected`: issue reporter or maintainer says fix doesn't work / wrong approach. Close PR with polite comment: "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
 - `already_fixed_upstream`: maintainer says "already fixed" / "fixed in latest release" / "resolved upstream". Close PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
-- `stale` (>7 days): close with polite comment.
+- `stale` (>7 days no activity): close with polite comment: "Closing this as stale — no reviewer activity in 7+ days. Happy to reopen if there's interest."
+- `invalid_contribution`: PR title starts with `feat:` or PR adds features/refactors instead of fixing bugs/docs/typos/tests. Close with: "Closing — this was submitted as a feature rather than a bug fix. Apologies for the noise."
+- `low_star_repo`: PR targets a repo with < 200 stars (should not have been submitted). Close with: "Closing — this was submitted in error. Apologies for the noise."
 - `close_withdraw`: close with polite withdrawal.
 
 **2c.** Write context to `memory/subagent-inputs/followup-{repo}-{pr}.md`.
 **2d.** Spawn using `templates/subagent-followup.md`. Set status to `spawned_pending` IMMEDIATELY. Max 2 follow-ups per cycle.
-**2e.** Update timestamps, remove closed PRs.
+**2e.** Update timestamps, remove closed PRs. **Update memory/trust-repos.md if any PR was merged or approved.**
 
 **2f. DUPLICATE PR CLEANUP** (run every cycle):
 Group open PRs by repo. If any repo has >1 open PR from BillionClaw:
