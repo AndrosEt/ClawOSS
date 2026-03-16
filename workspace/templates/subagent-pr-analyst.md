@@ -50,10 +50,10 @@ WHILE context < 70%:
 gh search prs --author BillionClaw --state open --limit 100 --json repository,number,title,url,createdAt,updatedAt
 
 # All closed PRs (last 60 days)
-gh search prs --author BillionClaw --state closed --limit 100 --json repository,number,title,url,createdAt,closedAt,mergedAt --sort created
+gh search prs --author BillionClaw --state closed --limit 100 --json repository,number,title,url,createdAt,closedAt --sort created
 
 # All merged PRs (ever)
-gh search prs --author BillionClaw --merged --limit 100 --json repository,number,title,url,createdAt,mergedAt
+gh search prs --author BillionClaw "is:merged" --limit 100 --json repository,number,title,url,createdAt,closedAt
 ```
 
 ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
