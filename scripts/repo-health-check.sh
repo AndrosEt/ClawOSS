@@ -272,11 +272,21 @@ if [ -n "$CONTRIBUTING" ]; then
   fi
 fi
 
-# ─── 7b. CLA detection (informational — NOT a blocker) ───
-# CLA repos are allowed. We sign CLAs. This just records the info for subagents.
+# ─── 7b. CLA detection (nuanced: automatable = OK, manual-only = FAIL) ───
+# Non-automatable CLA orgs require identity verification or postal mail.
+# These are hard-fail because a bot cannot complete their process.
+NON_AUTO_CLA_ORGS="apache microsoft google meta-llama"
+for org in $NON_AUTO_CLA_ORGS; do
+  if [ "$OWNER" = "$org" ]; then
+    reasons+=("non-automatable CLA: $org requires manual identity verification")
+    fail "non-automatable CLA ($org)" "repo_health_fail: $org CLA requires manual process"
+  fi
+done
+
+# All other CLA repos are allowed — we sign CLAs via CLA-assistant or DCO.
 HAS_CLA=false
-CLA_ORGS="deepset-ai iterative Aider-AI milvus-io apache microsoft google meta-llama BerriAI"
-for org in $CLA_ORGS; do
+AUTOMATABLE_CLA_ORGS="deepset-ai iterative Aider-AI milvus-io BerriAI"
+for org in $AUTOMATABLE_CLA_ORGS; do
   if [ "$OWNER" = "$org" ]; then HAS_CLA=true; break; fi
 done
 if [ "$HAS_CLA" = "false" ]; then

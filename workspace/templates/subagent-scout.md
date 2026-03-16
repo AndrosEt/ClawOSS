@@ -106,7 +106,7 @@ For each unique repo found, run the health check script:
 bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh owner/repo
 ```
 Exit code 0 = healthy, 1 = skip. The script checks stars, merge velocity, anti-bot policies.
-CLA/DCO repos are allowed — the agent signs CLAs when prompted.
+Automatable CLA/DCO repos are allowed (CLA-assistant, DCO). Non-automatable CLAs (apache, microsoft, google, meta-llama) are hard-skipped by the script.
 
 **Anti-AI policy check**: Read CONTRIBUTING.md for anti-bot phrases. HARD SKIP if found.
 

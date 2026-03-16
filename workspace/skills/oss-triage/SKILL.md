@@ -65,7 +65,7 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 - Open PRs exceed limit (50 for <5000 stars, 500 for 5000+, 1000 for 20000+)
 - Anti-bot/anti-AI policy in CONTRIBUTING.md
 - Forking disabled
-- Note: CLA/DCO repos are allowed — the agent signs CLAs when prompted
+- Note: Automatable CLAs (CLA-assistant, DCO) are allowed. Non-automatable CLAs (apache, microsoft, google, meta-llama) are hard-skipped.
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 

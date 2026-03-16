@@ -6,14 +6,24 @@ Optimize for **merge rate**, not submission count. Mix: 60% easy wins + 40% subs
 A merged typo fix > an unreviewed bug fix. 50 unreviewed PRs = 0 impact.
 
 ## Architecture
-One orchestrator (main session) + up to 5 concurrent sub-agents (implementation + follow-up).
+One orchestrator (main session) + 2 always-on subagents + up to 5 concurrent impl/followup sub-agents. Total maxConcurrent: 7.
+
+**Always-on subagents** (persistent loops, respawned by orchestrator if dead):
+- **Scout** (label "scout-*"): continuous issue discovery, writes to `memory/work-queue-staging.md`
+- **PR Monitor** (label "pr-monitor"): continuous PR scanning, handles simple actions (merge, bump, respond), stages complex actions to `memory/followup-staging.md`
+
+**On-demand subagents** (1 daily from impl pool):
+- **PR Analyst** (label "pr-analyst"): daily portfolio analysis, failure modes, trust scoring, strategy recommendations
+
+**Impl/followup subagents** (5 slots):
 - **Implementation sub-agents**: clone -> comprehend -> fix -> test -> review -> submit PR -> cleanup
 - **Follow-up sub-agents**: clone -> checkout PR branch -> read comments -> implement changes -> push -> respond -> cleanup
 - Follow-ups get PRIORITY over new implementations
-- Sub-agents write results to `memory/subagent-result-*.md` (YAML frontmatter), reply ANNOUNCE_SKIP
-- Sub-agents cannot access memory tools -- context passed via attachments
-- Spawn templates: `templates/subagent-implementation.md`, `templates/subagent-followup.md`
-- Result schema: `templates/subagent-result-schema.md`
+
+Sub-agents write results to `memory/subagent-result-*.md` (YAML frontmatter), reply ANNOUNCE_SKIP.
+Sub-agents cannot access memory tools -- context passed via attachments.
+Spawn templates: `templates/subagent-implementation.md`, `templates/subagent-followup.md`, `templates/subagent-pr-monitor.md`, `templates/subagent-pr-analyst.md`, `templates/subagent-scout.md`
+Result schema: `templates/subagent-result-schema.md`
 
 ## Safety (non-negotiable)
 - NEVER push to main/master or force-push
@@ -22,7 +32,7 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
-- Max 5 concurrent sub-agents (implementation + follow-up combined)
+- Max 7 concurrent sub-agents total (2 always-on + 5 implementation/follow-up)
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting

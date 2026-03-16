@@ -24,70 +24,57 @@ Parse the response and OBEY all three fields:
 - `reposWithOpenPRs`: repos where we already have open PRs — do NOT submit new PRs, focus on follow-ups instead.
 If curl fails or times out, proceed without dashboard data — the other gates still apply.
 
-## 0.5. Scout Management (always-on discovery)
-Check if scout subagent is running: `sessions_list` and look for label "scout-*".
-- **Scout alive** (active in last 30 min): read `memory/scout-report-*.md` files. Merge any scored candidates into `memory/work-queue-staging.md`. Delete processed reports.
-- **Scout dead or missing**: Spawn a new scout:
+## 0.5. Always-On Subagent Management (scout + PR monitor)
+Check always-on subagents via `sessions_list`:
+
+**1. Scout** (label "scout-*") — continuous issue discovery:
+- **Alive** (active in last 30 min): read `memory/scout-report-*.md`. Merge scored candidates into `memory/work-queue-staging.md`. Delete processed reports.
+- **Dead or missing**: Spawn:
   ```
   sessions_spawn(task: <read templates/subagent-scout.md>, label: "scout-tier0", mode: "session", thread: true, runTimeoutSeconds: 3600)
   ```
-  The scout runs continuously: search -> score -> write staging -> loop. It uses 1 of the 6 subagent slots.
-  Pass current trust-repos.md and pr-ledger.md context via attachments.
-Scout uses 1 slot. Remaining 5 are for implementation/follow-up. Total maxConcurrent = 6.
+  Pass trust-repos.md and pr-ledger.md via attachments.
+
+**2. PR Monitor** (label "pr-monitor") — continuous PR follow-up scanning:
+- **Alive** (active in last 30 min): read `memory/followup-staging.md` for items needing code changes (see step 2). Read `memory/pr-monitor-report.md` for cycle summary.
+- **Dead or missing**: Spawn:
+  ```
+  sessions_spawn(task: <read templates/subagent-pr-monitor.md>, label: "pr-monitor", mode: "session", thread: true, runTimeoutSeconds: 3600)
+  ```
+  The PR monitor handles: merging approved PRs, bumping stale PRs, responding to questions, closing invalid PRs, updating pr-followup-state.md.
+
+**3. PR Analyst** (label "pr-analyst") — daily portfolio analysis:
+- Once daily (check date in `memory/pr-strategy.md`): spawn if not run today:
+  ```
+  sessions_spawn(task: <read templates/subagent-pr-analyst.md>, label: "pr-analyst", runTimeoutSeconds: 1800)
+  ```
+- Read `memory/pr-strategy.md` and `memory/repo-blocklist.md` — adjust issue selection and repo targeting.
+
+Always-on subagents use 2 slots (scout + PR monitor). Remaining 5 are for implementation/follow-up. Total maxConcurrent = 7.
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
 **Clean stale locks**: Remove any lock files in `memory/locks/` older than 1 hour: `find memory/locks/ -name "*.lock" -mmin +60 -delete`
 
-## 2. PR Follow-ups (HIGHEST PRIORITY — this is the #1 driver of merge rate)
-63 PRs at round 0 = 0 merges. Responding to reviews is MORE IMPORTANT than submitting new PRs.
+## 2. PR Follow-ups (delegated to PR Monitor — main agent handles code changes only)
+The PR Monitor subagent (step 0.5) continuously scans ALL open PRs and handles simple actions
+(merging approved PRs, bumping stale, responding to questions, closing invalid PRs, batch cleanup).
+The main agent only needs to process items requiring CODE CHANGES.
 
-**2a. ALWAYS scan ALL open PRs every cycle** (do NOT skip, do NOT rely on crons):
-Run `gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt`. Then check EVERY open PR for reviews AND issue comments — not just the top 5:
-Batch check using this pattern (5 PRs per batch for efficiency):
-```bash
-# BATCH 1: Check pulls/reviews for formal review decisions
-for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
-  IFS=':' read -r repo num <<< "$pr_info"
-  echo "=== $repo #$num ==="
-  gh api repos/$repo/pulls/$num/reviews --jq '.[] | {state, user: .user.login}' 2>/dev/null
-done
+**2a.** Read `memory/followup-staging.md`. This is written by the PR Monitor with items needing follow-up subagents.
+**SPAWNED_PENDING GUARD:** skip items with `spawned_pending` in `memory/impl-spawn-state.md`.
 
-# BATCH 2: ALWAYS check issues/comments SEPARATELY — this is where maintainer questions live
-# DO NOT SKIP THIS even if reviews returned empty
-for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
-  IFS=':' read -r repo num <<< "$pr_info"
-  echo "=== $repo #$num ==="
-  gh api repos/$repo/issues/$num/comments --jq '.[-3:] | .[] | select(.user.login | test("bot$") | not) | {user: .user.login, body: (.body | .[0:200])}' 2>/dev/null
-done
-```
-CRITICAL: Maintainer questions (e.g. "are you an AI?", "what CLA did you sign?", "this was already fixed") appear ONLY in `issues/comments`, NOT in `pulls/reviews`. If you only check reviews, you will miss all human feedback that isn't a formal review. The issues/comments batch is MANDATORY — run it for ALL PRs even if reviews found nothing.
-ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron contexts.
-**Priority order for follow-ups**: 1) approved PRs (check if auto-mergeable), 2) changes_requested, 3) maintainer questions/comments needing response, 4) ci_failing.
-
-**2b.** Read pr-followup-state.md. **SPAWNED_PENDING GUARD:** skip if `spawned_pending`. Classify each PR and **EXECUTE the action IMMEDIATELY** — do NOT just classify and move on. The action (merge, rework, comment) MUST happen in the same step as classification. Update pr-followup-state.md AFTER the action succeeds, not before:
-- `approved`/`merged`: log success. **If approved, try `gh pr merge --squash`. If merge fails (branch protection, permissions), comment: "Thanks for the approval! Could you merge this when you get a chance?" and log as `approved_waiting_maintainer_merge`.** This is the highest-value action in the entire loop.
-- `changes_requested` (round < 3): spawn follow-up. Round >= 3: leave open for maintainer.
-- `comment_only`: spawn to respond. Counts as round only if code pushed.
-- `maintainer_question`: maintainer asks a question (e.g. "are you an AI?", "what CLA did you sign?", "can you explain X?"). Respond directly in the main session — no sub-agent needed. Keep response brief. **Identity questions**: "I'm ClawOSS, an autonomous codebase helper. Here's the project: https://github.com/kevinlin/clawOSS" — never say "AI agent" or "AI-generated". Redirect to the contribution itself.
-- `ci_failing` (our fault): treat as changes_requested.
-- `fix_rejected`: maintainer says fix doesn't work / wrong approach. **REWORK** — spawn subagent with different approach, force-push to same branch. Comment: "Thanks for the feedback — reworking with a different approach."
-- `already_fixed_upstream`: maintainer says "already fixed" / "resolved upstream". Close PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
-- `stale` (>14 days no activity): add polite bump comment: "Just checking in — is there anything else needed for this PR to move forward? Happy to make adjustments." Do NOT close. Many repos review on 2-week cycles.
-- `invalid_contribution`: PR title starts with `feat:` or PR adds features/refactors. Close with: "Closing — this was submitted as a feature rather than a bug fix. Apologies for the noise."
-- `low_star_repo`: PR targets a repo with < 200 stars. Close with: "Closing — this was submitted in error. Apologies for the noise."
+**2b.** For each staged item, spawn follow-up subagent based on classification:
+- `changes_requested` (round < 3): spawn follow-up subagent to implement requested changes.
+- `changes_requested` (round >= 3): leave open for maintainer — do NOT spawn.
+- `comment_only` (needs code changes): spawn follow-up. Counts as round only if code pushed.
+- `ci_failing` (our fault): treat as changes_requested — spawn to fix CI.
+- `fix_rejected`: spawn subagent with DIFFERENT approach, force-push to same branch. Priority: urgent.
 
 **2c.** Write context to `memory/subagent-inputs/followup-{repo}-{pr}.md`.
 **2d.** Spawn using `templates/subagent-followup.md`. Set status to `spawned_pending` IMMEDIATELY.
-**2e.** Update timestamps, remove closed PRs. **Update memory/trust-repos.md if any PR was merged or approved.**
-
-**2f. BATCH CLEANUP** (run every cycle — catch PRs that should never have been submitted):
-For EVERY open PR, check these conditions:
-1. **Low-star**: `gh api repos/{owner}/{repo} --jq '.stargazers_count'` < 200 → close: "Closing — this was submitted in error. Apologies for the noise."
-2. **feat: title**: title starts with `feat:` or `feat(` → close with `invalid_contribution` message.
-3. **Self-fork**: repo owner is BillionClaw → close immediately.
-5. **True duplicates**: If 2+ PRs in the same repo fix the SAME issue (check PR body for "Fixes #N"), keep newest, close others.
-Update pr-ledger.md and pr-followup-state.md after closures.
+**2e.** Clear processed items from `memory/followup-staging.md`.
+**2f.** Read `memory/pr-monitor-report.md` — note any merges or trust-building events from the monitor's cycle.
 
 ## 3. Pick Work
 
@@ -96,10 +83,10 @@ Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear st
 **TRUST SORT**: After merging, re-sort the queue: issues from trusted repos (memory/trust-repos.md) go to TOP. Prefer trusted repos but no hard cap on new repos.
 
 ### 3b. Count and Pick
-Count active sub-agents (sessions_list, exclude main + stale >30min).
+Count active impl/followup sub-agents (sessions_list, exclude main + always-on scouts/monitors + stale >30min).
 
-- **active >= 5**: skip to step 6.
-- **active < 5, queue has items**: pick next (urgent first, score >= 5). Gates:
+- **impl/followup active >= 5**: skip to step 6.
+- **impl/followup active < 5, queue has items**: pick next (urgent first, score >= 5). Gates:
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
   b. **DEDUP** (ALL 5 — check EVERY one): skip if in pr-ledger.md, open PR for repo (`gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` > 0), in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md (even for a different issue — ONE active agent per repo at a time), OR lock file exists (`memory/locks/{owner}_{repo}.lock`). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
   **LOCK FILE**: Before spawning, write lock: `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) {issue}" > memory/locks/{owner}_{repo}.lock`. Sub-agent deletes lock after PR creation or failure. Orchestrator cleans stale locks (>1 hour) in step 1 (stall recovery).
@@ -122,7 +109,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 ## 4. Triage (< 3 min, main session)
 **4-ZERO.** Health gate: `bash scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
-**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. If repo requires CLA, sign it — do NOT skip.
+**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama).
 **4b-SUPERSESSION.** Check if issue is already being worked on: assigned? linked PRs? someone commented "I'll take this"? If yes, remove from queue and mark `superseded` or `assigned` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d, >50 open PRs.
 **4d.** Quick research via web_search.
@@ -137,7 +124,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 `gh pr list --repo {owner}/{repo} --state open --json number,title,headRefName --limit 20`
 This gives the sub-agent awareness of what's in flight so it can avoid file conflicts.
 
-Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 6 (1 scout + 5 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
+Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 7 (1 scout + 1 PR monitor + 5 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 
 ## 6. Handle Sub-Agent Results
 

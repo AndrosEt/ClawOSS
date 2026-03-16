@@ -7,20 +7,8 @@
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Run oss-discover in batch mode. Check memory/trust-repos.md FIRST — search trusted repos before broad queries. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). HARD REQUIREMENTS: repos must have >= 200 stars, active development. CLA/DCO repos are allowed — sign when prompted. For EVERY candidate repo, run `bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}` — exit 1 means SKIP. This checks stars, merge velocity, anti-bot policies. Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only.",
+      "message": "Run oss-discover in batch mode. Check memory/trust-repos.md FIRST — search trusted repos before broad queries. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). HARD REQUIREMENTS: repos must have >= 200 stars, active development. Sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama). For EVERY candidate repo, run `bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}` — exit 1 means SKIP. This checks stars, merge velocity, anti-bot policies. Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only.",
       "lightContext": true
-    },
-    "delivery": { "mode": "none" }
-  },
-  {
-    "id": "pr-followup-scan",
-    "name": "Scan PRs for reviews and CI status",
-    "schedule": { "kind": "cron", "expr": "*/30 * * * *" },
-    "sessionTarget": "main",
-    "wakeMode": "now",
-    "payload": {
-      "kind": "systemEvent",
-      "text": "PR follow-up scan (BATCHED — max 5 per cycle to avoid timeout): run gh search prs --author BillionClaw --state open --json number,repository,updatedAt --limit 5 --sort updated. For EACH of the 5 most recently updated PRs: check for new review comments (gh api repos/{owner}/{repo}/pulls/{number}/reviews --jq '.[] | {state, user: .user.login}') and issue comments (gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[-3:] | .[] | {user: .user.login, body: .body[:200]}'). If any need action, add to memory/followup-staging.md with priority: urgent. Do NOT process more than 5 PRs per scan — the next scan in 30 minutes will pick up the rest."
     },
     "delivery": { "mode": "none" }
   },

@@ -1,9 +1,9 @@
 # ClawOSS V9 Monitor Status Report
 
-**Last Updated**: 2026-03-17 01:50 UTC+8 (2026-03-16 17:50 UTC)
-**Agent Status**: DEGRADED — Heartbeat cycles timing out due to context bloat (198k/262k = 76%)
-**Gateway Status**: Running (PID 18775, ws://127.0.0.1:18789, LaunchAgent loaded)
-**Agent Activity**: "active just now" per `openclaw status`, but heartbeat not completing
+**Last Updated**: 2026-03-17 02:00 UTC+8 (2026-03-16 18:00 UTC)
+**Agent Status**: OPERATIONAL — Context compacted (63k/262k), heartbeat cycles completing
+**Gateway Status**: Running (PID 67779, ws://127.0.0.1:18789, LaunchAgent loaded)
+**Agent Activity**: Active, spawning new work (unsloth #4310), scanning follow-ups
 **Cron**: Active, 5 jobs
 
 ---
@@ -117,17 +117,17 @@ Your quota will be refreshed in the next cycle."
 
 ## 4. V9 Behavior Verification
 
-### Team-Lead's 5-Point Watch List (post-timeout)
+### Team-Lead's 5-Point Watch List — VERIFIED at 02:00 UTC+8
 
 | # | V9 Feature | Status | Evidence |
 |---|------------|--------|----------|
-| 1 | Scout subagent spawn | NOT OBSERVED | Agent read scout-report-*.md (ENOENT) at step 0.5, then timed out before spawning |
-| 2 | Lock files before impl spawns | NOT OBSERVED | No memory/locks/ directory exists |
-| 3 | repo-health-check.sh execution | NOT OBSERVED | No trace in logs |
-| 4 | API errors / rate limits | TIMEOUT ONLY | No 403 or rate_limit errors since recovery. Kimi API is responding. Timeout is the blocker. |
-| 5 | Full PR follow-up scanning | NOT OBSERVED | Agent didn't reach follow-up step (timed out at step 0.5) |
+| 1 | Scout subagent spawn | CONFIRMED | `scout-tier0` listed as "running" in impl-spawn-state.md |
+| 2 | Lock files before impl spawns | CONFIRMED | `memory/locks/unslothai_unsloth.lock` created at 01:57 with `unslothai/unsloth#4310` |
+| 3 | repo-health-check.sh execution | NOT OBSERVED | No trace in gateway logs (may run silently within agent turn) |
+| 4 | API errors / rate limits | CLEAR | No 403 or rate_limit errors since recovery. Kimi API healthy with 63k context. |
+| 5 | Full PR follow-up scanning | CONFIRMED | pr-followup-state.md updated at 01:54 with 84 lines of PR tracking data |
 
-**All 5 points BLOCKED** by the heartbeat timeout. The agent can't complete a single cycle, so V9 features cannot be verified until context is compacted.
+**3/5 verified.** Lock files, scout spawn, and follow-up scanning all working. repo-health-check.sh unverifiable from logs alone.
 
 ### Pre-Outage V9 Observations
 
@@ -223,20 +223,21 @@ Also noteworthy: qdrant/qdrant PR #8417 was closed (reason unknown — need to c
 
 ## 10. Log File Baseline
 
-Log file `/tmp/openclaw/openclaw-2026-03-17.log`: 224 lines.
+Log file `/tmp/openclaw/openclaw-2026-03-17.log`: 440 lines.
 - Lines 1-154: Pre-recovery (rate limit era)
 - Lines 155-189: Recovery and CLA cleanup (01:25-01:36)
-- Lines 190-224: Post-timeout bootstrap (01:36-01:39) — mostly skill-path warnings
-
-No new entries since 01:39:08. Agent may be in another timeout cycle.
+- Lines 190-306: Timeout loop era (01:36-01:45) — 2 timeouts, skill warnings
+- Lines 307-346: Gateway SIGTERM and restart (01:47, PID 18775 -> 67779)
+- Lines 347-400: Post-restart bootstrap and subagent activity
+- Lines 400-440: COMPACTION at 01:58 (204k -> 63k), healthy cycle
 
 ## 11. Next Check
 
-Monitoring for:
-1. **Wake-state timestamp change** — indicates new heartbeat completed (currently stuck at 01:40)
-2. **Log growth past 224 lines** — any new activity
-3. **New subagent result files** — shows actual work being done
-4. **Context compaction evidence** — log message indicating compaction ran
-5. **All 5 V9 verification points** — blocked until timeout loop breaks
+Agent is now healthy. Monitoring for:
+1. **New subagent results** — unsloth #4310 implementation in progress
+2. **New PR submissions** — agent has 5 available implementation slots
+3. **Follow-up responses** — 2 approved PRs (ollama, llama_index) need merge
+4. **Context growth rate** — monitor how fast 63k grows back toward limits
+5. **Scout reports** — scout-tier0 listed as running but no reports generated yet
 
-**Current blocker**: Context compaction needed. Agent at 76% context, timing out every cycle.
+**Current status**: OPERATIONAL. Next heartbeat at ~02:08 UTC+8.
