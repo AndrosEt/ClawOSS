@@ -269,6 +269,9 @@ Read memory/work-queue.md, memory/wake-state.md prs_today_by_repo, and memory/pr
 
 ### 4-ZERO. Health Gate
 Run `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 0 = pass, exit 1 = skip.
+The script checks: stars, activity, merge velocity, review rate, open PRs, external merges,
+niche fit, and **anti-AI/anti-bot policy detection** (CONTRIBUTING.md, README, maintainer comments).
+If JSON output contains `"anti_ai_policy": true`: add repo to `memory/repo-blacklist.md` permanently.
 Use cached results from memory/repos/ if < 7 days old. On failure: remove from queue, cache, go to step 3.
 Save JSON output to `memory/repos/{owner}_{repo}.md`.
 
@@ -299,104 +302,38 @@ Prefer issues < 3 days old. Skip > 30 days. Skip "wontfix"/"duplicate"/"invalid"
 Use web_search for upstream context, CVEs. Use image tool for screenshots.
 
 ## 5. Spawn Implementation Sub-Agent
-Read the spawn template from `templates/subagent-implementation.md`.
-Substitute the variables: `{repo}` (owner/repo), `{issue}` (issue number), `{title}` (issue title).
-Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
-Use the Spawn Config from the template for `label` and `attachments`.
-
-Read memory files for repo conventions and issue details BEFORE spawning.
-Pass them as attachments since sub-agents cannot access memory tools.
-The sub-agent runs in a FRESH context with zero pollution from prior tasks.
+Read `templates/subagent-implementation.md`. Substitute `{repo}`, `{issue}`, `{title}`.
+Attach repo conventions + issue details from memory (sub-agents can't access memory tools).
 Do NOT implement in the main session.
-If web_search results were gathered during triage, include a summary in the attachments.
 
-### Sub-Agent Discipline
-- Each sub-agent MUST write results to its designated result file, then reply ANNOUNCE_SKIP
-- **Implementation sub-agents**: memory/subagent-result-<repo>-<issue>.md
-- **Follow-up sub-agents**: memory/subagent-result-followup-<repo>-<pr>.md
-- Per-task result files allow multiple sub-agents to write concurrently without conflicts
-- ANNOUNCE_SKIP bypasses the announce model call — no content filter risk, faster completion
-- NO hard timeout — sub-agents take as long as they need to do quality work
-- maxConcurrent: 5 — up to 5 sub-agents can work in parallel (follow-ups + implementations combined)
-- Result file must use YAML frontmatter format from templates/subagent-result-schema.md
-- Do NOT accumulate sub-agent sessions — each task = one sub-agent = one lifecycle
-
-### Cleanup
-- Sub-agents clean their own `/tmp/clawoss-*` workspaces. Orchestrator NEVER deletes them.
-- Stale sessions (>30 min, no activity): ignore them, spawn fresh. Handled in step 1.
+- Results: `memory/subagent-result-{repo}-{issue}.md` (YAML per `templates/subagent-result-schema.md`)
+- Reply ANNOUNCE_SKIP after writing. maxConcurrent: 5. No hard timeout.
+- Sub-agents clean own `/tmp/clawoss-*` workdirs. Orchestrator NEVER deletes them.
+- Stale sessions (>30 min): ignore, spawn fresh.
 
 ## 6. Handle Sub-Agent Results
-Check ALL active sub-agents via sessions_list.
+Check sessions_list. Parse result files (YAML frontmatter per `templates/subagent-result-schema.md`):
 
-### 6a. Implementation Results
-List memory/subagent-result-*.md files (excluding followup-* files) to find completed results.
-For each result file, parse the YAML frontmatter (see templates/subagent-result-schema.md):
-- Extract `status`, `pr_url`, `repo`, `issue`, `failure_reason` from the YAML block between `---` markers.
-- If status: `success` — VALIDATE before counting:
-  - Check that `pr_url` is present and starts with `https://github.com/` and contains `/pull/`
-  - If `pr_url` is MISSING or EMPTY:
-    - Do NOT count as a submitted PR
-    - Log as "incomplete — no PR URL" in memory/work-queue.md
-    - Re-queue the issue for retry (once). If already retried, mark as failed.
-    - Delete the result file.
-  - If `pr_url` is PRESENT and valid:
-    - Update memory/pipeline-state.md with new PR.
-    - Remove the issue from memory/work-queue.md.
-    - **Add new entry to memory/pr-followup-state.md** with status `pending_review`, round 0.
-    - NOTE: pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh (runs every 60s via launchd).
-      It pulls all PRs from GitHub API + result files. Do NOT manually edit the ledger.
-- If status: `failure` or `abandoned`:
-    - Parse `failure_reason` — it MUST use a standard category from the taxonomy
-      (see templates/subagent-result-schema.md). Format: `"category: details"`.
-    - Log `failure_reason` in memory/work-queue.md (include the category).
-    - **Track failure patterns** in memory/failure-log.md:
-      Append a line: `| {date} | {repo} | #{issue} | {failure_category} | {details} |`
-      This enables pattern detection — if the same category repeats 3+ times in a day,
-      investigate and adapt (e.g., if `not_a_bug` keeps recurring, tighten triage).
-    - **Failure-driven learning:** If `failure_reason` starts with `repo_health_fail`:
-      cache the health failure in memory/repos/ for 7 days so the repo is skipped on future health checks.
-- If status: `already_fixed`: remove from work-queue.md, no PR to track.
-- If no valid YAML frontmatter: treat as legacy format, fall back to text search for "Status:" and "PR URL:".
-- Delete the result file after processing.
+### 6a. Implementation Results (`memory/subagent-result-*.md`, excluding followup-*)
+- **success**: Validate `pr_url` is present and valid (`https://github.com/.../pull/...`).
+  If missing: re-queue once, then mark failed. If valid: update pipeline-state.md,
+  remove from work-queue.md, add to pr-followup-state.md (status: `pending_review`, round 0).
+  pr-ledger.md is AUTO-SYNCED by pr-ledger-sync.sh — do NOT manually edit.
+- **failure/abandoned**: Log `failure_reason` (must use taxonomy category) in work-queue.md
+  and failure-log.md. Cache `repo_health_fail` reasons in memory/repos/ for 7 days.
+- **already_fixed**: Remove from work-queue.md.
+- Delete result file after processing.
 
-### 6b. Follow-up Results
-List memory/subagent-result-followup-*.md files to find completed follow-up results.
-For each follow-up result file, parse the YAML frontmatter (see templates/subagent-result-schema.md):
-- Extract `status`, `followup_round`, `followup_outcome`, `pr_number`, `repo` from the YAML block.
-- Update memory/pr-followup-state.md (**clears `spawned_pending` status**):
-  - Increment the round count for this PR
-  - Update the last-checked timestamp
-  - Set status based on `followup_outcome` field:
-    - `changes_pushed` or `question_answered` → `follow_up_round_{N}` (N = new round count)
-    - `closed_scope_concern` → `closed_scope_concern` (terminal — no more sub-agents)
-    - `closed_rejected` → `closed_rejected` (terminal — no more sub-agents)
-    - `disengaged_max_rounds` → `disengaged` (terminal — no more sub-agents)
-    - If `status: failure` → set status to `pending_review` (clears spawned_pending, allows retry next cycle)
-- If round count reaches 3: mark as `disengaged`, never spawn another sub-agent for this PR
-- If PR was closed by the sub-agent: remove from pipeline-state.md
-- Delete the follow-up result file after processing.
-
-### 6c. Verify Self-Cleanup
-Do NOT run external cleanup commands (no `find /tmp -name 'clawoss-*' -exec rm -rf`).
-Active sub-agents may be working in those directories.
-
-Each sub-agent is responsible for cleaning up its OWN workspace (`rm -rf $WORKDIR`)
-as the final step before replying ANNOUNCE_SKIP. This is enforced in the spawn templates.
-
-For sub-agents still running (no result file yet): leave them running, check next cycle.
+### 6b. Follow-up Results (`memory/subagent-result-followup-*.md`)
+- Update pr-followup-state.md: increment round, update timestamp, set status from `followup_outcome`.
+- Terminal states: `closed_scope_concern`, `closed_rejected`, `disengaged_max_rounds` — no more sub-agents.
+- Round >= 3: mark `disengaged`. Closed PRs: remove from pipeline-state.md.
+- Delete result file after processing.
 
 ## 7. Report & Loop
-Run dashboard-reporter: log cycle outcome (submitted/abandoned/followup), cost, repo, issue.
-Update memory/wake-state.md: increment counters.
-Remove completed/abandoned item from memory/work-queue.md.
+Run dashboard-reporter. Update wake-state.md counters. Remove completed items from work-queue.md.
 
-Count active sub-agents via sessions_list.
-If active sub-agents < 5 AND work queue has items:
-  DO NOT reply HEARTBEAT_OK. Go back to step 3 and spawn more.
-If active sub-agents < 5 AND work queue is empty:
-  Run oss-discover using CRITERIA-BASED search (topic:llm/agent/rag/ai + stars:>500 + label:bug/help-wanted,
-  created:>3-days-ago, repo health verified). Then go back to step 3 and spawn.
-ONLY reply HEARTBEAT_OK if:
-  - All 5 slots are full, OR
-  - Work queue is empty AND oss-discover found nothing AND all slots checked
-Always self-wake: exec: openclaw system event --text "cycle-complete" --mode now
+If active sub-agents < 5 AND work queue has items: go back to step 3.
+If active sub-agents < 5 AND work queue empty: run oss-discover, then step 3.
+HEARTBEAT_OK only if all 5 slots full OR queue empty + discovery found nothing.
+Always self-wake: `exec: openclaw system event --text "cycle-complete" --mode now`
