@@ -54,7 +54,6 @@ REPO_CONFIG_RESOLVED=$(sed \
 _REPO_CONFIG="$REPO_CONFIG_RESOLVED" \
 _DEPLOYED="$DEPLOYED_CONFIG" \
 _KIMI_KEY="${KIMI_API_KEY:-}" \
-_OR_KEY="${OPENROUTER_API_KEY:-}" \
 _GH_TOKEN="${GITHUB_TOKEN:-}" \
 _DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
 _CLAW_KEY="${CLAW_API_KEY:-}" \
@@ -89,7 +88,6 @@ merged = deep_merge(deployed, repo_config)
 merged.setdefault('env', {})
 env_vars = {
     'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
-    'OPENROUTER_API_KEY': os.environ.get('_OR_KEY', ''),
     'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
     'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
     'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
