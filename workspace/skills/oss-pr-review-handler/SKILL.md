@@ -48,7 +48,7 @@ Parse the context file for all comments. Categorize each one:
 - **Question**: Reviewer wants clarification (respond with explanation)
 - **Nitpick/style**: Minor style suggestion (implement if reasonable)
 - **Approval/praise**: No action needed
-- **Scope concern**: Reviewer says this is not a bug fix (special handling — see section below)
+- **Scope concern**: Reviewer says the contribution is out of scope or not appropriate (special handling — see section below)
 - **Rejection**: Reviewer rejects the approach entirely (special handling)
 
 ### 3. Deep Comprehension of Feedback
@@ -63,7 +63,7 @@ Do NOT rush to implement. Misunderstanding a reviewer wastes everyone's time.
 ### 4. Implement Requested Changes
 For each change request:
 1. Make the specific code modification the reviewer asked for
-2. Ensure it stays within bug-fix scope — do NOT expand to features even if reviewer suggests it
+2. Ensure it stays within the original contribution scope — do NOT expand to features even if reviewer suggests it
 3. Run the test suite to verify no regressions
 4. If the reviewer's suggestion would break tests or introduce bugs, explain why in the response
 
@@ -122,12 +122,12 @@ Reply to each inline comment individually so reviewers see responses in context.
 
 ### 7. Handle Special Cases
 
-**Scope Concern ("this is a feature, not a bug fix"):**
+**Scope Concern ("this is not appropriate" / "out of scope"):**
 - Do NOT argue. The maintainer knows their codebase better than we do.
 - Close the PR with a polite comment:
   ```
   Thank you for the review. I understand this change doesn't align with what
-  the project needs as a bug fix. I'll close this PR. Apologies for the noise.
+  the project needs. I'll close this PR. Apologies for the noise.
   ```
 - Set `followup_outcome: closed_scope_concern` in result file YAML frontmatter
 - This is a learning opportunity — log the feedback for future triage improvement
@@ -180,7 +180,7 @@ Addressed reviewer feedback in round {round}. [describe what was done]
 ```
 
 For terminal outcomes, use the appropriate `followup_outcome`:
-- `closed_scope_concern` — reviewer said this is not a bug fix
+- `closed_scope_concern` — reviewer said the contribution is out of scope
 - `closed_rejected` — reviewer rejected the approach
 - `disengaged_max_rounds` — round 3 polite disengagement
 
@@ -192,7 +192,7 @@ This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 
 ## Constraints
 - Max 200 LOC changed per revision round
-- Commit type MUST remain `fix`
+- Commit type MUST remain the same as the original PR (`fix`/`docs`/`test`)
 - Never force-push — always regular push to update the PR
 - Never rebase the PR branch — just add new commits
 - Never close a PR without posting a comment explaining why
