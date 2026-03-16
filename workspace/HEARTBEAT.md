@@ -10,6 +10,7 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 ## 0. Health Checks
 **0a. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
 **0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
+**0c. Dashboard self-check** (optional, skip if dashboard unreachable): `curl -s https://clawoss-dashboard.vercel.app/api/agent/health-check`. Read `directives` array — these are data-driven corrections (slow down, follow up first, avoid dead repos). Read `avoidRepos` — do NOT submit to these repos.
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
