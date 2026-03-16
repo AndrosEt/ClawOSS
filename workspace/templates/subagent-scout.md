@@ -86,8 +86,6 @@ gh search issues "is:issue is:open label:regression stars:>200 created:>$THREE_D
 
 ### Step 2: Check Repo Health
 
-**BLACKLIST CHECK FIRST:** Skip any repo listed in `memory/repo-blacklist.md`. Do not evaluate it.
-
 For each unique repo found, run the health check script:
 ```bash
 bash scripts/repo-health-check.sh owner/repo

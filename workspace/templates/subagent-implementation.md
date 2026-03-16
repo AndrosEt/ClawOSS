@@ -29,10 +29,6 @@ Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
 
 2. CONFIRM ACTIONABLE: Verify this is a real bug, docs issue, typo, or test gap.
    If it's a large feature request or refactor, ABANDON.
-   **ANTI-AI CHECK:** Scan CONTRIBUTING.md and README.md for anti-AI/anti-bot policies
-   ("no ai", "no bot", "ban ai/bot", "prohibit ai/bot", "do not use ai/llm/chatgpt",
-   "ai-generated not accepted"). If found: ABANDON. failure_reason: "anti_ai_policy".
-   **BLACKLIST CHECK:** If the repo is in memory/repo-blacklist.md, ABANDON immediately.
 
 3. DEEP COMPREHENSION (do NOT skip this):
    a. Read the repo's architecture: directory structure, key modules, how components connect.
