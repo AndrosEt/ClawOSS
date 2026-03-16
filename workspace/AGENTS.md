@@ -59,10 +59,10 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - Cache results in `memory/repos/` for 7 days. Skip repos that fail ANY check.
 
 ## Content Filter Safety
-- OpenRouter blocks PII (emails, phones, SSNs) in file contents
+- Avoid reading files containing PII (emails, phones, SSNs)
 - Use `jq` to skip author fields in package.json; skip lock files
 - Use `--json` with `gh` commands -- avoid fetching full issue bodies
-- On 403 content filter error: skip that file, not the whole task
+- On API error: skip that file, not the whole task
 
 ## Contribution Types (in merge-probability order)
 1. Typo fixes -- near-guaranteed merge

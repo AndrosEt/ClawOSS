@@ -295,14 +295,14 @@ fi
 # Check for CLA GitHub Actions
 if [ "$HAS_CLA" = "false" ]; then
   CLA_ACTION=$(gh api "repos/${REPO}/contents/.github/workflows" \
-    --jq '[.[] | select(.name | test("cla"; "i"))] | length' 2>/dev/null || echo "0")
+    --jq '[.[] | select(.name | test("cla|dco"; "i"))] | length' 2>/dev/null || echo "0")
   if [ "$CLA_ACTION" -gt 0 ]; then
     HAS_CLA=true
   fi
 fi
 # Check CONTRIBUTING.md for CLA mentions
 if [ "$HAS_CLA" = "false" ] && [ -n "$CONTRIB_TEXT" ]; then
-  if echo "$CONTRIB_TEXT" | grep -qiE "contributor license agreement|sign.*(cla|contributor agreement)|cla.*(required|must|need)"; then
+  if echo "$CONTRIB_TEXT" | grep -qiE "contributor license agreement|sign.*(cla|contributor agreement)|cla.*(required|must|need)|developer certificate of origin|dco.*sign|signed-off-by.*required"; then
     HAS_CLA=true
   fi
 fi

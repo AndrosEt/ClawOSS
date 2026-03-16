@@ -23,4 +23,5 @@ NOTE: `gh search issues` with qualifier combos silently returns empty. Use `gh a
 ## Safety Rules
 - Always use `gh pr create`, never `git push` to main
 - Always run the target repo's test suite before submitting
-- Always check diff size: target 25-100 lines, max 200 lines changed
+- Always check diff size: target 25-100 lines, HARD MAX 200 lines changed
+- Never use `feat:` commit prefix — we only contribute `fix:`, `docs:`, and `test:`
