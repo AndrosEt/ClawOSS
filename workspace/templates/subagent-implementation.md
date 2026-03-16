@@ -45,7 +45,7 @@ Read the attached repo-conventions.md and issue-details.md.
    Also check: `git log --oneline --all --grep="{key error message or term}" -5`
    If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
    Also check: `gh pr list --repo {repo} --state open --search "{issue number or key term}" --json number,title --jq 'length'`
-   If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr: existing PR from another contributor`.
+   If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr_other: existing PR from another contributor`.
    This avoids competing with existing PRs (atuin #3272 was closed because another contributor had it first).
 
 2. CLASSIFY & CONFIRM: Read the issue. Determine the contribution type:
@@ -135,6 +135,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - [ ] Code style matches surrounding code EXACTLY? (indentation, naming, patterns)
    - [ ] Will this pass the FULL CI matrix? If unsure, run more tests.
    - [ ] No unverified assumptions about third-party API behavior?
+   - [ ] No new dependencies added unless absolutely essential for the fix?
    - [ ] Diff size: target 25-100 LOC, max 200. Smaller PRs merge 40% faster.
    - [ ] Commit type correct: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
    3+ failures = abandon. This review step catches the issues that get PRs rejected.
@@ -178,14 +179,14 @@ Read the attached repo-conventions.md and issue-details.md.
    EXISTING_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length')
    if [ "$EXISTING_OPEN" -gt 0 ]; then
      echo "ABORT: open PR already exists for this repo"
-     # Write result as failure with reason "duplicate_pr" and clean up
+     # Write result as failure with reason "dedup_existing_pr: open PR already exists" and clean up
      exit 1
    fi
    # Check for recently closed PRs (avoid re-submitting)
    EXISTING_CLOSED=$(gh search prs --author BillionClaw --repo {repo} --state closed --json closedAt --jq '[.[] | select(.closedAt > "'"$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d '7 days ago' +%Y-%m-%dT00:00:00Z)"'")] | length')
    if [ "$EXISTING_CLOSED" -gt 0 ]; then
      echo "ABORT: we had a PR closed on this repo in the last 7 days"
-     # Write result as failure with reason "duplicate_pr: recently closed" and clean up
+     # Write result as failure with reason "dedup_existing_pr: recently closed PR on this repo" and clean up
      exit 1
    fi
    ```
@@ -196,20 +197,26 @@ Read the attached repo-conventions.md and issue-details.md.
    ```bash
    # Fork the repo (idempotent — if already forked, this is a no-op)
    gh repo fork {repo} --clone=false
+   # Extract just the repo name from owner/repo
+   REPO_NAME=$(echo "{repo}" | cut -d/ -f2)
    # Add fork as remote and push
-   git remote add fork https://github.com/BillionClaw/{repo_name}.git 2>/dev/null || true
+   git remote add fork https://github.com/BillionClaw/$REPO_NAME.git 2>/dev/null || true
    git push fork $BRANCH
    ```
-   If push to fork fails, try `gh repo sync BillionClaw/{repo_name}` then retry.
+   If push to fork fails, try `gh repo sync BillionClaw/$REPO_NAME` then retry.
 
    **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
    ```bash
-   DEFAULT_BRANCH=$(gh api repos/{owner}/{repo} --jq '.default_branch')
+   DEFAULT_BRANCH=$(gh api repos/{repo} --jq '.default_branch')
    ```
    Create the PR against $DEFAULT_BRANCH — NOT hardcoded 'main' or 'master'.
    A PR targeting the wrong branch will be closed immediately.
    Use `gh pr create --repo {repo} --head BillionClaw:$BRANCH --base $DEFAULT_BRANCH`.
-   PR title should clearly describe the fix. PR body rules:
+   PR title should clearly describe the fix.
+   **PR TEMPLATE CHECK:** Before writing the PR body, check if the repo has a PR template:
+   `ls .github/PULL_REQUEST_TEMPLATE.md .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null`
+   If a template exists, use its structure (fill in sections, check checkboxes). If not, use our format.
+   PR body rules:
    - Write as a human developer, specific to THIS codebase. No generic AI phrasing.
    - NO: "I noticed this issue and...", "This PR addresses...", "Upon investigation..."
    - YES: State the bug/problem in 1 sentence. State root cause in 1 sentence. State fix in 1 sentence.

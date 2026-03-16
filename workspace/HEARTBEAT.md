@@ -41,8 +41,9 @@ This is a self-healing mechanism — prevents the duplicate PR problem from accu
 ### 3-ZERO. DAILY PR LIMIT
 Read wake-state.md. **prs_today >= 10: STOP. HEARTBEAT_OK.** Follow-ups exempt.
 
-### 3a. Merge Staging
+### 3a. Merge Staging + Trust Priority
 Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear staging. DEDUP by issue URL.
+**TRUST SORT**: After merging, re-sort the queue: issues from trusted repos (memory/trust-repos.md) go to TOP. Max 3 new repos per day — if new_repos_today >= 3, only pick from trusted repos or repos with existing open PRs.
 
 ### 3b. Count and Pick
 Count active sub-agents (sessions_list, exclude main + stale >30min).
@@ -79,9 +80,9 @@ Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter 
 ## 6. Handle Sub-Agent Results
 
 **6a. Implementation**: List `memory/subagent-result-*.md` (not followup-*). Parse YAML. Update `memory/impl-spawn-state.md` status for each result.
-- success + pr_url: mark `completed` in impl-spawn-state.md. Remove from queue, add to pr-followup-state.md (status: `pending_review`, round 0).
+- success + pr_url: mark `completed` in impl-spawn-state.md. Remove from queue, add to pr-followup-state.md (status: `pending_review`, round 0). **If repo merged a previous PR from us, add/update memory/trust-repos.md.**
 - success, no pr_url: mark `failed`. Re-queue once, then fail.
-- failure/abandoned: mark `failed`. Log failure_reason in failure-log.md. `repo_health_fail` = cache 7d.
+- failure/abandoned: mark `failed`. Log failure_reason in failure-log.md. `repo_health_fail` = cache 7d. If `fix_rejected` or `reviewer_rejected_scope`, deprioritize repo in trust-repos.md for 30 days.
 - already_fixed: mark `completed`. Remove. Delete result file after processing.
 
 **6b. Follow-up**: List `memory/subagent-result-followup-*.md`. Parse YAML. Clear `spawned_pending`, increment round.

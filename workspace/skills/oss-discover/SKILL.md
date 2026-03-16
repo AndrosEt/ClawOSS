@@ -28,12 +28,21 @@ Issues older than 1 month are SKIPPED entirely.
 1. Read `memory/pr-ledger.md` — SKIP issues already attempted.
 2. Check daily PR count — if at limit (10), triage-only mode.
 
+## Trust-Building Strategy (CRITICAL for merge rate)
+**Depth over breadth.** 3 merged PRs at one repo > 30 unreviewed PRs across 30 repos.
+1. **Check memory/trust-repos.md FIRST** — search for new issues in trusted repos before broad queries.
+2. **Return to winners**: If a repo merged our PR, search it for new issues immediately.
+3. **Max 3 NEW repos per day** — the rest should be trusted repos or follow-ups.
+4. **Abandon losers**: If a repo closed our PR without review within 24h, skip for 30 days.
+Trusted repos get **+8 bonus** in scoring. This is the single biggest lever for merge rate.
+
 ## Process
-1. Run Priority Queries (Tier 0 first, then 1, then 2)
-2. Filter: stars >= 200, not in pr-ledger, created within time window
-3. **Repo health pre-filter** (BEFORE scoring): quick-check via `scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
-4. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5.
-5. Return ranked top 10. Write full list to memory/today.md.
+1. **FIRST**: Search trusted repos (memory/trust-repos.md) for fresh issues — these are highest priority.
+2. Run Priority Queries (Tier 0 first, then 1, then 2) for new repo discovery.
+3. Filter: stars >= 200, not in pr-ledger, created within time window
+4. **Repo health pre-filter** (BEFORE scoring): quick-check via `scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
+5. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5. **+8 trusted repo bonus.**
+6. Return ranked top 10. Write full list to memory/today.md.
 
 ## Golden Niche: Agentic AI Repos (find by CRITERIA, not hardcoded list)
 Our highest-value targets are agentic AI / LLM framework repos. Find them autonomously.
@@ -53,31 +62,35 @@ These are verified high-star, actively-maintained repos in our niche. The agent 
 Always run `scripts/repo-health-check.sh` before targeting — this list is not a bypass.
 
 **Agent Frameworks & Orchestration (highest value):**
-langchain-ai/langchain, langchain-ai/langgraph, crewAIInc/crewAI, microsoft/autogen,
-microsoft/semantic-kernel, deepset-ai/haystack, stanfordnlp/dspy, langgenius/dify,
-langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0, google/adk-python,
+langchain-ai/langchain, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
+langgenius/dify, langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0,
 CopilotKit/CopilotKit, elizaOS/eliza, SWE-agent/SWE-agent
+*(CLA-blocked: microsoft/autogen, microsoft/semantic-kernel, deepset-ai/haystack, google/adk-python)*
 
 **LLM Inference & Serving:**
 ollama/ollama, vllm-project/vllm, BerriAI/litellm, hiyouga/LlamaFactory,
-unslothai/unsloth, mudler/LocalAI, janhq/jan, dottxt-ai/outlines, NVIDIA-NeMo/NeMo
+unslothai/unsloth, mudler/LocalAI, janhq/jan, dottxt-ai/outlines
 
 **RAG & Document Processing:**
-run-llama/llama_index, infiniflow/ragflow, microsoft/graphrag, HKUDS/LightRAG,
+run-llama/llama_index, infiniflow/ragflow, HKUDS/LightRAG,
 Unstructured-IO/unstructured, firecrawl/firecrawl, labring/FastGPT
+*(CLA-blocked: microsoft/graphrag)*
 
 **Vector Databases & Search:**
-chroma-core/chroma, qdrant/qdrant, milvus-io/milvus, weaviate/weaviate,
+chroma-core/chroma, qdrant/qdrant, weaviate/weaviate,
 meilisearch/meilisearch, lancedb/lancedb
+*(CLA-blocked: milvus-io/milvus — requires DCO sign-off)*
 
 **AI SDKs & Developer Tools:**
-openai/openai-python, instructor-ai/instructor, vercel/ai, pydantic/pydantic,
+instructor-ai/instructor, vercel/ai, pydantic/pydantic,
 gradio-app/gradio, streamlit/streamlit, marimo-team/marimo, continuedev/continue,
 Portkey-AI/gateway, tensorzero/tensorzero, browser-use/browser-use
+*(CLA-blocked: openai/openai-python)*
 
 **High-Impact General (Python/TS, massive star counts):**
 fastapi/fastapi, huggingface/transformers, open-webui/open-webui, ray-project/ray,
 khoj-ai/khoj, OpenHands/OpenHands
+*(open-webui: target `dev` branch, NOT main)*
 
 ## Priority Queries
 
@@ -216,6 +229,12 @@ Score each candidate 1-25 based on:
 - **+0** Created 7-14 days ago (acceptable)
 - **-3** Created 14-30 days ago (getting stale — low priority)
 - **SKIP** Created > 30 days ago
+
+### Trust Signal (MOST impactful — depth over breadth)
+- **+8** Repo is in memory/trust-repos.md (we've had successful interactions before)
+- **+5** Repo merged a previous PR from us (check pr-ledger.md)
+- **+3** Repo engaged positively with a previous PR (approved, constructive feedback)
+- **-5** Repo closed our PR without review in < 24h (check pr-ledger.md)
 
 ### Niche Fit (golden niche = highest ROI)
 - **+5** Repo is in the agentic AI / LLM niche

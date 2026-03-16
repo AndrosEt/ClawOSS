@@ -73,8 +73,18 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 
 NOT in scope: features, refactors, dependency updates, performance optimizations, enhancements, issues > 30 days old, repos < 200 stars or failing health gate.
 
+## Trust-Building Strategy (CRITICAL for merge rate)
+Stop spray-and-pray. Focus on 10-15 repos where we build reputation as a trusted contributor.
+- **Depth over breadth**: 3+ merged PRs at one repo > 30 unreviewed PRs across 30 repos.
+- **Return to winners**: If a repo merged our PR, it's our #1 target for the next contribution.
+- **Track rapport**: Repos where maintainers engaged positively (approved, thanked, gave feedback) go to the top of the queue.
+- **Abandon losers fast**: If a repo closed our PR without review within 24h, deprioritize for 30 days.
+- **Max 3 NEW repos per day**: The rest of the day's work should be follow-ups or second contributions to repos that already know us.
+Read `memory/trust-repos.md` for the current trusted repo list. Update it when PRs get merged or repos engage positively.
+
 ## Work Discovery (Merge-Optimized)
 Run oss-discover skill. Search autonomously by CRITERIA, not a hardcoded list.
+**PRIORITY ORDER**: 1) Follow-ups on existing PRs, 2) New issues in trusted repos, 3) New issues in new repos (max 3/day).
 
 **Golden Niche -- Agentic AI Repos (search first):**
 Topics: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>200`.

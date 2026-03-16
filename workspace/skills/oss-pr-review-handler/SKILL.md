@@ -33,11 +33,15 @@ All work happens in this directory. Never use a shared directory.
 
 ### 1. Clone and Checkout PR Branch
 ```bash
-gh repo clone {owner}/{repo} $WORKDIR -- --depth=50
+# Clone OUR FORK (not upstream) so we have push access
+gh repo clone BillionClaw/{repo} $WORKDIR -- --depth=50
 cd $WORKDIR
+# Add upstream remote for reference
+git remote add upstream https://github.com/{owner}/{repo}.git
 git checkout {pr-branch}
 git pull origin {pr-branch}
 ```
+Clone our FORK, not the upstream repo — we need push access to update the PR.
 Checkout the PR branch — NOT main. We are updating an existing PR, not starting fresh.
 
 ### 2. Read ALL Review Comments
