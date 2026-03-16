@@ -67,11 +67,11 @@ Before approving a bug for implementation, assess whether we can **fully resolve
 Score each bug 1-14:
 
 ### Recency (most important)
-- **+4** Created in the last 24 hours (hot — we're first responders)
-- **+3** Created in the last 3 days (fresh)
-- **+1** Created in the last 2 weeks (recent)
-- **-2** Created 2-4 weeks ago (getting stale)
-- **-5** Created > 1 month ago (SKIP entirely — too stale)
+- **+5** Created in the last 3 days (fresh — we're first responders)
+- **+2** Created 3-7 days ago (recent)
+- **+0** Created 7-14 days ago (acceptable)
+- **-3** Created 14-30 days ago (getting stale — low priority)
+- **SKIP** Created > 30 days ago (do NOT attempt — too stale)
 
 ### Bug Signals
 - **+3** Has clear reproduction steps

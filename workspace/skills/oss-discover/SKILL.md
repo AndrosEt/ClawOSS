@@ -77,11 +77,11 @@ If an issue has ANY skip label AND no bug label, discard it immediately.
 Score each candidate 1-14 based on:
 
 ### Recency (most important factor)
-- **+4** Created in the last 24 hours (hot bug)
-- **+3** Created in the last 3 days (fresh bug)
-- **+1** Created in the last 2 weeks (recent)
-- **-2** Created 2-4 weeks ago (getting stale)
-- **-5** Created > 1 month ago (SKIP — do not add to queue)
+- **+5** Created in the last 3 days (fresh bug — top priority)
+- **+2** Created 3-7 days ago (recent)
+- **+0** Created 7-14 days ago (acceptable)
+- **-3** Created 14-30 days ago (getting stale — low priority)
+- **SKIP** Created > 30 days ago (do NOT add to queue — too stale)
 
 ### Bug Signals
 - **+3** Has a `bug`, `defect`, `regression`, or `crash` label
