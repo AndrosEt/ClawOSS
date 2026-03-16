@@ -82,14 +82,14 @@ export function PRTypeBreakdown() {
               <Badge
                 variant="outline"
                 className={`text-[10px] h-4 px-1.5 font-mono ${
-                  summary.easyWinRatio >= 50
+                  summary.tier1Ratio >= 50
                     ? "text-emerald-400 border-emerald-500/25"
-                    : summary.easyWinRatio >= 20
+                    : summary.tier1Ratio >= 20
                       ? "text-amber-400 border-amber-500/25"
                       : "text-red-400 border-red-500/25"
                 }`}
               >
-                {summary.easyWinRatio}% easy-wins
+                {summary.tier1Ratio}% T1 docs/typo
               </Badge>
             )}
           </div>
@@ -117,42 +117,63 @@ export function PRTypeBreakdown() {
             {types.map((stat) => (
               <TypeRow key={stat.type} stat={stat} />
             ))}
-            {/* Easy-win target bar */}
+            {/* Tier breakdown bar */}
             {summary && (
-              <div className="mt-3 pt-2 border-t border-foreground/[0.04]">
+              <div className="mt-3 pt-2 border-t border-foreground/[0.04] space-y-1.5">
+                {/* Tier 1: docs + typo — THE target */}
                 <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/40">
                   <span>
-                    easy-win mix:{" "}
+                    T1 docs/typo:{" "}
                     <span
                       className={`tabular-nums ${
-                        summary.easyWinRatio >= 80
+                        summary.tier1Ratio >= 80
                           ? "text-emerald-400"
-                          : summary.easyWinRatio >= 50
+                          : summary.tier1Ratio >= 40
                             ? "text-amber-400"
                             : "text-red-400"
                       }`}
                     >
-                      {summary.easyWinRatio}%
+                      {summary.tier1Ratio}%
                     </span>
                     <span className="text-muted-foreground/20"> (target: 80%)</span>
                   </span>
                   <span>
-                    easy-win merge rate:{" "}
+                    merge rate:{" "}
                     <span
                       className={`tabular-nums ${
-                        summary.easyWinMergeRate >= 15
+                        summary.tier1MergeRate >= 15
                           ? "text-emerald-400"
-                          : summary.easyWinMergeRate > 0
+                          : summary.tier1MergeRate > 0
                             ? "text-amber-400"
                             : "text-muted-foreground/30"
                       }`}
                     >
-                      {summary.easyWinMergeRate}%
+                      {summary.tier1MergeRate}%
                     </span>
                     <span className="text-muted-foreground/20">
-                      {" "}
-                      ({summary.easyWinMerged}/{summary.easyWinTotal})
+                      {" "}({summary.tier1Merged}/{summary.tier1Total})
                     </span>
+                  </span>
+                </div>
+                {/* Tier 2 + 3 compact */}
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/30">
+                  <span>
+                    T2 test/deps:{" "}
+                    <span className="text-muted-foreground/50 tabular-nums">
+                      {summary.tier2Merged}/{summary.tier2Total}
+                    </span>
+                    {summary.tier2MergeRate > 0 && (
+                      <span className="text-amber-400/50"> {summary.tier2MergeRate}%</span>
+                    )}
+                  </span>
+                  <span>
+                    T3 cleanup:{" "}
+                    <span className="text-muted-foreground/50 tabular-nums">
+                      {summary.tier3Merged}/{summary.tier3Total}
+                    </span>
+                    {summary.tier3MergeRate > 0 && (
+                      <span className="text-red-400/50"> {summary.tier3MergeRate}%</span>
+                    )}
                   </span>
                 </div>
               </div>

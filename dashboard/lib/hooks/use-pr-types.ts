@@ -17,6 +17,20 @@ export interface PRTypeSummary {
   overallMergeRate: number;
   bestType: PRType | null;
   bestTypeMergeRate: number;
+  // Tier 1: docs + typo (safest, count toward 80% target)
+  tier1Ratio: number;
+  tier1MergeRate: number;
+  tier1Total: number;
+  tier1Merged: number;
+  // Tier 2: test + dep_update (tracked, not in target)
+  tier2MergeRate: number;
+  tier2Total: number;
+  tier2Merged: number;
+  // Tier 3: dead_code (tracked, discouraged)
+  tier3MergeRate: number;
+  tier3Total: number;
+  tier3Merged: number;
+  // Combined easy-win (all tiers)
   easyWinRatio: number;
   easyWinMergeRate: number;
   easyWinTotal: number;

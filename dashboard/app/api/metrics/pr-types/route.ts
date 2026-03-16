@@ -82,11 +82,43 @@ export async function GET() {
     // Best performing type
     const bestType = types.find((t) => t.total >= 2 && t.mergeRate > 0) || null;
 
-    // Easy-win types (docs, typo, dep_update, dead_code, test)
-    const easyWinTypes: PRType[] = ["docs", "typo", "dep_update", "dead_code", "test"];
-    const easyWinStats = types.filter((t) => easyWinTypes.includes(t.type as PRType));
-    const easyWinTotal = easyWinStats.reduce((s, t) => s + t.total, 0);
-    const easyWinMerged = easyWinStats.reduce((s, t) => s + t.merged, 0);
+    // Tier 1: safest easy-wins (count toward 80% target)
+    const tier1Types: PRType[] = ["docs", "typo"];
+    const tier1Stats = types.filter((t) => tier1Types.includes(t.type as PRType));
+    const tier1Total = tier1Stats.reduce((s, t) => s + t.total, 0);
+    const tier1Merged = tier1Stats.reduce((s, t) => s + t.merged, 0);
+    const tier1Ratio =
+      totalPRs > 0
+        ? Math.round((tier1Total / totalPRs) * 1000) / 10
+        : 0;
+    const tier1MergeRate =
+      tier1Total > 0
+        ? Math.round((tier1Merged / tier1Total) * 1000) / 10
+        : 0;
+
+    // Tier 2: tracked, moderate risk (test, dep_update)
+    const tier2Types: PRType[] = ["test", "dep_update"];
+    const tier2Stats = types.filter((t) => tier2Types.includes(t.type as PRType));
+    const tier2Total = tier2Stats.reduce((s, t) => s + t.total, 0);
+    const tier2Merged = tier2Stats.reduce((s, t) => s + t.merged, 0);
+    const tier2MergeRate =
+      tier2Total > 0
+        ? Math.round((tier2Merged / tier2Total) * 1000) / 10
+        : 0;
+
+    // Tier 3: tracked, discouraged (dead_code)
+    const tier3Types: PRType[] = ["dead_code"];
+    const tier3Stats = types.filter((t) => tier3Types.includes(t.type as PRType));
+    const tier3Total = tier3Stats.reduce((s, t) => s + t.total, 0);
+    const tier3Merged = tier3Stats.reduce((s, t) => s + t.merged, 0);
+    const tier3MergeRate =
+      tier3Total > 0
+        ? Math.round((tier3Merged / tier3Total) * 1000) / 10
+        : 0;
+
+    // Combined easy-win stats (all tiers, for backwards compat)
+    const easyWinTotal = tier1Total + tier2Total + tier3Total;
+    const easyWinMerged = tier1Merged + tier2Merged + tier3Merged;
     const easyWinRatio =
       totalPRs > 0
         ? Math.round((easyWinTotal / totalPRs) * 1000) / 10
@@ -104,6 +136,20 @@ export async function GET() {
         overallMergeRate,
         bestType: bestType?.type || null,
         bestTypeMergeRate: bestType?.mergeRate || 0,
+        // Tier 1 is the real target: docs + typo
+        tier1Ratio,
+        tier1MergeRate,
+        tier1Total,
+        tier1Merged,
+        // Tier 2: test + dep_update (tracked, not in target)
+        tier2MergeRate,
+        tier2Total,
+        tier2Merged,
+        // Tier 3: dead_code (tracked, discouraged)
+        tier3MergeRate,
+        tier3Total,
+        tier3Merged,
+        // Combined easy-win (all tiers)
         easyWinRatio,
         easyWinMergeRate,
         easyWinTotal,
