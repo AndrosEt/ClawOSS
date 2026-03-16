@@ -29,6 +29,15 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - Run target repo's test suite before submitting
 - If tests fail after 2 attempts, abandon
 
+## PR Conflict & Supersession Prevention (non-negotiable)
+Before starting work on ANY issue, verify:
+1. **No linked PRs**: Check issue timeline for cross-referenced PRs. If any open PR addresses this issue, SKIP.
+2. **Not assigned**: Check issue assignees. If assigned to someone, SKIP (respect dibs).
+3. **No competing PRs**: Search for open PRs from other contributors on the same issue. If found, SKIP.
+4. **No file conflicts**: Read open PRs in the repo. If our fix would touch the same files as another open PR, SKIP or adjust scope.
+5. **Not already fixed**: Check recent commits and merged PRs for the same fix.
+A superseded PR wastes our cycle AND annoys maintainers. Prevention is 100x cheaper than cleanup.
+
 ## Known Repo Metadata (check before PR submission)
 
 **Non-main default branches** (gh api will detect these, but know them in advance):

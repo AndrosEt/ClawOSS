@@ -87,6 +87,12 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
   e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
   f. **TITLE REJECT**: Skip if title whole-word matches: `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`.
   g. **HEALTH GATE**: `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 1 = skip. Cache 7 days.
+  h. **SUPERSESSION CHECK**: Before spawning, quick-check if issue already has linked PRs or is assigned:
+     `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'`
+     If > 0: skip (someone else is already working on it).
+     `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.assignees | length'`
+     If > 0: skip (assigned to someone).
+     Mark skipped issues as `superseded` or `assigned` in pr-ledger.md so we don't re-check.
   After spawn, LOOP BACK until 5 active or queue empty.
 - **Queue < 5**: run oss-discover. Target 20-30 candidates, score >= 5.
 - **Queue >= 10**: skip discovery, drain first.
@@ -95,6 +101,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 **4-ZERO.** Health gate: `bash scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
 **4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old, CLA-required org (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama — we can't sign CLAs so PRs can never merge). The repo-health-check.sh also detects CLA via .clabot files, CLA workflows, and CONTRIBUTING.md text.
+**4b-SUPERSESSION.** Check if issue is already being worked on: assigned? linked PRs? someone commented "I'll take this"? If yes, remove from queue and mark `superseded` or `assigned` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d, >50 open PRs.
 **4d.** Quick research via web_search.
 
