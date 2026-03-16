@@ -112,6 +112,7 @@ Classify each open PR:
 - **approved**: Log success. No sub-agent needed.
 - **ci_failing** (our fault): Treat like changes_requested.
 - **stale** (no activity >7 days): Close with polite comment. Status: `closed_stale`.
+- **close_withdraw** (repo blacklisted/anti-AI policy): Close with polite withdrawal message. No sub-agent needed.
 - **merged**: Status: `merged`. Log success.
 
 ### 2c. Write Follow-up Context File
@@ -140,7 +141,6 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
 
 - **active >= 5**: skip to step 6.
 - **active < 5 AND queue has items**: pick next task (urgent first, score >= 5). Apply gates:
-  a0. **BLACKLIST GATE**: Read `memory/repo-blacklist.md`. If repo listed: SKIP. Remove from queue. No exceptions.
   a. **DEDUP GATE** (pass ALL 3): skip if in pr-ledger.md, skip if open PR for repo, skip if in subagent-result-*.md.
   b. Skip if repo has 3 PRs today.
   c. Prefer different repos across concurrent sub-agents.
@@ -154,9 +154,7 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
 ## 4. Triage (in main session, < 3 min)
 
 ### 4-ZERO. Health Gate
-Run `bash scripts/repo-health-check.sh {owner}/{repo}` (or use cached results < 7 days).
-Includes anti-AI/anti-bot policy detection. If `"anti_ai_policy": true` in output: add to `memory/repo-blacklist.md`.
-Exit 1 = remove from queue, go to step 3.
+Run `bash scripts/repo-health-check.sh {owner}/{repo}` (or use cached results < 7 days). Exit 1 = remove from queue, go to step 3.
 
 ### 4a. Contribution Type Assessment
 Determine type: bug fix, docs fix, typo fix, or test addition.
