@@ -115,6 +115,7 @@ Automatable CLA/DCO repos are allowed (CLA-assistant, DCO). Non-automatable CLAs
 ### Step 3b: Filter Issues
 
 Before scoring, discard issues that won't pass triage:
+- **Blocklist reject**: Check trust-repos.md attachment Deprioritized section. If repo appears with "permanent" or future skip date, discard ALL issues from that repo immediately. Do not score, do not add to staging.
 - **Title keyword reject** (whole word, case-insensitive): `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
 - **Label reject**: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
 - **Age reject**: Skip issues > 30 days old

@@ -90,6 +90,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
   b. **DEDUP** (ALL 5 — check EVERY one): skip if in pr-ledger.md, open PR for repo (`gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` > 0), in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md (even for a different issue — ONE active agent per repo at a time), OR lock file exists (`memory/locks/{owner}_{repo}.lock`). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
   **LOCK FILE**: Before spawning, write lock: `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) {issue}" > memory/locks/{owner}_{repo}.lock`. Sub-agent deletes lock after PR creation or failure. Orchestrator cleans stale locks (>1 hour) in step 1 (stall recovery).
+  b2. **BLOCKLIST HARD-BLOCK**: Read `memory/trust-repos.md` Deprioritized section. If the repo appears there AND `Skip Until` is "permanent" or a future date, SKIP unconditionally — no override by score, labels, or any other factor. Repos on this list have hostile maintainers, ban threats, or non-automatable CLAs.
   c. Skip if we had a PR closed on this repo in the last 7 days.
   d. Prefer different repos across concurrent agents. NEVER have 2 agents working the same repo simultaneously.
   e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
