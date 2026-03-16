@@ -22,15 +22,21 @@ Status: failure, Reason: 'not actionable — issue is a feature request/enhancem
 
 Read the attached repo-conventions.md and issue-details.md.
 
-0. COMMENT ON THE ISSUE FIRST (before any code):
-   Post a brief comment on the issue: "I've been looking into this — [1-2 sentence description of your approach]."
-   This signals intent, builds trust with maintainers, and significantly increases merge odds.
-   Use: `gh issue comment {issue} --repo {repo} --body "your comment"`
-   Keep it short, specific to this issue, and written like a human developer.
+0. COMMENT ON THE ISSUE (if orchestrator indicated high-confidence):
+   If the orchestrator already posted a comment on this issue, skip this step.
+   Otherwise, if this looks like a clear, fixable issue, post a brief comment:
+   `gh issue comment {issue} --repo {repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."`
+   Keep it short, specific to this issue, and written like a human developer. No AI phrasing.
 
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
    Clone repo INTO this directory. All work happens here.
+
+1b. CHECK IF ALREADY FIXED UPSTREAM:
+   Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
+   Also check: `git log --oneline --all --grep="{key error message or term}" -5`
+   If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
+   This avoids wasting time and submitting duplicate fixes.
 
 2. CLASSIFY & CONFIRM: Read the issue. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
@@ -94,9 +100,9 @@ Read the attached repo-conventions.md and issue-details.md.
         on unix but breaks stm32 is a BAD PR that wastes maintainer time.
    d. Record passing output as evidence. The failing test MUST now pass. No regressions.
    e. Verify the fix addresses root cause, not just symptom.
-   **If you cannot run the full test suite, explicitly note which tests you skipped and
-   why in the PR description. Never submit blind. A broken CI wastes the maintainer's
-   time and damages our reputation — one bad PR can get us blocked from a repo forever.**
+   **If tests don't pass, ABANDON. Do not submit untested PRs. Do not submit with "I skipped
+   these tests because..." — a broken CI wastes the maintainer's time and damages our
+   reputation. One bad PR can get us blocked from a repo forever.**
 
 7. REVIEW: Self-check diff:
    - Does this FULLY resolve the reported issue? Partial fixes = abandon.

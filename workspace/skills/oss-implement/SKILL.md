@@ -106,7 +106,7 @@ For all types:
 - Fix failures (max 2 tries) or abandon.
 - Record passing output as evidence.
 - Verify the fix addresses the root cause, not just the symptom.
-- **If you cannot run the full test suite, note which tests you skipped and why in the PR description.**
+- **If tests don't pass, ABANDON. Do not submit untested PRs — a broken CI wastes maintainer time and gets us blocked.**
 
 ### 5. REVIEW (contribution-type-aware checks)
 Self-check diff with these questions:
