@@ -155,16 +155,22 @@ Read the attached repo-conventions.md and issue-details.md.
       CI_MATRIX=$(bash $SCRIPTS/check-ci-matrix.sh $WORKDIR)
       echo "$CI_MATRIX" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'OS: {d.get(\"os_targets\",[])} | Linters: {d.get(\"linters\",[])} | Formatters: {d.get(\"formatters\",[])} | Type checkers: {d.get(\"type_checkers\",[])}')"
       ```
-   b. Progressive test strategy — targeted first, then full:
+   b. Progressive test strategy — detect the test framework and run yourself:
       ```bash
-      # Targeted tests on the module you changed
-      bash $SCRIPTS/run-repo-tests.sh $WORKDIR --targeted <changed_module>
-      # If targeted pass, run full suite
-      bash $SCRIPTS/run-repo-tests.sh $WORKDIR --full
+      # Detect and run tests (check package.json, Makefile, setup.py, Cargo.toml, go.mod)
+      # Python: pytest or python3 -m pytest
+      # Node: npm test or npx jest
+      # Go: go test ./...
+      # Rust: cargo test
+      # Ruby: bundle exec rspec
+      # Run targeted tests first (just the module you changed), then full suite if targeted pass
       ```
-   c. Auto-fix linting/formatting before commit:
+   c. Run linters/formatters before commit (check what the repo uses):
       ```bash
-      bash $SCRIPTS/lint-and-format.sh $WORKDIR --fix
+      # Python: ruff check . --fix || black . || flake8
+      # Node: npx eslint . --fix || npx prettier --write .
+      # Go: gofmt -w . || golangci-lint run
+      # Rust: cargo fmt && cargo clippy
       ```
    d. For cross-platform projects: if the fix touches platform-specific code, verify for ALL targets.
    e. Record passing output as evidence. The failing test MUST now pass. No regressions.
