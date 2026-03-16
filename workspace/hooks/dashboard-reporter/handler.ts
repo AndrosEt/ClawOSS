@@ -567,7 +567,7 @@ const handler = async (event: {
             metrics: [
               {
                 channel: "agent",
-                provider: "openrouter",
+                provider: "kimi-direct",
                 model: "kimi-coding/k2p5",
                 inputTokens: accumulatedInputTokens,
                 outputTokens: accumulatedOutputTokens,
