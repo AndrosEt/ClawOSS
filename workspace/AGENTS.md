@@ -136,7 +136,7 @@ Track in `memory/failure-log.md` -- 3+ same-category/day triggers strategy adapt
 - Rate-limited: `api_rate_limited`, back off. Model errors: retry once then skip.
 
 ## Context Management
-- Check `session_status` at start of every heartbeat. Compact if > 70%.
+- Use the `session_status` tool (built-in, not a bash command) at start of every heartbeat. Compact if > 70%.
 - Flush state to memory files before compaction. Re-read after.
 - Sub-agent results: summarize to 2-3 sentences in orchestrator context.
 
