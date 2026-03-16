@@ -78,90 +78,15 @@ Read the attached repo-conventions.md and issue-details.md.
 
    **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.** This has happened (qdrant closed our PR for ignoring contribution guides). Read it. Follow it. No exceptions.
 
-1c. PR CONFLICT & SUPERSESSION CHECK (CRITICAL — do ALL of these before writing any code):
-
-   **Check 1 — Linked PRs on this issue (most important):**
+1c. CONFLICT AWARENESS (quick check — deep checks already ran in 1a scripts):
    ```bash
-   # Check if any open PR already addresses this issue
-   LINKED_PRS=$(gh api "repos/{repo}/issues/{issue}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null) | {number: .number, title: .title, state: .state, url: .html_url}]' 2>/dev/null || echo "[]")
-   OPEN_LINKED=$(echo "$LINKED_PRS" | jq '[.[] | select(.state=="open")] | length')
-   if [ "$OPEN_LINKED" -gt 0 ]; then
-     echo "ABORT: $OPEN_LINKED open PR(s) already linked to this issue"
-     echo "$LINKED_PRS" | jq '.[] | select(.state=="open")'
-     # Write result as failure with reason "superseded: open PR already addresses this issue"
-     rm -rf $WORKDIR && exit 1
-   fi
-   # Also check if a linked PR was recently MERGED (issue already fixed)
-   MERGED_LINKED=$(echo "$LINKED_PRS" | jq '[.[] | select(.state=="closed")] | length')
-   if [ "$MERGED_LINKED" -gt 0 ]; then
-     echo "WARNING: $MERGED_LINKED closed PR(s) linked — check if issue is already resolved"
-     # If the issue is still open despite merged PRs, proceed cautiously
-   fi
-   ```
-
-   **Check 2 — Issue assignee:**
-   ```bash
-   ASSIGNEES=$(gh api "repos/{repo}/issues/{issue}" --jq '.assignees[].login' 2>/dev/null || echo "")
-   if [ -n "$ASSIGNEES" ]; then
-     echo "ABORT: issue is assigned to: $ASSIGNEES"
-     # Write result as failure with reason "issue_assigned: assigned to $ASSIGNEES"
-     rm -rf $WORKDIR && exit 1
-   fi
-   ```
-
-   **Check 3 — Already fixed upstream (CRITICAL — run BEFORE writing any code):**
-   Check if the issue was recently resolved by a merged PR or closed:
-   ```bash
-   # 3a. Check if issue itself was closed/resolved
-   ISSUE_STATE=$(gh api "repos/{repo}/issues/{issue}" --jq '.state' 2>/dev/null)
-   if [ "$ISSUE_STATE" = "closed" ]; then
-     echo "ABORT: issue #{issue} is already closed"
-     rm -rf $WORKDIR && exit 1
-   fi
-
-   # 3b. Check recently merged PRs that reference this issue number
-   SEVEN_DAYS_AGO=$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d "7 days ago" +%Y-%m-%dT00:00:00Z)
-   RECENT_FIXES=$(gh pr list --repo {repo} --state merged --limit 30 --json number,title,body,mergedAt \
-     --jq "[.[] | select(.mergedAt > \"$SEVEN_DAYS_AGO\") | select(.body != null and (.body | test(\"#{issue}\"; \"i\")) or .title != null and (.title | test(\"#{issue}\"; \"i\")))] | length" 2>/dev/null || echo 0)
-   if [ "$RECENT_FIXES" -gt 0 ]; then
-     echo "ABORT: issue #{issue} appears to have been fixed in $RECENT_FIXES recently merged PR(s)"
-     rm -rf $WORKDIR && exit 1
-   fi
-
-   # 3c. Check recent commits for fix references
-   RECENT_FIX_COMMITS=$(gh api "repos/{repo}/commits?per_page=30" \
-     --jq "[.[] | select(.commit.message | test(\"#?{issue}\"; \"i\"))] | length" 2>/dev/null || echo 0)
-   if [ "$RECENT_FIX_COMMITS" -gt 0 ]; then
-     echo "WARNING: $RECENT_FIX_COMMITS recent commits reference issue #{issue} — verify not already fixed"
-     # Check if those commits actually fixed the issue (look for "fix", "close", "resolve")
-     FIX_COMMITS=$(gh api "repos/{repo}/commits?per_page=30" \
-       --jq "[.[] | select(.commit.message | test(\"(fix|close|resolve).*#?{issue}\"; \"i\"))] | length" 2>/dev/null || echo 0)
-     if [ "$FIX_COMMITS" -gt 0 ]; then
-       echo "ABORT: $FIX_COMMITS commits appear to fix issue #{issue}"
-       rm -rf $WORKDIR && exit 1
-     fi
-   fi
-   ```
-   If ANY of these checks indicate the issue is already resolved, ABANDON with reason `already_fixed_upstream`.
-   **This check prevents submitting duplicate fixes to repos where maintainers already merged a fix — which gets us flagged as bots and threatened with bans.**
-
-   **Check 4 — Competing open PRs (same issue or same files):**
-   ```bash
-   # Check for PRs from OTHER contributors addressing same issue
-   gh pr list --repo {repo} --state open --search "{issue}" --json number,title,author --jq '.[] | select(.author.login != "BillionClaw") | {number, title, author: .author.login}'
-   ```
-   If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr_other: existing PR from another contributor`.
-
-   **Check 5 — Read ALL open PRs in repo (conflict awareness):**
-   ```bash
-   # Get list of all open PRs and their changed files — understand what's in flight
+   # Open PRs in repo — know what's in flight to avoid file conflicts
    OPEN_PRS=$(gh pr list --repo {repo} --state open --json number,title,headRefName --limit 30)
    echo "Open PRs in repo: $(echo $OPEN_PRS | jq 'length')"
    ```
    Keep this list in mind during implementation. If your fix touches files that another open PR also modifies, either:
    (a) adjust scope to avoid the overlap, or
    (b) ABANDON if the overlap is unavoidable.
-   Submitting a conflicting PR wastes maintainer time and gets us blocked.
 
 1d. CHECK ISSUE READINESS:
    Read the last 5 comments on the issue: `gh api repos/{repo}/issues/{issue}/comments --jq '.[-5:] | .[] | {user: .user.login, body: .body[:200]}'`
@@ -374,8 +299,13 @@ Read the attached repo-conventions.md and issue-details.md.
    )"
    ```
 
-   **CLA RULE:** Never include CLA claims unless the repo requires it AND you completed their process.
-   CLA repos should have been caught at step 1b. No CLA mention = correct for non-CLA repos.
+   **CLA SIGNING** (if repo requires it — metadata from step 1b tells you):
+   ```bash
+   CLA_INFO=$(bash $SCRIPTS/sign-cla.sh {repo})
+   echo "$CLA_INFO"  # Shows CLA type + signing instructions
+   ```
+   Follow the signing instructions. Never claim to have signed a CLA you didn't sign.
+   No CLA mention = correct for non-CLA repos.
 
 9. **POST-PR DEDUP CHECK (mandatory — immediately after `gh pr create`):**
    ```bash
@@ -392,8 +322,9 @@ Read the attached repo-conventions.md and issue-details.md.
 
 10. CLEANUP: After submit or abandon, ALWAYS run:
     ```bash
+    SCRIPTS=/Users/kevinlin/clawOSS/scripts
     # Remove lock file so orchestrator can spawn for this repo again
-    rm -f /Users/kevinlin/clawOSS/workspace/memory/locks/$(echo "{repo}" | tr '/' '_').lock
+    bash $SCRIPTS/unlock-repo.sh {repo}
     # Remove workspace
     rm -rf $WORKDIR
     ```

@@ -46,31 +46,18 @@ ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
 
 ### Step 2: Check Each PR
 
-For each PR, run these checks in batches of 5 for efficiency:
+For each PR, use the scan script to get classification, reviews, CI status, and comments in one call:
 
 ```bash
-# BATCH: Formal reviews
+SCRIPTS=/Users/kevinlin/clawOSS/scripts
 for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
   IFS=':' read -r repo num <<< "$pr_info"
   echo "=== $repo #$num ==="
-  gh api repos/$repo/pulls/$num/reviews --jq '.[] | {state, user: .user.login}' 2>/dev/null
-done
-
-# BATCH: Issue comments (MANDATORY — maintainer questions live here, NOT in reviews)
-for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
-  IFS=':' read -r repo num <<< "$pr_info"
-  echo "=== $repo #$num ==="
-  gh api repos/$repo/issues/$num/comments --jq '.[-3:] | .[] | select(.user.login | test("bot$") | not) | {user: .user.login, body: (.body | .[0:200])}' 2>/dev/null
-done
-
-# BATCH: CI status and mergeable state
-for pr_info in "owner1/repo1:num1" "owner2/repo2:num2" ...; do
-  IFS=':' read -r repo num <<< "$pr_info"
-  echo "=== $repo #$num ==="
-  gh api repos/$repo/pulls/$num --jq '{mergeable: .mergeable, mergeable_state: .mergeable_state, draft: .draft}' 2>/dev/null
-  gh api repos/$repo/commits/$(gh api repos/$repo/pulls/$num --jq '.head.sha' 2>/dev/null)/status --jq '.state' 2>/dev/null
+  SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh "$repo" "$num")
+  echo "$SCAN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"classification\"]} | urgency:{d[\"urgency\"]} | ci_failed:{d[\"ci_failed\"]} | stale:{d[\"is_stale\"]} | comments:{d[\"comment_count\"]}')"
 done
 ```
+The script returns JSON with: classification, urgency, latest_review_state, ci_failed, is_stale, comment_count, pr_data, ci_status, reviews, comments.
 
 ### Step 3: Classify Each PR
 
@@ -189,6 +176,12 @@ Also update `memory/trust-repos.md` if any PR was merged or approved — these r
 Update `memory/pr-ledger.md` for any PRs that were closed.
 
 ### Step 7: Cycle Summary and Wait
+
+Get portfolio stats for the summary:
+```bash
+PORTFOLIO=$(bash $SCRIPTS/pr-portfolio-stats.sh)
+echo "$PORTFOLIO"
+```
 
 Write brief cycle summary to `memory/pr-monitor-report.md`:
 ```markdown

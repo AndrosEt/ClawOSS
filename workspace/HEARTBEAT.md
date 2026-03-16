@@ -55,7 +55,7 @@ Always-on subagents use 3 slots (scout + PR monitor + PR analyst). Remaining 7 a
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
-**Clean stale locks**: Remove any lock files in `memory/locks/` older than 1 hour: `find memory/locks/ -name "*.lock" -mmin +60 -delete`
+**Clean stale locks + orphaned state**: `bash scripts/cleanup-stale-sessions.sh` (removes locks >1hr, resets orphaned spawned_pending entries)
 
 ## 2. PR Follow-ups (delegated to PR Monitor — main agent handles code changes only)
 The PR Monitor subagent (step 0.5) continuously scans ALL open PRs and handles simple actions
