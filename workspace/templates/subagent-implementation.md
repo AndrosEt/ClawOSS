@@ -154,6 +154,9 @@ Read the attached repo-conventions.md and issue-details.md.
         on unix but breaks stm32 is a BAD PR that wastes maintainer time.
    d. Record passing output as evidence. The failing test MUST now pass. No regressions.
    e. Verify the fix addresses root cause, not just symptom.
+   f. **Hypothesis check**: If your fix relies on a specific API/library behavior, verify
+      that assumption with a minimal test. If you cannot verify it, state this in the PR:
+      "Note: Unable to verify that [assumption] holds in all cases."
    **If tests don't pass, ABANDON. Do not submit untested PRs. Do not submit with "I skipped
    these tests because..." — a broken CI wastes the maintainer's time and damages our
    reputation. One bad PR can get us blocked from a repo forever.**

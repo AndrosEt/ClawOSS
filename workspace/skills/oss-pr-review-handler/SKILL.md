@@ -54,6 +54,7 @@ Parse the context file for all comments. Categorize each one:
 - **Approval/praise**: No action needed
 - **Scope concern**: Reviewer says the contribution is out of scope or not appropriate (special handling — see section below)
 - **Rejection**: Reviewer rejects the approach entirely (special handling)
+- **CLA question**: If reviewer asks about CLA and the repo does NOT require one, respond: "This repo doesn't appear to require a CLA — happy to complete one if needed." NEVER claim to have signed a CLA you didn't sign. If repo DOES require a CLA we can't sign, close PR politely.
 
 ### 3. Deep Comprehension of Feedback
 For each change request or question:

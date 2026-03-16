@@ -57,11 +57,26 @@ ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent/cron context
 **2d.** Spawn using `templates/subagent-followup.md`. Set status to `spawned_pending` IMMEDIATELY. Max 2 follow-ups per cycle.
 **2e.** Update timestamps, remove closed PRs. **Update memory/trust-repos.md if any PR was merged or approved.**
 
-**2f. DUPLICATE PR CLEANUP** (run every cycle):
-Group open PRs by repo. If any repo has >1 open PR from BillionClaw:
-- Keep the NEWEST PR (highest number). Close all older ones with comment: "Closing in favor of #{newest} which supersedes this PR. Apologies for the duplicate."
-- Update pr-ledger.md and pr-followup-state.md to reflect closures.
-This is a self-healing mechanism — prevents the duplicate PR problem from accumulating even if spawn dedup fails.
+**2f. DUPLICATE + LOW-STAR PR CLEANUP** (run every cycle — executable checks):
+```bash
+# Group open PRs by repo, find duplicates
+gh search prs --author BillionClaw --state open --limit 50 --json repository,number | \
+  python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+repos = {}
+for pr in data:
+    repo = pr['repository']['nameWithOwner']
+    repos.setdefault(repo, []).append(pr['number'])
+for repo, nums in repos.items():
+    if len(nums) > 1:
+        nums.sort()
+        print(f'DUPE:{repo}:keep={nums[-1]}:close={nums[:-1]}')
+"
+```
+For each DUPE line: close all but the newest with `gh pr close {num} --repo {repo} --comment "Closing in favor of #{newest} which supersedes this PR. Apologies for the duplicate."`
+Also, for EACH open PR repo, quick-check stars: `gh api repos/{repo} --jq '.stargazers_count'`. If < 200: close with `low_star_repo` classification.
+Update pr-ledger.md and pr-followup-state.md to reflect all closures.
 
 ## 3. Pick Work
 

@@ -16,6 +16,7 @@ import { PostMergeHealthPanel } from "@/components/overview/post-merge-health-pa
 import { VelocityTimeline } from "@/components/overview/velocity-timeline";
 import { ResponseTimePanel } from "@/components/overview/response-time-panel";
 import { AlertsBanner } from "@/components/overview/alerts-banner";
+import { ActionItemsPanel } from "@/components/overview/action-items-panel";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -165,6 +166,8 @@ export default function OverviewPage() {
           <AutonomyHealthPanel />
           <PostMergeHealthPanel />
         </div>
+
+        <ActionItemsPanel />
 
         <VelocityTimeline />
 

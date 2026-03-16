@@ -29,7 +29,7 @@ has_tests: true
 root_cause: Brief one-line root cause explanation
 failure_reason: Only present if status is failure or abandoned
 followup_round: 2
-followup_outcome: changes_pushed | question_answered | closed_scope_concern | closed_rejected | disengaged_max_rounds
+followup_outcome: changes_pushed | question_answered | closed_scope_concern | closed_rejected | disengaged_max_rounds | fix_rejected | already_fixed_upstream
 ---
 
 # Result: {owner}/{repo}#{issue or pr}
