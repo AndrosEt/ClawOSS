@@ -31,8 +31,8 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
     echo "Error: GITHUB_TOKEN not set in .env"
     exit 1
 fi
-if [ -z "${KIMI_API_KEY:-}" ] && [ -z "${OPENROUTER_API_KEY:-}" ]; then
-    echo "Error: Set KIMI_API_KEY or OPENROUTER_API_KEY in .env"
+if [ -z "${KIMI_API_KEY:-}" ]; then
+    echo "Error: KIMI_API_KEY not set in .env (required — OpenRouter is not supported due to content filter)"
     exit 1
 fi
 echo "[OK] API keys configured"
@@ -81,18 +81,28 @@ sed \
     -e "s|__HOME_DIR__|$HOME|g" \
     "$PROJECT_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
 
-# Inject env vars into deployed config
+# Inject env vars into deployed config (via env vars, not shell interpolation)
+_CONFIG_PATH="$OPENCLAW_DIR/openclaw.json" \
+_KIMI_KEY="${KIMI_API_KEY:-}" \
+_GH_TOKEN="${GITHUB_TOKEN:-}" \
+_DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
+_CLAW_KEY="${CLAW_API_KEY:-}" \
 python3 -c "
-import json
-with open('$OPENCLAW_DIR/openclaw.json') as f: c = json.load(f)
+import json, os
+config_path = os.environ['_CONFIG_PATH']
+with open(config_path) as f: c = json.load(f)
 c.setdefault('env', {})
-c['env']['KIMI_API_KEY'] = '${KIMI_API_KEY:-}'
-c['env']['OPENROUTER_API_KEY'] = '${OPENROUTER_API_KEY:-}'
-c['env']['GITHUB_TOKEN'] = '${GITHUB_TOKEN:-}'
-c['env']['DASHBOARD_URL'] = '${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}'
-c['env']['CLAW_API_KEY'] = '${CLAW_API_KEY:-}'
-c['env'] = {k:v for k,v in c['env'].items() if v}
-with open('$OPENCLAW_DIR/openclaw.json', 'w') as f: json.dump(c, f, indent=2)
+env_vars = {
+    'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
+    'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
+    'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
+    'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
+}
+for k, v in env_vars.items():
+    if v:
+        c['env'][k] = v
+c['env'] = {k: v for k, v in c['env'].items() if v}
+with open(config_path, 'w') as f: json.dump(c, f, indent=2)
 " 2>/dev/null
 echo "[OK] Config deployed with env vars"
 
