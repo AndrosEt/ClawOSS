@@ -110,6 +110,8 @@ CLA/DCO repos are allowed — the agent signs CLAs when prompted.
 
 **Anti-AI policy check**: Read CONTRIBUTING.md for anti-bot phrases. HARD SKIP if found.
 
+**AI disclosure policy check**: Some repos require specific AI disclosure formats in PRs (e.g., qdrant requires AI contributions to be clearly labeled). When scoring repos, check CONTRIBUTING.md for AI disclosure requirements. Flag these in the candidate report so subagents can comply — this is NOT a skip reason, it's metadata. Write any disclosure requirements to `memory/repos/{owner}_{repo}.md`.
+
 ### Step 3b: Filter Issues
 
 Before scoring, discard issues that won't pass triage:

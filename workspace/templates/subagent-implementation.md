@@ -75,6 +75,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - Test requirements (some require specific test frameworks or patterns)
    - **AI disclosure policy**: If the repo has an AI policy, follow it EXACTLY. Some repos require explicit AI disclosure in a specific format. Search CONTRIBUTING.md for "AI", "bot", "automated", "generated". If they require disclosure, add it in their specified format.
    - **CLA/DCO**: If required, sign it. CLA-assistant: click the bot link. DCO: use `git commit -s` to add Signed-off-by.
+     **Non-automatable CLA orgs (ABANDON if encountered)**: apache, microsoft, google, meta-llama — these require identity verification or postal mail that a bot cannot complete.
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
 
    **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.** This has happened (qdrant closed our PR for ignoring contribution guides). Read it. Follow it. No exceptions.

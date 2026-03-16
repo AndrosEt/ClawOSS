@@ -122,7 +122,7 @@ When choosing between two issues of similar quality, always prefer the one from 
 ## Process (after health gate passes)
 1. Clone repo to /tmp/clawoss-workdir/<repo-name>/ (shallow clone)
 2. Read contribution docs:
-   - CONTRIBUTING.md
+   - CONTRIBUTING.md (check for AI disclosure requirements — some repos require specific AI labeling)
    - CODE_OF_CONDUCT.md
    - .github/PULL_REQUEST_TEMPLATE.md
    - .github/ISSUE_TEMPLATE/ (check for bug report templates)

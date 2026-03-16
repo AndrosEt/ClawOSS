@@ -153,6 +153,70 @@ else
     exit 1
 fi
 
+# ── 5b. Deploy cron jobs ──────────────────────────────────────────────
+# OpenClaw reads crons from ~/.openclaw/cron/jobs.json (not our repo config).
+# We sync our repo's cron-jobs.json into the deployed store, preserving
+# job IDs and state from the existing store so run history isn't lost.
+CRON_STORE="$HOME/.openclaw/cron/jobs.json"
+REPO_CRONS="$PROJECT_DIR/config/cron-jobs.json"
+
+if [ -f "$REPO_CRONS" ]; then
+    mkdir -p "$HOME/.openclaw/cron"
+    _REPO_CRONS="$REPO_CRONS" _CRON_STORE="$CRON_STORE" _PROJECT_DIR="$PROJECT_DIR" \
+    python3 -c "
+import json, os
+
+repo_crons_path = os.environ['_REPO_CRONS']
+store_path = os.environ['_CRON_STORE']
+project_dir = os.environ['_PROJECT_DIR']
+
+with open(repo_crons_path) as f:
+    repo_crons = json.load(f)
+
+# Load existing store (preserves job IDs, state, timestamps)
+try:
+    with open(store_path) as f:
+        store = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    store = {'version': 1, 'jobs': []}
+
+# Index existing jobs by name for matching
+existing = {j.get('name', j.get('id', '')): j for j in store.get('jobs', [])}
+
+# Merge: update messages/schedules from repo config, preserve state
+for rc in repo_crons:
+    name = rc.get('name', rc.get('id', ''))
+    if name in existing:
+        ej = existing[name]
+        # Update payload, schedule, sessionTarget, wakeMode from repo
+        ej['payload'] = rc['payload']
+        ej['schedule'] = rc['schedule']
+        ej['sessionTarget'] = rc.get('sessionTarget', 'isolated')
+        ej['wakeMode'] = rc.get('wakeMode', 'next-heartbeat')
+        # Fix delivery: mode=none should NOT have channel
+        ej['delivery'] = {'mode': rc.get('delivery', {}).get('mode', 'none')}
+        # Clear error state for retry
+        if 'state' in ej:
+            ej['state'].pop('lastError', None)
+            ej['state'].pop('lastErrorReason', None)
+            ej['state']['consecutiveErrors'] = 0
+    # else: new cron job — would need openclaw cron add (skip for now)
+
+store['jobs'] = list(existing.values())
+with open(store_path, 'w') as f:
+    json.dump(store, f, indent=2)
+    f.write('\n')
+print('Cron store synced')
+" 2>&1
+    if [ $? -eq 0 ]; then
+        echo "[OK] Cron jobs synced to ~/.openclaw/cron/jobs.json"
+    else
+        echo "[WARN] Cron sync failed — crons may use stale config"
+    fi
+else
+    echo "[INFO] No config/cron-jobs.json found — skipping cron sync"
+fi
+
 # ── 6. Update gateway plist PATH (ensure python3, gh, jq are reachable) ─
 # The gateway spawns subagents that need these tools. launchd has a minimal
 # PATH so we inject the paths we need.

@@ -204,6 +204,7 @@ For each candidate issue, quick-check the repo:
 6. **Anti-bot/anti-AI policy detection** — handled automatically by `scripts/repo-health-check.sh`.
    The script checks CONTRIBUTING.md for anti-bot phrases. HARD SKIP if anti-bot policy detected.
    CLA/DCO repos are allowed — the agent signs CLAs when prompted. The script reports CLA as informational metadata.
+7. **AI disclosure policy detection** — some repos require explicit AI disclosure in a specific format (e.g., qdrant requires AI contributions to be clearly labeled). When writing repo guides to `memory/repos/`, note any AI disclosure requirements found in CONTRIBUTING.md so subagents can follow them exactly. This is NOT a skip reason — it's metadata for subagents to comply with.
 
 If a repo fails the pre-filter, SKIP all issues from that repo. Cache the failure.
 

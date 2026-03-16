@@ -49,11 +49,11 @@ A superseded PR wastes our cycle AND annoys maintainers. Prevention is 100x chea
 - `langchain-ai/langchain` — comment on issue FIRST to get assigned, then submit PR
 - If repo has "require-issue-link" bot, self-assign or comment before PR creation
 
-**CLA/DCO repos** (sign it, don't skip):
-- If a repo requires a CLA (Contributor License Agreement), complete the signing process. Most use CLA-assistant — click the link in the bot comment and sign via GitHub.
-- For DCO (Developer Certificate of Origin), add `Signed-off-by: BillionClaw <billionclaw+clawoss@users.noreply.github.com>` to every commit message using `git commit -s`.
-- If the CLA requires a web form, navigate to it and complete it.
-- Do NOT skip repos because they require CLAs — sign and contribute.
+**CLA/DCO repos** (nuanced — sign automatable CLAs, skip manual-only):
+- **CLA-assistant** (GitHub OAuth click): Sign it. Most repos use this (BerriAI, deepset-ai, iterative, Aider-AI, etc.)
+- **DCO** (Developer Certificate of Origin): Use `git commit -s` to add `Signed-off-by: BillionClaw <billionclaw+clawoss@users.noreply.github.com>`. Trivially automatable.
+- **Non-automatable CLAs — SKIP these orgs**: `apache` (ICLA requires postal mail), `microsoft` (identity verification), `google` (Google account required), `meta-llama` (Meta account verification). These require manual processes a bot cannot complete.
+- All other CLA repos: sign and contribute.
 
 **Anti-AI policy detection** (check CONTRIBUTING.md before first PR to any repo):
 - HARD SKIP if repo mentions: "no bot", "no ai generated", "human only", "no automated PRs"

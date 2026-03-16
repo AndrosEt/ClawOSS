@@ -141,3 +141,24 @@ The real opportunity is in follow-ups on Tier 1 and Tier 2 PRs. If even 3-4 of t
 | #1394 | cmux | Positive comment | Respond to partial-fix acknowledgment |
 | #1404 | crosspoint-reader | Discussion | Engage with competing #1405 |
 | All others | Various | No reviews | Wait — most are < 3 days old |
+
+---
+
+## External Contributor Acceptance Analysis
+
+Based on last 10 merged PRs per repo, categorized by how likely external PRs are to merge:
+
+### High Acceptance (external PRs regularly merged)
+- **huggingface/transformers** — External contributors like tarekziade, hmellor merge regularly. Small PRs (2-46 LOC) preferred.
+- **vllm-project/vllm** — Very active, many external contributors merged daily (hmellor, lgeiger, etc). LOC 1-515.
+- **huggingface/smolagents** — External contributors (zsims, dubin555) merged alongside core (albertvillanova).
+- **xournalpp/xournalpp** — Regular external contributor merges (youssefadly237, rolandlo, atticus-sullivan).
+- **dlt-hub/dlt** — Some external contributions (Travior, aditypan, lis365b) merge alongside core (rudolfix).
+
+### Medium Acceptance (some external PRs, slower)
+- **ray-project/ray** — Mostly Anyscale employees, but some external contributions (abrarsheikh, elliot-barn).
+- **spotDL/spotify-downloader** — Batch-review pattern (8 merged same day, then months idle). Variable.
+
+### Low Acceptance (core-contributor dominated)
+- **cilium/cilium** — Mostly renovate bot + core contributors. External contributor acceptance unclear.
+- **mistralai/mistral-vibe** — Almost exclusively internal (mgesbert). **Very unlikely to accept external PRs.** Our #490 may be dead.

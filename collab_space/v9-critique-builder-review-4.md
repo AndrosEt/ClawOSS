@@ -97,6 +97,30 @@ The scout template uses `{maintainer}` but this variable is never defined or pas
 
 ---
 
+### 6. [P1] restart.sh doesn't clear stale spawned_pending entries
+
+**Lines 131-156**: restart.sh cleans session files and lock files, but does NOT reset `impl-spawn-state.md` or `pr-followup-state.md`. After restart, orphaned `spawned_pending` entries cause the IMPL SPAWN GUARD and SPAWNED_PENDING GUARD to permanently skip repos/PRs that no longer have active subagents.
+
+**Current orphans** (confirmed post-restart):
+- impl-spawn-state.md: transformers #44756, ollama #14874, llama_index #21026 (all `spawned_pending`)
+- impl-spawn-state.md: scout-tier0 (marked `running` but session deleted)
+- pr-followup-state.md: peft #3102 (`spawned_pending`)
+
+**Fix needed**: Add between steps 6 and 7:
+```bash
+# 6b. Reset stale spawn states (all subagents die on restart)
+for f in impl-spawn-state.md pr-followup-state.md; do
+  [ -f "$PROJECT_DIR/workspace/memory/$f" ] && \
+    sed -i '' 's/spawned_pending/failed_restart/g; s/| running |/| dead_restart |/g' \
+    "$PROJECT_DIR/workspace/memory/$f"
+done
+echo "[OK] Stale spawn states cleared"
+```
+
+---
+
 ## Verdict
 
-Ship it. The 5 remaining issues are P1-P3, none are V9-breaking. The P0 blocker is the dashboard deployment gap — that needs team-lead action (merge to main or reconfigure Vercel).
+Ship it. The 6 remaining issues are P1-P3, none are V9-breaking. Two P0 blockers need team-lead action before quota recovers:
+1. **Dashboard deployment**: merge v6-release -> main (or reconfigure Vercel) — agent will receive V8 "SLOW DOWN" directives otherwise
+2. **Stale spawn states**: manually fix state files or update restart.sh — 4 repos/PRs permanently blocked by orphaned guards
