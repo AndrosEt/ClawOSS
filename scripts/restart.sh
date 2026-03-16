@@ -104,8 +104,12 @@ fi
 pkill -f "dashboard-sync" 2>/dev/null || true
 sleep 1
 if [ -f "$PROJECT_DIR/scripts/dashboard-sync.sh" ]; then
-    nohup bash "$PROJECT_DIR/scripts/dashboard-sync.sh" > /tmp/dashboard-sync.log 2>&1 &
-    echo "[OK] Dashboard sync started (PID $!)"
+    if [ -z "${CLAW_API_KEY:-}" ]; then
+        echo "[WARN] CLAW_API_KEY not set — dashboard-sync will not start (it requires this key)"
+    else
+        nohup bash "$PROJECT_DIR/scripts/dashboard-sync.sh" > /tmp/dashboard-sync.log 2>&1 &
+        echo "[OK] Dashboard sync started (PID $!)"
+    fi
 else
     echo "[WARN] No dashboard-sync.sh found"
 fi

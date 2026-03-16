@@ -98,6 +98,7 @@ export async function syncPRsFromGitHub(): Promise<{
         const additions = pr.additions;
         const deletions = pr.deletions;
         const filesChanged = pr.changed_files;
+        const htmlUrl = pr.html_url;
 
         await db
           .insert(pullRequests)
@@ -115,6 +116,7 @@ export async function syncPRsFromGitHub(): Promise<{
             additions,
             deletions,
             filesChanged,
+            htmlUrl,
           })
           .onConflictDoUpdate({
             target: pullRequests.id,
@@ -127,6 +129,7 @@ export async function syncPRsFromGitHub(): Promise<{
               additions,
               deletions,
               filesChanged,
+              htmlUrl,
             },
           });
 
@@ -171,12 +174,26 @@ export async function syncPRsFromGitHub(): Promise<{
           // Skip review fetch errors
         }
 
+        // Check if PR actually modifies test files (not just title)
+        let hasTests = false;
+        try {
+          const { data: files } = await octokit.pulls.listFiles({
+            owner, repo, pull_number: pr.number, per_page: 100,
+          });
+          hasTests = files.some((f) =>
+            /(?:test|spec|__tests__|__mocks__)/i.test(f.filename)
+          );
+        } catch {
+          // Fall back to title check if file listing fails
+          hasTests = /test|spec/i.test(pr.title || "");
+        }
+
         // Compute quality score
         const score = computeQualityScore({
           additions,
           deletions,
           filesChanged,
-          hasTests: /test|spec/i.test(pr.title || ""),
+          hasTests,
           commitMessages: [pr.title],
           description: pr.body || "",
           hasDescription: !!pr.body && pr.body.length > 50,

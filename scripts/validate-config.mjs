@@ -102,6 +102,7 @@ const requiredSkills = [
   "oss-submit",
   "oss-followup",
   "oss-triage",
+  "oss-pr-review-handler",
   "repo-analyzer",
   "context-manager",
   "dashboard-reporter",

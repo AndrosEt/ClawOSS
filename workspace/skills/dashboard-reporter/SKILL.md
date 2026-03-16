@@ -20,9 +20,9 @@ URL base: `$DASHBOARD_URL` (default: `https://clawoss-dashboard.vercel.app`)
 
 **Metrics** — POST `/api/ingest/metrics`
 ```json
-{"metrics":[{"provider":"openrouter","model":"z-ai/glm-5","inputTokens":N,"outputTokens":N,"costUsd":N}]}
+{"metrics":[{"provider":"kimi-code","model":"kimi-coding/k2p5","inputTokens":N,"outputTokens":N}]}
 ```
-Cost: `(input * 0.72 + output * 2.30) / 1000000`
+Cost is auto-computed server-side from the model name. If `costUsd` is omitted or 0, the dashboard uses its cost-models table (kimi-coding/k2p5: $0.60/$3.00 per MTok). You can send `costUsd` to override.
 
 **Logs** — POST `/api/ingest/logs`
 ```json

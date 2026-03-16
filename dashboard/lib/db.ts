@@ -125,6 +125,51 @@ export async function ensureDb(): Promise<ReturnType<typeof drizzle<typeof schem
   return getDb();
 }
 
+/**
+ * Data retention: prune high-volume tables to prevent unbounded growth.
+ * Called probabilistically from heartbeat ingest (~1 in 100 requests).
+ *
+ * Retention policy:
+ * - heartbeats: keep last 7 days
+ * - conversation_messages: keep last 7 days
+ * - metrics_tokens: keep last 30 days
+ * - agent_logs: keep last 14 days
+ * - command_audit: keep last 14 days
+ *
+ * Low-volume tables (pull_requests, pr_reviews, quality_scores, settings, agent_state)
+ * are never pruned — they have bounded growth.
+ */
+export async function pruneOldData(): Promise<{ deleted: Record<string, number> }> {
+  const client = ensureClient();
+  const now = Math.floor(Date.now() / 1000);
+  const day = 86400;
+
+  const targets = [
+    { table: "heartbeats", maxAge: 7 * day },
+    { table: "conversation_messages", maxAge: 7 * day },
+    { table: "metrics_tokens", maxAge: 30 * day },
+    { table: "agent_logs", maxAge: 14 * day },
+    { table: "command_audit", maxAge: 14 * day },
+  ];
+
+  const deleted: Record<string, number> = {};
+
+  for (const { table, maxAge } of targets) {
+    const cutoff = now - maxAge;
+    try {
+      const result = await client.execute({
+        sql: `DELETE FROM ${table} WHERE timestamp < ?`,
+        args: [cutoff],
+      });
+      deleted[table] = result.rowsAffected;
+    } catch {
+      deleted[table] = -1; // error
+    }
+  }
+
+  return { deleted };
+}
+
 export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
   get(_target, prop) {
     return (getDb() as unknown as Record<string | symbol, unknown>)[prop];

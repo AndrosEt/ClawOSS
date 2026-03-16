@@ -2,9 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { validateApiKey, unauthorizedResponse } from "@/lib/auth-api";
-import { db, ensureDb } from "@/lib/db";
+import { db, ensureDb, pruneOldData } from "@/lib/db";
 import { heartbeats } from "@/lib/schema";
 import { nanoid } from "nanoid";
+
+let _lastPrune = 0;
 
 const VALID_STATUSES = ["alive", "degraded", "offline"] as const;
 
@@ -41,6 +43,15 @@ export async function POST(request: Request) {
       uptimeSeconds: typeof body.uptimeSeconds === "number" ? body.uptimeSeconds : 0,
       metadata: body.metadata || null,
     });
+
+    // Data retention: prune old rows at most once per hour
+    const now = Date.now();
+    if (now - _lastPrune > 3600_000) {
+      _lastPrune = now;
+      pruneOldData().catch((err) =>
+        console.error("[heartbeat] Prune error:", err)
+      );
+    }
 
     return NextResponse.json({ ok: true, id });
   } catch (error) {

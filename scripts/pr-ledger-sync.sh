@@ -30,7 +30,7 @@ GH_PRS=$(gh search prs --author "$AGENT_USER" --limit 200 \
     --json repository,number,url,state,createdAt 2>/dev/null || echo '[]')
 
 # --- Collect PRs from unprocessed subagent result files ---
-# These might have PRs that GitHub search hasn't indexed yet
+# Build result PRs JSON safely via Python (no shell interpolation into code)
 RESULT_PRS="[]"
 for f in "$RESULT_DIR"/subagent-result-*.md; do
     [ ! -f "$f" ] && continue
@@ -46,14 +46,17 @@ for f in "$RESULT_DIR"/subagent-result-*.md; do
     BASENAME=$(basename "$f" .md)
     ISSUE_NUM=$(echo "$BASENAME" | grep -oE '[0-9]+$' || echo "")
 
-    RESULT_PRS=$(echo "$RESULT_PRS" | python3 -c "
-import json, sys
+    # Pass variables via env vars to Python (safe — no interpolation into code)
+    RESULT_PRS=$(echo "$RESULT_PRS" | \
+        _REPO="$REPO" _ISSUE="$ISSUE_NUM" _PR_URL="$PR_URL" _PR_NUM="$PR_NUM" \
+        python3 -c "
+import json, sys, os
 prs = json.load(sys.stdin)
 prs.append({
-    'repo': '$REPO',
-    'issue': '$ISSUE_NUM',
-    'pr_url': '$PR_URL',
-    'pr_num': '$PR_NUM',
+    'repo': os.environ['_REPO'],
+    'issue': os.environ['_ISSUE'],
+    'pr_url': os.environ['_PR_URL'],
+    'pr_num': os.environ['_PR_NUM'],
     'status': 'open',
     'source': 'result_file'
 })
@@ -62,12 +65,15 @@ json.dump(prs, sys.stdout)
 done
 
 # --- Merge both sources and rebuild ledger ---
+# Pass all data via env vars (safe — no shell interpolation into Python code)
+_GH_PRS="$GH_PRS" _RESULT_PRS="$RESULT_PRS" _LEDGER="$LEDGER" \
 python3 -c "
-import json, sys
+import json, sys, os
 from datetime import datetime
 
-gh_raw = '''$GH_PRS'''
-result_raw = '''$RESULT_PRS'''
+gh_raw = os.environ.get('_GH_PRS', '[]')
+result_raw = os.environ.get('_RESULT_PRS', '[]')
+ledger_path = os.environ['_LEDGER']
 
 try:
     gh_prs = json.loads(gh_raw)
@@ -109,8 +115,6 @@ for pr in gh_prs:
 
     number = pr.get('number', 0)
 
-    # Try to extract issue number from PR title or body (best effort)
-    # For now we store the PR number; the issue mapping comes from result files
     pr_map[url] = {
         'repo': repo_name,
         'issue': '',  # populated from result files below
@@ -128,7 +132,7 @@ for rpr in result_prs:
         if rpr.get('issue') and not pr_map[url]['issue']:
             pr_map[url]['issue'] = rpr['issue']
     else:
-        # PR not yet in GitHub search — add it from result file
+        # PR not yet in GitHub search -- add it from result file
         date = datetime.utcnow().strftime('%Y-%m-%d')
         pr_map[url] = {
             'repo': rpr.get('repo', ''),
@@ -140,8 +144,6 @@ for rpr in result_prs:
         }
 
 # Also preserve issue numbers from existing ledger (if it exists)
-import os
-ledger_path = '$LEDGER'
 if os.path.exists(ledger_path):
     with open(ledger_path) as f:
         for line in f:
@@ -173,9 +175,9 @@ with open(ledger_path, 'w') as f:
 print(f'Synced {len(entries)} PRs ({sum(1 for e in entries if e[\"status\"]==\"open\")} open, {sum(1 for e in entries if e[\"status\"]==\"merged\")} merged, {sum(1 for e in entries if e[\"status\"]==\"closed\")} closed)')
 "
 
-log "$(python3 -c "
+log "$(_LEDGER="$LEDGER" python3 -c "
 import os
-ledger = '$LEDGER'
+ledger = os.environ['_LEDGER']
 if os.path.exists(ledger):
     lines = [l for l in open(ledger) if l.startswith('|') and not l.startswith('| repo') and not l.startswith('|--')]
     print(f'{len(lines)} entries in ledger')

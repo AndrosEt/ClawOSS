@@ -9,4 +9,4 @@ Welcome to ClawOSS! On your first run:
 5. Report first heartbeat to dashboard
 6. Begin bug discovery with oss-discover skill (search for bug reports only)
 
-This file will be deleted after first run.
+After completing bootstrap, proceed to the normal HEARTBEAT.md loop.
