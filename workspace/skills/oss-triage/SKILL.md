@@ -33,6 +33,9 @@ are rejected immediately. We accept bug fixes, docs fixes, typo fixes, and test 
 
 If the issue has ANY of these labels AND no `bug`/`defect`/`regression`/`crash`/`docs`/`documentation`/`typo`/`test` label, SKIP.
 
+### 0c-BLOCKLIST. Repo Blocklist (HARD GATE — check FIRST)
+Read `memory/trust-repos.md` Deprioritized section. If the repo appears there AND `Skip Until` is "permanent" or a future date, **SKIP unconditionally** — no override by score, labels, or any factor. These repos have hostile maintainers, ban threats, or non-automatable CLAs.
+
 ### 0c. Repo Health Gate (MANDATORY — check BEFORE spending triage tokens)
 **We only contribute to repos that will actually review and merge our work.**
 
