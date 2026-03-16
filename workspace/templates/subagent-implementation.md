@@ -64,13 +64,59 @@ Read the attached repo-conventions.md and issue-details.md.
    `microsoft`, `google`, `meta-llama` — ABANDON with reason `cla_required: org requires CLA`.
    We cannot sign CLAs, so PRs to these orgs can NEVER merge.
 
-1c. CHECK IF ALREADY FIXED OR IN PROGRESS:
+1c. PR CONFLICT & SUPERSESSION CHECK (CRITICAL — do ALL of these before writing any code):
+
+   **Check 1 — Linked PRs on this issue (most important):**
+   ```bash
+   # Check if any open PR already addresses this issue
+   LINKED_PRS=$(gh api "repos/{repo}/issues/{issue}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null) | {number: .number, title: .title, state: .state, url: .html_url}]' 2>/dev/null || echo "[]")
+   OPEN_LINKED=$(echo "$LINKED_PRS" | jq '[.[] | select(.state=="open")] | length')
+   if [ "$OPEN_LINKED" -gt 0 ]; then
+     echo "ABORT: $OPEN_LINKED open PR(s) already linked to this issue"
+     echo "$LINKED_PRS" | jq '.[] | select(.state=="open")'
+     # Write result as failure with reason "superseded: open PR already addresses this issue"
+     rm -rf $WORKDIR && exit 1
+   fi
+   # Also check if a linked PR was recently MERGED (issue already fixed)
+   MERGED_LINKED=$(echo "$LINKED_PRS" | jq '[.[] | select(.state=="closed")] | length')
+   if [ "$MERGED_LINKED" -gt 0 ]; then
+     echo "WARNING: $MERGED_LINKED closed PR(s) linked — check if issue is already resolved"
+     # If the issue is still open despite merged PRs, proceed cautiously
+   fi
+   ```
+
+   **Check 2 — Issue assignee:**
+   ```bash
+   ASSIGNEES=$(gh api "repos/{repo}/issues/{issue}" --jq '.assignees[].login' 2>/dev/null || echo "")
+   if [ -n "$ASSIGNEES" ]; then
+     echo "ABORT: issue is assigned to: $ASSIGNEES"
+     # Write result as failure with reason "issue_assigned: assigned to $ASSIGNEES"
+     rm -rf $WORKDIR && exit 1
+   fi
+   ```
+
+   **Check 3 — Already fixed in recent commits:**
    Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
    Also check: `git log --oneline --all --grep="{key error message or term}" -5`
    If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
-   Also check: `gh pr list --repo {repo} --state open --search "{issue number or key term}" --json number,title --jq 'length'`
+
+   **Check 4 — Competing open PRs (same issue or same files):**
+   ```bash
+   # Check for PRs from OTHER contributors addressing same issue
+   gh pr list --repo {repo} --state open --search "{issue}" --json number,title,author --jq '.[] | select(.author.login != "BillionClaw") | {number, title, author: .author.login}'
+   ```
    If someone else already has an open PR for this issue, ABANDON with reason `duplicate_pr_other: existing PR from another contributor`.
-   This avoids competing with existing PRs (atuin #3272 was closed because another contributor had it first).
+
+   **Check 5 — Read ALL open PRs in repo (conflict awareness):**
+   ```bash
+   # Get list of all open PRs and their changed files — understand what's in flight
+   OPEN_PRS=$(gh pr list --repo {repo} --state open --json number,title,headRefName --limit 30)
+   echo "Open PRs in repo: $(echo $OPEN_PRS | jq 'length')"
+   ```
+   Keep this list in mind during implementation. If your fix touches files that another open PR also modifies, either:
+   (a) adjust scope to avoid the overlap, or
+   (b) ABANDON if the overlap is unavoidable.
+   Submitting a conflicting PR wastes maintainer time and gets us blocked.
 
 1d. CHECK ISSUE READINESS:
    Read the last 5 comments on the issue: `gh api repos/{repo}/issues/{issue}/comments --jq '.[-5:] | .[] | {user: .user.login, body: .body[:200]}'`
@@ -79,6 +125,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - Active design discussion still happening (people debating approach) — wait, don't jump in
    - Issue was closed then reopened (controversial)
    - Maintainer explicitly assigned the issue to someone else
+   - Someone commented "I'm working on this" or "I'll take this" (respect dibs)
 
 2. CLASSIFY & CONFIRM: Read the issue title and body. Determine the contribution type:
    - **bug-fix**: broken behavior, error, crash, regression
