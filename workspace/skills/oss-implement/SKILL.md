@@ -20,14 +20,15 @@ We contribute **deeply and comprehensively**. No surface-level patches. Understa
 
 ## Workflow (in order, no skipping)
 
-### 0. CONFIRM ACTIONABLE (mandatory first step)
-Before any coding, verify this is a valid contribution:
+### 0. CONFIRM ACTIONABLE + NOT SUPERSEDED (mandatory first step)
+Before any coding, verify this is a valid contribution AND no one else is already on it:
 - **Bug fix**: Does the issue describe broken/incorrect behavior? Error messages, stack traces?
 - **Docs fix**: Is the documentation factually incorrect or outdated? Can you verify against code?
 - **Typo fix**: Is there a clear typo in code, docs, comments, or error messages?
 - **Test addition**: Is there an untested code path or a bug scenario lacking a test?
 - **If this is a large feature request, enhancement, or refactor: ABANDON IMMEDIATELY.**
-- Write "ABANDONED: not actionable" in the result file and stop.
+- **Supersession check**: Does the issue have linked open PRs from other contributors? Is it assigned to someone? If yes, ABANDON with reason `superseded` or `issue_assigned`.
+- Write "ABANDONED: not actionable" or "ABANDONED: superseded" in the result file and stop.
 
 ### 1. DEEP COMPREHENSION (mandatory for bugs — scaled for other types)
 For bug fixes: build a full mental model of the relevant codebase. Do NOT jump to writing code.

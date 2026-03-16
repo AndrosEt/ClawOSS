@@ -107,6 +107,9 @@ Before scoring, discard issues that won't pass triage:
 - **Title keyword reject** (whole word, case-insensitive): `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`
 - **Label reject**: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
 - **Age reject**: Skip issues > 30 days old
+- **Supersession reject**: Check if issue has linked open PRs or is assigned to someone:
+  `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'` — if > 0, SKIP.
+  `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.assignees | length'` — if > 0, SKIP.
 
 ### Step 3: Score and Rank
 

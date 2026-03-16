@@ -61,6 +61,11 @@ Check memory/wake-state.md for today's submissions:
 - Last PR to this repo: must be > 30 minutes ago. If < 30 min: ABORT.
 - **Also verify:** Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` — if > 0, ABORT (avoid piling multiple PRs on one repo). ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
+### 5b. Supersession Check (HARD GATE — final check before submit)
+Re-verify no one else submitted a fix while we were working:
+- Check issue timeline for linked PRs: `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'`
+- If > 0: **ABORT** — another contributor submitted a fix while we were implementing. A superseded PR wastes maintainer time.
+
 ### 6. No Dangerous Commands
 Verify no force-push, no push to main/master, no `--force` flags.
 

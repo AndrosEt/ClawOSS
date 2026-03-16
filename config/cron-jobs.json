@@ -20,7 +20,7 @@
     "wakeMode": "now",
     "payload": {
       "kind": "systemEvent",
-      "text": "PR follow-up scan (BATCHED — max 5 per cycle to avoid timeout): run gh search prs --author BillionClaw --state open --json number,repository,reviewDecision,statusCheckRollup,updatedAt --limit 5 --sort updated. For EACH of the 5 most recently updated PRs: check for new review comments (gh api repos/{owner}/{repo}/pulls/{number}/reviews) or our-fault CI failures (statusCheckRollup). If any need action, add to memory/followup-staging.md with priority: urgent. Do NOT process more than 5 PRs per scan — the next scan in 30 minutes will pick up the rest."
+      "text": "PR follow-up scan (BATCHED — max 5 per cycle to avoid timeout): run gh search prs --author BillionClaw --state open --json number,repository,updatedAt --limit 5 --sort updated. For EACH of the 5 most recently updated PRs: check for new review comments (gh api repos/{owner}/{repo}/pulls/{number}/reviews --jq '.[] | {state, user: .user.login}') and issue comments (gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[-3:] | .[] | {user: .user.login, body: .body[:200]}'). If any need action, add to memory/followup-staging.md with priority: urgent. Do NOT process more than 5 PRs per scan — the next scan in 30 minutes will pick up the rest."
     }
   },
   {
