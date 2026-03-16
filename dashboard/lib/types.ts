@@ -192,6 +192,8 @@ export interface DashboardOverview {
     totalPRs: number;
     mergeRate: number;
     tokensUsedToday: number;
+    inputTokensToday: number;
+    outputTokensToday: number;
     costToday: number;
   };
   recentActivity: ActivityItem[];

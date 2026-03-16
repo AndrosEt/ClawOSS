@@ -45,7 +45,7 @@ export default function HealthPage() {
   return (
     <div className="flex flex-col">
       <Header title="Agent Health" />
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-8 p-6 lg:p-8">
         {health && (
           <HealthStatusCards
             heartbeat={health.heartbeat}
@@ -58,7 +58,7 @@ export default function HealthPage() {
           <div className="space-y-2">
             <div className="flex justify-end">
               <Select value={tokenRange} onValueChange={(v) => v && setTokenRange(v)}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[120px] mono-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -74,7 +74,7 @@ export default function HealthPage() {
           <div className="space-y-2">
             <div className="flex justify-end">
               <Select value={costRange} onValueChange={(v) => v && setCostRange(v)}>
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[120px] mono-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

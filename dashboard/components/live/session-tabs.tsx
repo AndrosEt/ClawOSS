@@ -20,12 +20,12 @@ export function SessionTabs({
   const subSessions = sessions.filter((s) => s.isSubagent);
 
   return (
-    <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-background/50 overflow-x-auto smooth-scroll">
+    <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border/40 overflow-x-auto smooth-scroll">
       {/* Unified view */}
       <Button
-        variant={activeSessionId === undefined ? "default" : "ghost"}
+        variant="ghost"
         size="sm"
-        className={`text-[10px] h-6 px-2.5 shrink-0 ${activeSessionId === undefined ? "tab-active-line" : ""}`}
+        className={`text-[10px] h-6 px-2.5 shrink-0 ${activeSessionId === undefined ? "tab-active" : "text-muted-foreground"}`}
         onClick={() => onSelectSession(undefined)}
       >
         All Sessions
@@ -35,12 +35,12 @@ export function SessionTabs({
       {mainSessions.map((session) => (
         <Button
           key={session.sessionId}
-          variant={activeSessionId === session.sessionId ? "default" : "ghost"}
+          variant="ghost"
           size="sm"
-          className="text-[10px] h-6 px-2.5 shrink-0 gap-1.5"
+          className={`text-[10px] h-6 px-2.5 shrink-0 gap-1.5 ${activeSessionId === session.sessionId ? "tab-active" : "text-muted-foreground"}`}
           onClick={() => onSelectSession(session.sessionId)}
         >
-          <span className="text-foreground/70">#</span>
+          <span className="text-foreground/50">#</span>
           <span>Main: Orchestrator</span>
           {session.isActive && (
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -69,15 +69,13 @@ export function SessionTabs({
         return (
           <Button
             key={session.sessionId}
-            variant={
-              activeSessionId === session.sessionId ? "default" : "ghost"
-            }
+            variant="ghost"
             size="sm"
-            className="text-[10px] h-6 px-2.5 shrink-0 gap-1.5"
+            className={`text-[10px] h-6 px-2.5 shrink-0 gap-1.5 ${activeSessionId === session.sessionId ? "tab-active" : "text-muted-foreground"}`}
             onClick={() => onSelectSession(session.sessionId)}
             title={rawLabel}
           >
-            <span className="text-amber-400">{"~>"}</span>
+            <span className="text-amber-400/70">{"~>"}</span>
             <span>{shortLabel}</span>
             {session.isActive && (
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />

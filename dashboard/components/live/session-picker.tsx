@@ -87,9 +87,9 @@ export function SessionPicker({
 
         {/* Unified timeline button */}
         <Button
-          variant={activeSessionId === undefined ? "default" : "ghost"}
+          variant="ghost"
           size="sm"
-          className="w-full justify-start text-xs h-7"
+          className={`w-full justify-start text-xs h-7 ${activeSessionId === undefined ? "bg-muted text-foreground" : "text-muted-foreground"}`}
           onClick={() => onSelectSession(undefined)}
         >
           Unified Timeline (all sessions)
@@ -162,9 +162,9 @@ function SessionButton({
 
   return (
     <Button
-      variant={isActive ? "default" : "ghost"}
+      variant="ghost"
       size="sm"
-      className="w-full justify-start text-xs h-auto py-1.5 flex-col items-start"
+      className={`w-full justify-start text-xs h-auto py-1.5 flex-col items-start ${isActive ? "bg-muted text-foreground" : "text-muted-foreground"}`}
       onClick={onClick}
     >
       <div className="flex items-center gap-2 w-full">
@@ -182,8 +182,8 @@ function SessionButton({
         </span>
         {session.isActive && (
           <Badge
-            variant="default"
-            className="text-[9px] h-3.5 px-1 bg-emerald-500"
+            variant="outline"
+            className="text-[9px] h-3.5 px-1 text-emerald-400 border-emerald-500/30"
           >
             LIVE
           </Badge>

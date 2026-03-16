@@ -6,19 +6,21 @@ import { formatTokens, formatCost, formatPercentage } from "@/lib/utils";
 interface MetricCardsProps {
   totalPRs: number;
   mergeRate: number;
-  tokensUsedToday: number;
+  inputTokensToday: number;
+  outputTokensToday: number;
   costToday: number;
 }
 
-function MiniBar({ value, max, segments = 12 }: { value: number; max: number; segments?: number }) {
+function MiniBar({ value, max, segments = 12, color }: { value: number; max: number; segments?: number; color?: string }) {
   const filled = Math.round((value / Math.max(max, 1)) * segments);
+  const barColor = color || "bg-emerald-500/50";
   return (
     <div className="flex gap-[2px] mt-2" aria-hidden="true">
       {Array.from({ length: segments }).map((_, i) => (
         <div
           key={i}
           className={`h-[3px] flex-1 rounded-[1px] transition-all ${
-            i < filled ? "bg-emerald-500/50" : "bg-foreground/5"
+            i < filled ? barColor : "bg-foreground/5"
           }`}
         />
       ))}
@@ -29,7 +31,8 @@ function MiniBar({ value, max, segments = 12 }: { value: number; max: number; se
 export function MetricCards({
   totalPRs,
   mergeRate,
-  tokensUsedToday,
+  inputTokensToday,
+  outputTokensToday,
   costToday,
 }: MetricCardsProps) {
   const cards = [
@@ -46,10 +49,18 @@ export function MetricCards({
       bar: { value: mergeRate, max: 100 },
     },
     {
-      label: "Tokens/24h",
-      value: formatTokens(tokensUsedToday),
-      sub: tokensUsedToday > 0 ? "burned today" : null,
-      bar: { value: Math.min(tokensUsedToday / 1000, 500), max: 500 },
+      label: "Input/24h",
+      value: formatTokens(inputTokensToday),
+      sub: inputTokensToday > 0 ? "prompt tokens" : null,
+      bar: { value: Math.min(inputTokensToday / 1000, 500), max: 500 },
+      barColor: "bg-cyan-500/40",
+    },
+    {
+      label: "Output/24h",
+      value: formatTokens(outputTokensToday),
+      sub: outputTokensToday > 0 ? "completion tokens" : null,
+      bar: { value: Math.min(outputTokensToday / 1000, 200), max: 200 },
+      barColor: "bg-violet-500/40",
     },
     {
       label: "Cost/24h",
@@ -60,16 +71,16 @@ export function MetricCards({
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {cards.map((card) => (
-        <Card key={card.label} className="metric-card">
-          <CardContent className="p-3">
-            <div className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider">{card.label}</div>
-            <div className="text-2xl font-mono font-bold tracking-tighter mt-1 tabular-nums">{card.value}</div>
+        <Card key={card.label} className="metric-card card-lift">
+          <CardContent className="p-4 pb-3">
+            <div className="stat-label">{card.label}</div>
+            <div className="stat-value mt-1.5 tabular-nums">{card.value}</div>
             {card.sub && (
-              <div className="text-[10px] font-mono text-muted-foreground/40 mt-0.5">{card.sub}</div>
+              <div className="text-[10px] font-mono text-muted-foreground/35 mt-1">{card.sub}</div>
             )}
-            <MiniBar value={card.bar.value} max={card.bar.max} />
+            <MiniBar value={card.bar.value} max={card.bar.max} color={card.barColor} />
           </CardContent>
         </Card>
       ))}

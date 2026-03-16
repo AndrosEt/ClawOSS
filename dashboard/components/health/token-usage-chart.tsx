@@ -20,7 +20,7 @@ const chartConfig = {
 
 export function TokenUsageChart({ data }: TokenUsageChartProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">Token Usage</CardTitle>
       </CardHeader>

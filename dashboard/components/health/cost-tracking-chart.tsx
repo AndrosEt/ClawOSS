@@ -20,7 +20,7 @@ const chartConfig = {
 
 export function CostTrackingChart({ data }: CostTrackingChartProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">Cost Tracking</CardTitle>
       </CardHeader>

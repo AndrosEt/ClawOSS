@@ -60,8 +60,9 @@ export async function GET() {
       .from(metricsTokens)
       .where(gte(metricsTokens.timestamp, todayStart));
 
-    let tokensUsedToday =
-      (todayMetrics[0]?.totalInput || 0) + (todayMetrics[0]?.totalOutput || 0);
+    let inputTokensToday = todayMetrics[0]?.totalInput || 0;
+    let outputTokensToday = todayMetrics[0]?.totalOutput || 0;
+    let tokensUsedToday = inputTokensToday + outputTokensToday;
     let costToday = todayMetrics[0]?.totalCost || 0;
 
     // Fallback: estimate from conversation messages if metrics_tokens is empty
@@ -77,6 +78,9 @@ export async function GET() {
       const fromCounts = convTokens[0]?.totalTokens || 0;
       const fromLength = convTokens[0]?.estimatedFromLength || 0;
       tokensUsedToday = fromCounts > 0 ? fromCounts : fromLength;
+      // Estimate 70/30 input/output split for fallback
+      inputTokensToday = Math.round(tokensUsedToday * 0.7);
+      outputTokensToday = tokensUsedToday - inputTokensToday;
       // Estimate cost using Kimi K2.5 average ($1.8/M tokens)
       if (tokensUsedToday > 0 && costToday === 0) {
         costToday = tokensUsedToday * (1.8 / 1_000_000);
@@ -155,6 +159,8 @@ export async function GET() {
         totalPRs,
         mergeRate,
         tokensUsedToday,
+        inputTokensToday,
+        outputTokensToday,
         costToday,
       },
       recentActivity,

@@ -69,7 +69,7 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <span>Session</span>
           {session?.isActive && (
-            <Badge variant="default" className="text-[9px] h-3.5 px-1 bg-emerald-500">
+            <Badge variant="outline" className="text-[9px] h-3.5 px-1 text-emerald-400 border-emerald-500/30">
               LIVE
             </Badge>
           )}
@@ -79,20 +79,20 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
         {session && (
           <div className="space-y-1 text-xs">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">ID</span>
+              <span className="stat-label">ID</span>
               <span className="font-mono truncate max-w-[140px]">{session.sessionId}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Messages</span>
-              <span>{session.messageCount}</span>
+              <span className="stat-label">Messages</span>
+              <span className="font-mono">{session.messageCount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Started</span>
-              <span>{formatRelativeTime(session.firstMessage)}</span>
+              <span className="stat-label">Started</span>
+              <span className="font-mono">{formatRelativeTime(session.firstMessage)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Last</span>
-              <span>{formatRelativeTime(session.lastMessage)}</span>
+              <span className="stat-label">Last</span>
+              <span className="font-mono">{formatRelativeTime(session.lastMessage)}</span>
             </div>
           </div>
         )}
@@ -100,7 +100,7 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
         {stats && (
           <>
             <div className="border-t pt-2 space-y-1 text-xs">
-              <div className="text-muted-foreground font-medium mb-1">Breakdown</div>
+              <div className="stat-label mb-1">Breakdown</div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-emerald-400">Agent: {stats.roles.assistant}</span>
                 <span className="text-amber-400">Tools: {stats.roles.tool_call}</span>
@@ -112,26 +112,26 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
             </div>
 
             <div className="border-t pt-2 space-y-1 text-xs">
-              <div className="text-muted-foreground font-medium mb-1">Performance</div>
+              <div className="stat-label mb-1">Performance</div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tokens</span>
-                <span>{stats.totalTokens.toLocaleString()}</span>
+                <span className="stat-label">Tokens</span>
+                <span className="font-mono">{stats.totalTokens.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tokens/min</span>
-                <span>{stats.tokensPerMinute.toLocaleString()}</span>
+                <span className="stat-label">Tokens/min</span>
+                <span className="font-mono">{stats.tokensPerMinute.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Msgs/min</span>
-                <span>{stats.messagesPerMinute}</span>
+                <span className="stat-label">Msgs/min</span>
+                <span className="font-mono">{stats.messagesPerMinute}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tool time</span>
-                <span>{(stats.totalDuration / 1000).toFixed(1)}s</span>
+                <span className="stat-label">Tool time</span>
+                <span className="font-mono">{(stats.totalDuration / 1000).toFixed(1)}s</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Unique tools</span>
-                <span>{stats.uniqueTools}</span>
+                <span className="stat-label">Unique tools</span>
+                <span className="font-mono">{stats.uniqueTools}</span>
               </div>
               {stats.errors > 0 && (
                 <div className="flex justify-between text-red-400">
@@ -143,10 +143,10 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
 
             {stats.toolNames.length > 0 && (
               <div className="border-t pt-2 text-xs">
-                <div className="text-muted-foreground font-medium mb-1">Tools Used</div>
+                <div className="stat-label mb-1">Tools Used</div>
                 <div className="flex flex-wrap gap-1">
                   {stats.toolNames.map((name) => (
-                    <Badge key={name} variant="secondary" className="text-[9px] h-4 px-1 font-mono">
+                    <Badge key={name} variant="outline" className="text-[9px] h-4 px-1 font-mono text-amber-400/70 border-amber-500/20">
                       {name}
                     </Badge>
                   ))}

@@ -42,7 +42,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-mono font-bold tracking-tight ascii-gradient">ClawOSS</span>
+          <span className="text-sm font-bold tracking-[-0.03em] ascii-gradient" style={{ fontFamily: "var(--font-space-grotesk)" }}>ClawOSS</span>
           <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/30 border-muted-foreground/10 font-mono">
             v7
           </Badge>
@@ -53,7 +53,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/50">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50">
             Dashboard
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -65,7 +65,7 @@ export function AppSidebar() {
                     isActive={pathname === item.href}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="font-mono text-[12px]">{item.title}</span>
+                    <span className="text-[12px]">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

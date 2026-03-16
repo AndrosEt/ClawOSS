@@ -51,7 +51,7 @@ export default function PRsPage() {
   return (
     <div className="flex flex-col">
       <Header title="Pull Requests" />
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-8 p-6 lg:p-8">
         <PRFilters
           filters={filters}
           onFilterChange={(f) => {

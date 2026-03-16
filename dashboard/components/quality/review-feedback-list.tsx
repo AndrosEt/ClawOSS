@@ -14,10 +14,10 @@ interface ReviewFeedbackListProps {
   }[];
 }
 
-const sentimentVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  positive: "default",
-  negative: "destructive",
-  neutral: "outline",
+const sentimentColors: Record<string, string> = {
+  positive: "text-emerald-400 border-emerald-500/25",
+  negative: "text-red-400 border-red-500/25",
+  neutral: "text-muted-foreground border-muted-foreground/20",
 };
 
 export function ReviewFeedbackList({ items }: ReviewFeedbackListProps) {
@@ -34,8 +34,8 @@ export function ReviewFeedbackList({ items }: ReviewFeedbackListProps) {
             {items.slice(0, 10).map((item, i) => (
               <div key={i} className="flex items-start gap-3 text-sm">
                 <Badge
-                  variant={sentimentVariant[item.sentiment] || "outline"}
-                  className="shrink-0"
+                  variant="outline"
+                  className={`shrink-0 text-[10px] font-mono ${sentimentColors[item.sentiment] || ""}`}
                 >
                   {item.sentiment === "positive"
                     ? "Pos"

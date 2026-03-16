@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import type { LogEntry } from "@/lib/types";
 
 interface LogStreamProps {
@@ -16,11 +15,11 @@ interface LogStreamProps {
   onEntryClick: (entry: LogEntry) => void;
 }
 
-const levelVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  debug: "outline",
-  info: "secondary",
-  warn: "default",
-  error: "destructive",
+const levelBadgeClass: Record<string, string> = {
+  debug: "log-badge log-badge-debug",
+  info: "log-badge log-badge-info",
+  warn: "log-badge log-badge-warn",
+  error: "log-badge log-badge-error",
 };
 
 const levelColors: Record<string, string> = {
@@ -67,12 +66,9 @@ export function LogStream({ entries, onEntryClick }: LogStreamProps) {
                     : String(entry.timestamp)}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={levelVariant[entry.level] || "outline"}
-                    className={`text-[10px] ${entry.level === "error" ? "badge-glow-red" : ""}`}
-                  >
+                  <span className={levelBadgeClass[entry.level] || "log-badge log-badge-debug"}>
                     {entry.level.toUpperCase()}
-                  </Badge>
+                  </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground/60">
                   {entry.source || "-"}

@@ -26,7 +26,7 @@ import { useAgentState } from "@/lib/hooks/use-agent-state";
 import { SessionTabs } from "@/components/live/session-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs removed — right sidebar uses ghost+tab-active pattern
 
 type ViewMode = "combined" | "orchestrator" | "subagents";
 type MainTab = "feed" | "tools" | "errors" | "costs";
@@ -170,7 +170,7 @@ export default function LivePage() {
       />
 
       {/* Controls bar */}
-      <div className="flex items-center gap-1.5 px-4 py-1.5 border-b bg-muted/10 overflow-x-auto">
+      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border/40 overflow-x-auto">
         {/* View mode */}
         {(
           [
@@ -181,16 +181,16 @@ export default function LivePage() {
         ).map((mode) => (
           <Button
             key={mode.value}
-            variant={viewMode === mode.value ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
-            className="text-[10px] h-5 px-2"
+            className={`text-[10px] h-5 px-2 ${viewMode === mode.value ? "tab-active" : "text-muted-foreground"}`}
             onClick={() => setViewMode(mode.value)}
           >
             {mode.label}
           </Button>
         ))}
 
-        <div className="w-px h-4 bg-border mx-0.5" />
+        <div className="w-px h-3 bg-border/30 mx-1" />
 
         {/* Main tabs */}
         {(
@@ -203,10 +203,10 @@ export default function LivePage() {
         ).map((tab) => (
           <Button
             key={tab.value}
-            variant={mainTab === tab.value ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
-            className={`text-[10px] h-5 px-2 ${
-              tab.value === "errors" && errorCount > 0 ? "text-red-400" : ""
+            className={`text-[10px] h-5 px-2 ${mainTab === tab.value ? "tab-active" : "text-muted-foreground"} ${
+              tab.value === "errors" && errorCount > 0 ? "!text-red-400" : ""
             }`}
             onClick={() => setMainTab(tab.value)}
           >
@@ -214,28 +214,28 @@ export default function LivePage() {
           </Button>
         ))}
 
-        <div className="w-px h-4 bg-border mx-0.5" />
+        <div className="w-px h-3 bg-border/30 mx-1" />
 
         <Button
-          variant={showRawJson ? "secondary" : "ghost"}
+          variant="ghost"
           size="sm"
-          className="text-[10px] h-5 px-2 font-mono"
+          className={`text-[10px] h-5 px-2 font-mono ${showRawJson ? "tab-active" : "text-muted-foreground"}`}
           onClick={() => setShowRawJson(!showRawJson)}
           title="Toggle raw JSON view"
         >
           {"{ }"}
         </Button>
         <Button
-          variant={autoScroll ? "default" : "ghost"}
+          variant="ghost"
           size="sm"
-          className="text-[10px] h-5 px-2"
+          className={`text-[10px] h-5 px-2 ${autoScroll ? "tab-active" : "text-muted-foreground"}`}
           onClick={() => setAutoScroll(!autoScroll)}
           title="Toggle auto-scroll (Ctrl+J)"
         >
           {autoScroll ? "scroll:on" : "scroll:off"}
         </Button>
 
-        <div className="ml-auto text-[9px] text-muted-foreground/30 font-mono hidden md:block">
+        <div className="ml-auto text-[9px] text-muted-foreground/20 font-mono hidden md:block">
           1-4:tabs | Ctrl+J:scroll | Ctrl+Shift+R:json
         </div>
       </div>
@@ -286,23 +286,26 @@ export default function LivePage() {
 
         {/* Right Sidebar */}
         <div className="w-72 border-l overflow-y-auto shrink-0 hidden lg:block">
-          <div className="p-2 border-b">
-            <Tabs
-              value={rightTab}
-              onValueChange={(v) => setRightTab(v as RightTab)}
-            >
-              <TabsList className="w-full h-7">
-                <TabsTrigger value="state" className="text-[10px] flex-1">
-                  State
-                </TabsTrigger>
-                <TabsTrigger value="gateway" className="text-[10px] flex-1">
-                  Gateway
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="text-[10px] flex-1">
-                  Stats
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-border/40">
+            {(
+              [
+                { value: "state", label: "State" },
+                { value: "gateway", label: "Gateway" },
+                { value: "analytics", label: "Stats" },
+              ] as const
+            ).map((tab) => (
+              <Button
+                key={tab.value}
+                variant="ghost"
+                size="sm"
+                className={`text-[10px] h-6 px-2.5 flex-1 ${
+                  rightTab === tab.value ? "tab-active" : "text-muted-foreground"
+                }`}
+                onClick={() => setRightTab(tab.value)}
+              >
+                {tab.label}
+              </Button>
+            ))}
           </div>
           <div className="p-3 space-y-3">
             {rightTab === "state" ? (

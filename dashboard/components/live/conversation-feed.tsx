@@ -268,7 +268,7 @@ export function ConversationFeed({
                 {config.label}
               </Badge>
               {msg.toolName && (
-                <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                <Badge variant="outline" className="text-[10px] h-4 px-1 text-amber-400/70 border-amber-500/20">
                   {msg.toolName}
                 </Badge>
               )}

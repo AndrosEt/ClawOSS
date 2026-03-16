@@ -45,17 +45,17 @@ export function HealthStatusCards({
   errorRate,
 }: HealthStatusCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <Card className="">
+    <div className="grid gap-5 md:grid-cols-3">
+      <Card className="card-lift">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 " />
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Heartbeat
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Last</span>
+            <span className="stat-label">Last</span>
             <span className="font-mono text-[12px]">
               {heartbeat.lastBeat
                 ? formatRelativeTime(heartbeat.lastBeat)
@@ -63,17 +63,17 @@ export function HealthStatusCards({
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Interval</span>
+            <span className="stat-label">Interval</span>
             <span className="font-mono text-[12px]">{heartbeat.intervalMinutes}min</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Streak</span>
+            <span className="stat-label">Streak</span>
             <span className="font-mono text-[12px] text-emerald-400">{heartbeat.streak.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="">
+      <Card className="card-lift">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-foreground/30" />
@@ -82,21 +82,21 @@ export function HealthStatusCards({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Percentage</span>
+            <span className="stat-label">Percentage</span>
             <span className="font-mono text-[12px] font-bold">{formatPercentage(uptime.percentage)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Since</span>
+            <span className="stat-label">Since</span>
             <span className="font-mono text-[12px]">{formatRelativeTime(uptime.since)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Downtime</span>
+            <span className="stat-label">Downtime</span>
             <span className="font-mono text-[12px]">{formatDuration(uptime.totalDowntimeMinutes * 60)}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className={` ${errorRate.perHour > 0 ? "border-red-500/20" : ""}`}>
+      <Card className={`card-lift ${errorRate.perHour > 0 ? "border-red-500/20" : ""}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${errorRate.perHour > 0 ? "bg-red-500" : "bg-emerald-500"}`} />
@@ -105,19 +105,19 @@ export function HealthStatusCards({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Per Hour</span>
+            <span className="stat-label">Per Hour</span>
             <span className={`font-mono text-[12px] font-bold ${errorRate.perHour > 0 ? "text-red-400" : ""}`}>
               {errorRate.perHour}/hr
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Trend</span>
+            <span className="stat-label">Trend</span>
             <span className={`font-mono text-[12px] ${trendColors[errorRate.trend] || ""}`}>
               {trendIcons[errorRate.trend]} {trendLabels[errorRate.trend]}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Last Error</span>
+            <span className="stat-label">Last Error</span>
             <span className="font-mono text-[12px]">
               {errorRate.lastError
                 ? formatRelativeTime(errorRate.lastError)

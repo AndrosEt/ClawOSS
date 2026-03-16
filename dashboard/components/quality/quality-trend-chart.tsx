@@ -18,7 +18,7 @@ const chartConfig = {
 
 export function QualityTrendChart({ data }: QualityTrendChartProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">
           Quality Score Trend

@@ -125,7 +125,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
         <CardContent className="px-4 pb-3 space-y-2.5 text-xs">
           {state.currentSkill && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Skill</span>
+              <span className="stat-label">Skill</span>
               <Badge
                 variant="outline"
                 className={`text-[10px] h-5 px-2 font-mono border ${getSkillBadgeClass(state.currentSkill)}`}
@@ -136,7 +136,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           )}
           {state.currentRepo && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Repo</span>
+              <span className="stat-label">Repo</span>
               <span className="font-mono text-foreground/70 truncate max-w-[140px] text-[11px]">
                 {state.currentRepo}
               </span>
@@ -144,7 +144,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           )}
           {state.currentIssue && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Issue</span>
+              <span className="stat-label">Issue</span>
               <span className="font-mono text-emerald-400/70 text-[11px]">
                 {state.currentIssue}
               </span>
@@ -176,7 +176,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
               {repos.map((repo) => (
                 <Badge
                   key={repo}
-                  variant="secondary"
+                  variant="outline"
                   className="text-[10px] h-5 px-2 font-mono"
                 >
                   {repo.includes("/") ? repo.split("/")[1] : repo}
@@ -193,8 +193,8 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           <CardTitle className="text-sm font-medium flex items-center justify-between">
             <span>Work Queue</span>
             <Badge
-              variant={workQueue.length > 0 ? "default" : "outline"}
-              className="text-[10px] h-4 px-1.5"
+              variant="outline"
+              className={`text-[10px] h-4 px-1.5 ${workQueue.length > 0 ? "text-emerald-400 border-emerald-500/25" : ""}`}
             >
               {workQueue.length} items
             </Badge>
@@ -281,16 +281,14 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           <CardContent className="px-4 pb-3 space-y-2 text-xs">
             {pipeline.activePRs && pipeline.activePRs.length > 0 ? (
               <div className="space-y-1.5">
-                <span className="text-muted-foreground font-medium text-[11px]">
-                  Active PRs
-                </span>
+                <span className="stat-label">Active PRs</span>
                 {pipeline.activePRs.map((pr, i) => (
                   <div
                     key={i}
                     className="flex items-center gap-1.5 bg-muted/30 rounded px-2 py-1"
                   >
                     <Badge
-                      variant="secondary"
+                      variant="outline"
                       className="text-[9px] h-3.5 px-1"
                     >
                       #{pr.number}
@@ -312,41 +310,31 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
             )}
             {pipeline.statsToday && (
               <div className="border-t pt-2 space-y-1">
-                <span className="text-muted-foreground font-medium text-[11px]">
-                  Today
-                </span>
+                <span className="stat-label">Today</span>
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div>
-                    <div className="text-sm font-bold">
+                    <div className="text-sm font-bold font-mono tabular-nums">
                       {pipeline.statsToday.submitted}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">
-                      sent
-                    </div>
+                    <div className="stat-label">sent</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-emerald-400">
+                    <div className="text-sm font-bold text-emerald-400 font-mono tabular-nums">
                       {pipeline.statsToday.merged}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">
-                      merged
-                    </div>
+                    <div className="stat-label">merged</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-red-400">
+                    <div className="text-sm font-bold text-red-400 font-mono tabular-nums">
                       {pipeline.statsToday.rejected}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">
-                      rejected
-                    </div>
+                    <div className="stat-label">rejected</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-amber-400">
+                    <div className="text-sm font-bold text-amber-400 font-mono tabular-nums">
                       {pipeline.statsToday.abandoned}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">
-                      dropped
-                    </div>
+                    <div className="stat-label">dropped</div>
                   </div>
                 </div>
               </div>

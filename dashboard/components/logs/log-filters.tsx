@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -8,13 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { LogFilterState } from "@/lib/types";
 
 interface LogFiltersProps {
   filters: LogFilterState;
   onFilterChange: (filters: LogFilterState) => void;
 }
+
+const LEVELS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "info", label: "Info" },
+  { value: "warn", label: "Warning" },
+  { value: "error", label: "Error" },
+  { value: "debug", label: "Debug" },
+];
 
 export function LogFilters({ filters, onFilterChange }: LogFiltersProps) {
   return (
@@ -24,7 +32,7 @@ export function LogFilters({ filters, onFilterChange }: LogFiltersProps) {
           value={filters.source}
           onValueChange={(v) => v && onFilterChange({ ...filters, source: v })}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px] mono-select">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
@@ -46,7 +54,7 @@ export function LogFilters({ filters, onFilterChange }: LogFiltersProps) {
             })
           }
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[130px] mono-select">
             <SelectValue placeholder="Date" />
           </SelectTrigger>
           <SelectContent>
@@ -60,27 +68,30 @@ export function LogFilters({ filters, onFilterChange }: LogFiltersProps) {
           placeholder="Search logs..."
           value={filters.search}
           onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
-          className="w-[200px]"
+          className="w-[200px] mono-select"
         />
       </div>
 
-      <Tabs
-        value={filters.level}
-        onValueChange={(v: string | null) =>
-          v && onFilterChange({
-            ...filters,
-            level: v as LogFilterState["level"],
-          })
-        }
-      >
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="info">Info</TabsTrigger>
-          <TabsTrigger value="warn">Warning</TabsTrigger>
-          <TabsTrigger value="error">Error</TabsTrigger>
-          <TabsTrigger value="debug">Debug</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex items-center gap-0.5">
+        {LEVELS.map((level) => (
+          <Button
+            key={level.value}
+            variant="ghost"
+            size="sm"
+            className={`text-[10px] h-6 px-2.5 font-mono ${
+              filters.level === level.value ? "tab-active" : "text-muted-foreground"
+            }`}
+            onClick={() =>
+              onFilterChange({
+                ...filters,
+                level: level.value as LogFilterState["level"],
+              })
+            }
+          >
+            {level.label}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }

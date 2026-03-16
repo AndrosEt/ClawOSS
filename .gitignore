@@ -48,3 +48,6 @@ config/auth-profiles.json
 /workspace/task-repo/
 /workspace/claude-agent-station/
 /workspace/cleanlab/
+workspace/EOF
+workspace/subagent-work/
+dashboard/local.db

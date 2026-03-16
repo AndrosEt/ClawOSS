@@ -36,10 +36,10 @@ export function SessionStatesTable({ sessions }: SessionStatesTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Session</TableHead>
-                <TableHead>State</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Last Activity</TableHead>
+                <TableHead className="font-mono text-[10px] uppercase tracking-wider">Session</TableHead>
+                <TableHead className="font-mono text-[10px] uppercase tracking-wider">State</TableHead>
+                <TableHead className="font-mono text-[10px] uppercase tracking-wider">Duration</TableHead>
+                <TableHead className="font-mono text-[10px] uppercase tracking-wider">Last Activity</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -51,8 +51,8 @@ export function SessionStatesTable({ sessions }: SessionStatesTableProps) {
                   <TableCell>
                     <Badge variant="outline">{session.state}</Badge>
                   </TableCell>
-                  <TableCell>{formatDuration(session.duration)}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="font-mono text-xs">{formatDuration(session.duration)}</TableCell>
+                  <TableCell className="text-muted-foreground/60 font-mono text-xs">
                     {session.lastActivity}
                   </TableCell>
                 </TableRow>

@@ -103,7 +103,7 @@ export function ToolAnalytics({ messages }: ToolAnalyticsProps) {
                     </span>
                   )}
                   {tool.errors > 0 && (
-                    <Badge variant="destructive" className="text-[9px] h-3.5 px-1">
+                    <Badge variant="outline" className="text-[9px] h-3.5 px-1 text-red-400 border-red-500/25">
                       {tool.errors} err
                     </Badge>
                   )}

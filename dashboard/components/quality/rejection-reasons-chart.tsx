@@ -26,7 +26,7 @@ const chartConfig = {
 
 export function RejectionReasonsChart({ data }: RejectionReasonsChartProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">
           Rejection Reasons

@@ -202,8 +202,8 @@ export function PRBuildLogs({ repo, issueNumber }: PRBuildLogsProps) {
                       </Badge>
                       {msg.toolName && (
                         <Badge
-                          variant="secondary"
-                          className="text-[9px] h-3.5 px-1"
+                          variant="outline"
+                          className="text-[9px] h-3.5 px-1 text-amber-400/70 border-amber-500/20"
                         >
                           {msg.toolName}
                         </Badge>

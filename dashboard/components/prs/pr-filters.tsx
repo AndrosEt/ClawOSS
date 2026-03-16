@@ -25,7 +25,7 @@ export function PRFilters({ filters, onFilterChange, repos }: PRFiltersProps) {
           v && onFilterChange({ ...filters, status: v as PRFilterState["status"] })
         }
       >
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-[140px] mono-select">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -40,7 +40,7 @@ export function PRFilters({ filters, onFilterChange, repos }: PRFiltersProps) {
         value={filters.repo}
         onValueChange={(v) => v && onFilterChange({ ...filters, repo: v })}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-[200px] mono-select">
           <SelectValue placeholder="Repository" />
         </SelectTrigger>
         <SelectContent>
@@ -57,7 +57,7 @@ export function PRFilters({ filters, onFilterChange, repos }: PRFiltersProps) {
         placeholder="Search PRs..."
         value={filters.search}
         onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
-        className="w-[200px]"
+        className="w-[200px] mono-select"
       />
     </div>
   );

@@ -18,7 +18,7 @@ const chartConfig = {
 
 export function QualityByRepoChart({ data }: QualityByRepoChartProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">
           Quality by Repository

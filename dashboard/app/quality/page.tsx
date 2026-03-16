@@ -39,10 +39,10 @@ export default function QualityPage() {
   return (
     <div className="flex flex-col">
       <Header title="Quality Metrics" />
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-8 p-6 lg:p-8">
         <div className="flex justify-end">
           <Select value={range} onValueChange={(v) => v && setRange(v)}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[120px] mono-select">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

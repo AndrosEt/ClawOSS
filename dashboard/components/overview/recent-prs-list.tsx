@@ -11,10 +11,10 @@ interface RecentPRsListProps {
   limit?: number;
 }
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  open: "default",
-  merged: "secondary",
-  closed: "destructive",
+const statusColors: Record<string, string> = {
+  open: "text-foreground/70 border-foreground/15",
+  merged: "text-emerald-400 border-emerald-500/25",
+  closed: "text-red-400 border-red-500/25",
 };
 
 function QualityDot({ score }: { score: number }) {
@@ -80,7 +80,7 @@ export function RecentPRsList({ prs, limit = 5 }: RecentPRsListProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Badge variant={statusVariant[pr.status] || "outline"} className="text-[10px]">
+                  <Badge variant="outline" className={`text-[10px] font-mono ${statusColors[pr.status] || ""}`}>
                     {pr.status}
                   </Badge>
                   <a

@@ -73,16 +73,16 @@ export default function OverviewPage() {
   const { data: stateData, isLoading: stateLoading } = useAgentState();
 
   const hasData = connectionData?.hasAnyData ||
-    (data?.stats && (data.stats.totalPRs > 0 || data.stats.tokensUsedToday > 0)) ||
+    (data?.stats && (data.stats.totalPRs > 0 || data.stats.inputTokensToday > 0 || data.stats.outputTokensToday > 0)) ||
     (data?.recentActivity && data.recentActivity.length > 0);
 
   if (isLoading) {
     return (
       <div className="flex flex-col">
         <Header title="Overview" />
-        <div className="flex-1 space-y-3 p-4">
+        <div className="flex-1 space-y-6 p-6 lg:p-8">
           <Skeleton className="h-16 w-full" />
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-20" />
             ))}
@@ -95,7 +95,7 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col relative">
       <Header title="Overview" />
-      <div className="flex-1 space-y-3 p-4 relative z-10">
+      <div className="flex-1 space-y-8 p-6 lg:p-8 relative z-10">
         {/* System identity bar */}
         <div className="system-header corner-brackets font-mono text-[11px] px-3 py-2 flex items-center justify-between flex-wrap gap-x-4 gap-y-1">
           <div className="flex items-center gap-3">
@@ -140,7 +140,8 @@ export default function OverviewPage() {
         <MetricCards
           totalPRs={data?.stats?.totalPRs || 0}
           mergeRate={data?.stats?.mergeRate || 0}
-          tokensUsedToday={data?.stats?.tokensUsedToday || 0}
+          inputTokensToday={data?.stats?.inputTokensToday || 0}
+          outputTokensToday={data?.stats?.outputTokensToday || 0}
           costToday={data?.stats?.costToday || 0}
         />
 
@@ -163,13 +164,13 @@ export default function OverviewPage() {
           </div>
         )}
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-3">
           {/* Main content: 2 cols */}
-          <div className="lg:col-span-2 space-y-3">
+          <div className="lg:col-span-2 space-y-5">
             <ActivityTimeline items={data?.recentActivity || []} />
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-3">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-5">
                 <CurrentTaskCard task={data?.currentTask || null} />
                 <TerminalLoop />
               </div>
@@ -178,7 +179,7 @@ export default function OverviewPage() {
           </div>
 
           {/* Sidebar: curated art gallery */}
-          <div className="space-y-3">
+          <div className="space-y-5">
             <AgentStatePanel state={stateData?.state || null} isLoading={stateLoading} />
 
             {/* Game of Life -- living art piece */}

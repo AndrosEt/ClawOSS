@@ -19,10 +19,10 @@ interface PRDataTableProps {
   onRowClick: (pr: PullRequest) => void;
 }
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  open: "default",
-  merged: "secondary",
-  closed: "destructive",
+const statusColors: Record<string, string> = {
+  open: "text-foreground/70 border-foreground/15",
+  merged: "text-emerald-400 border-emerald-500/25",
+  closed: "text-red-400 border-red-500/25",
 };
 
 type SortKey = "number" | "title" | "repo" | "status" | "quality" | "created";
@@ -146,8 +146,8 @@ export function PRDataTable({ data, onRowClick }: PRDataTableProps) {
               </TableCell>
               <TableCell>
                 <Badge
-                  variant={statusVariant[pr.status] || "outline"}
-                  className="text-[10px]"
+                  variant="outline"
+                  className={`text-[10px] font-mono ${statusColors[pr.status] || ""}`}
                 >
                   {pr.status}
                 </Badge>

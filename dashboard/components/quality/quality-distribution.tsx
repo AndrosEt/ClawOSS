@@ -18,7 +18,7 @@ const chartConfig = {
 
 export function QualityDistribution({ data }: QualityDistributionProps) {
   return (
-    <Card>
+    <Card className="card-inset">
       <CardHeader>
         <CardTitle className="text-sm font-medium">
           Quality Distribution

@@ -91,39 +91,39 @@ export function GatewayStatus({
       {/* Gateway info */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Port</span>
+          <span className="stat-label">Port</span>
           <span>18789</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Mode</span>
+          <span className="stat-label">Mode</span>
           <span>local</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Model</span>
+          <span className="stat-label">Model</span>
           <span className="text-foreground/60">kimi-coding/k2p5</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Auth</span>
+          <span className="stat-label">Auth</span>
           <span className="text-emerald-400">token</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">HB interval</span>
+          <span className="stat-label">HB interval</span>
           <span>10m</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">HBs/hr</span>
+          <span className="stat-label">HBs/hr</span>
           <span className={heartbeatsLastHour > 0 ? "text-emerald-400" : "text-red-400"}>
             {heartbeatsLastHour}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Errors/hr</span>
+          <span className="stat-label">Errors/hr</span>
           <span className={errorsLastHour > 0 ? "text-red-400" : "text-emerald-400"}>
             {errorsLastHour}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">MaxConc</span>
+          <span className="stat-label">MaxConc</span>
           <span>5</span>
         </div>
       </div>
@@ -131,7 +131,7 @@ export function GatewayStatus({
       {/* Heartbeat timing */}
       <div className="p-2 bg-muted/10 rounded border space-y-1">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Last heartbeat</span>
+          <span className="stat-label">Last heartbeat</span>
           <span
             className={
               staleness != null && staleness > 900
@@ -153,7 +153,7 @@ export function GatewayStatus({
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Next HB (est)</span>
+          <span className="stat-label">Next HB (est)</span>
           <span className="text-muted-foreground/60">
             {nextHbIn != null
               ? nextHbIn > 0
@@ -166,8 +166,8 @@ export function GatewayStatus({
 
       {/* Sessions */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span>Sessions</span>
+        <div className="flex items-center justify-between">
+          <span className="stat-label">Sessions</span>
           <span>
             {activeSessions.length} active / {sessions.length} total
           </span>
@@ -226,7 +226,7 @@ export function GatewayStatus({
 
       {/* Skill Inventory */}
       <div className="space-y-1">
-        <div className="text-muted-foreground">
+        <div className="stat-label">
           Skills ({SKILLS.length} loaded)
         </div>
         <div className="flex flex-wrap gap-1">

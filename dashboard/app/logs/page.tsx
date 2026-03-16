@@ -28,7 +28,7 @@ export default function LogsPage() {
   return (
     <div className="flex flex-col">
       <Header title="Logs" />
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-8 p-6 lg:p-8">
         <LogFilters
           filters={filters}
           onFilterChange={(f) => {

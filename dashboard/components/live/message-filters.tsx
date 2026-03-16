@@ -28,14 +28,14 @@ export function MessageFilters({
   onSearchChange,
 }: MessageFiltersProps) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/20 overflow-x-auto">
-      <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border/40 overflow-x-auto">
+      <div className="flex items-center gap-0.5">
         {FILTERS.map((f) => (
           <Button
             key={f.value}
-            variant={activeFilter === f.value ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
-            className={`text-[10px] h-6 px-2 ${activeFilter !== f.value ? f.color : ""}`}
+            className={`text-[10px] h-6 px-2 ${activeFilter === f.value ? "tab-active" : f.color}`}
             onClick={() => onFilterChange(f.value)}
           >
             {f.label}
@@ -47,7 +47,7 @@ export function MessageFilters({
           placeholder="Search messages..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-6 text-xs w-40"
+          className="h-6 text-xs w-40 border-border/40"
         />
       </div>
     </div>

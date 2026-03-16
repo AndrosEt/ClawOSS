@@ -53,12 +53,12 @@ export function QualityOverviewCards({
   return (
     <div className="grid gap-4 md:grid-cols-4">
       {cards.map((card, i) => (
-        <Card key={card.title} className={`card-glow hover-lift animate-fade-up animate-fade-up-${Math.min(i + 1, 4)}`}>
+        <Card key={card.title} className="card-lift">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60">{card.title}</CardTitle>
+            <CardTitle className="stat-label">{card.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tracking-tight">{card.value}</div>
+            <div className="stat-value">{card.value}</div>
             {card.change != null && (
               <p
                 className={`text-[11px] font-mono mt-0.5 ${

@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-space-mono, ui-monospace, monospace);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -123,10 +123,57 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-space-mono, ui-monospace, monospace);
+    font-size: 13px;
+    letter-spacing: -0.01em;
   }
   html {
-    @apply font-sans;
+    @apply font-mono;
   }
+
+  /* Custom selection color */
+  ::selection {
+    background: oklch(0.6 0.12 160 / 25%);
+    color: oklch(0.95 0 0);
+  }
+
+  /* Global scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.4 0 0 / 20%);
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.5 0 0 / 15%);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.5 0 0 / 30%);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.6 0 0 / 25%);
+  }
+}
+
+/* =========================================================
+   Font System — Space Mono (body) + Space Grotesk (display)
+   ========================================================= */
+
+/* Card titles and section headings use Space Grotesk for contrast */
+h1, h2, h3, h4, h5, h6,
+[data-slot="card-title"] {
+  font-family: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
+  letter-spacing: -0.025em;
+}
+
+/* Buttons inherit mono from body -- intentional terminal feel */
+button, [role="button"] {
+  font-family: inherit;
 }
 
 /* =========================================================
@@ -165,8 +212,8 @@
 .corner-brackets::after {
   content: "";
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   pointer-events: none;
 }
 .corner-brackets::before {
@@ -206,11 +253,6 @@
 /* Vignette */
 .dark main {
   box-shadow: inset 0 0 160px oklch(0 0 0 / 20%);
-}
-
-/* ----- Sidebar ----- */
-.dark [data-active="true"] {
-  box-shadow: inset 2px 0 0 oklch(0.6 0.1 160 / 50%);
 }
 
 /* ----- Terminal card ----- */
@@ -298,18 +340,19 @@
   background: linear-gradient(90deg, oklch(0.6 0.12 160), oklch(0.55 0.1 180));
 }
 
-/* ----- Session tab active underline ----- */
-.tab-active-line {
+/* ----- Active tab indicator -- thin bottom accent ----- */
+.tab-active {
   position: relative;
+  color: oklch(0.92 0 0) !important;
 }
-.tab-active-line::after {
+.tab-active::after {
   content: "";
   position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: oklch(0.6 0.12 160);
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 1.5px;
+  background: oklch(0.6 0.12 160 / 70%);
   border-radius: 1px;
 }
 
@@ -484,8 +527,8 @@
 .claw-title {
   color: var(--foreground);
   font-weight: 600;
-  font-family: var(--font-mono);
-  letter-spacing: -0.02em;
+  font-family: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
+  letter-spacing: -0.03em;
 }
 .ascii-gradient {
   background: linear-gradient(135deg, oklch(0.65 0.1 160) 0%, oklch(0.55 0.08 200) 100%);
@@ -507,10 +550,179 @@
   );
 }
 
-/* ----- Card glow on hover ----- */
-.dark .card-glow:hover {
+/* ----- Refined card hover ----- */
+.dark .card-lift {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
+}
+.dark .card-lift:hover {
+  transform: translateY(-2px);
+  border-color: oklch(1 0 0 / 8%);
   box-shadow:
-    0 0 0 1px oklch(0.6 0.08 160 / 8%),
-    0 0 20px -4px oklch(0.6 0.1 160 / 6%);
+    inset 0 1px 0 oklch(1 0 0 / 3%),
+    0 4px 16px oklch(0 0 0 / 25%),
+    0 0 0 1px oklch(1 0 0 / 4%);
+}
+
+/* ----- Stat label ----- */
+.stat-label {
+  font-size: 9px;
+  font-family: var(--font-jetbrains, var(--font-mono));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: oklch(0.55 0 0);
+}
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--font-jetbrains, var(--font-mono));
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ----- Badge refinement for log levels ----- */
+.log-badge {
+  font-size: 9px;
+  font-family: var(--font-jetbrains, var(--font-mono));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+.log-badge-info { background: oklch(0.6 0.08 200 / 12%); color: oklch(0.7 0.08 200); }
+.log-badge-warn { background: oklch(0.7 0.12 85 / 12%); color: oklch(0.75 0.12 85); }
+.log-badge-error { background: oklch(0.6 0.15 25 / 12%); color: oklch(0.7 0.15 25); }
+.log-badge-debug { background: oklch(0.5 0 0 / 12%); color: oklch(0.55 0 0); }
+
+/* ----- Mono select -- terminal-style dropdowns ----- */
+.mono-select {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.02em;
+}
+
+/* =========================================================
+   Refinement Layer — Precision Instrument Aesthetic
+   ========================================================= */
+
+/* ----- Header glow separator ----- */
+.dark header[class*="border-b"] {
+  border-bottom-color: oklch(1 0 0 / 4%);
+  box-shadow:
+    0 1px 0 oklch(0.6 0.08 160 / 5%),
+    0 4px 12px oklch(0 0 0 / 15%);
+}
+
+/* ----- Card depth system ----- */
+/* Elevated card -- for primary status cards */
+.dark .card-elevated {
+  background: oklch(0.13 0 0);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 3%),
+    0 2px 8px oklch(0 0 0 / 20%),
+    0 0 0 1px oklch(1 0 0 / 3%);
+}
+
+/* Inset card -- for charts and data panels */
+.dark .card-inset {
+  background: oklch(0.09 0 0);
+  box-shadow:
+    inset 0 1px 3px oklch(0 0 0 / 20%),
+    0 0 0 1px oklch(1 0 0 / 2%);
+}
+
+/* ----- Card inner highlight ----- */
+.dark [data-slot="card"] {
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 2.5%),
+    0 0 0 1px oklch(0 0 0 / 15%);
+}
+
+/* ----- Sidebar refinement ----- */
+.dark [data-active="true"] {
+  box-shadow: inset 2px 0 0 oklch(0.6 0.1 160 / 60%);
+  background: oklch(0.14 0.005 160 / 40%) !important;
+}
+
+/* ----- Chart card treatment -- instrument frame ----- */
+.dark .chart-frame {
+  position: relative;
+}
+.dark .chart-frame::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid oklch(1 0 0 / 2%);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ----- Focus ring -- accessible emerald outline ----- */
+.dark :focus-visible {
+  outline: 2px solid oklch(0.6 0.1 160 / 40%);
+  outline-offset: 2px;
+}
+
+/* ----- Subtle page transition ----- */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dark main > div {
+  animation: page-fade-in 0.2s ease-out;
+}
+
+/* ----- Refined table headers ----- */
+.dark th[class*="font-mono"] {
+  color: oklch(0.5 0 0);
+  border-bottom: 1px solid oklch(1 0 0 / 4%);
+}
+
+/* ----- Badge refinement -- tighter, more precise ----- */
+.dark [data-slot="badge"] {
+  font-family: var(--font-jetbrains, var(--font-mono));
+  letter-spacing: 0.03em;
+}
+
+/* ----- Separator refinement ----- */
+.dark [data-orientation="vertical"][role="separator"] {
+  background: oklch(1 0 0 / 4%);
+}
+
+/* ----- Pipeline bar refinement ----- */
+.dark .pipeline-bar {
+  border: 1px solid oklch(1 0 0 / 3%);
+  background: oklch(0.085 0 0);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 2%);
+}
+
+/* ----- Quality ring refinement ----- */
+.quality-ring {
+  font-family: var(--font-jetbrains, var(--font-mono));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.quality-ring:hover {
+  transform: scale(1.08);
+}
+.dark .quality-ring.q-high:hover { box-shadow: 0 0 8px oklch(0.6 0.15 160 / 20%); }
+.dark .quality-ring.q-mid:hover { box-shadow: 0 0 8px oklch(0.7 0.15 85 / 20%); }
+.dark .quality-ring.q-low:hover { box-shadow: 0 0 8px oklch(0.55 0.2 25 / 20%); }
+
+/* ----- Empty state refinement ----- */
+.dark .border-dashed {
+  border-color: oklch(1 0 0 / 6%);
+  border-style: dashed;
+  background: oklch(0.09 0 0);
+}
+
+/* ----- Art frame glow on hover ----- */
+.dark .art-frame {
   transition: box-shadow 0.3s ease;
+}
+.dark .art-frame:hover {
+  box-shadow:
+    inset 0 0 40px oklch(0.6 0.1 160 / 5%),
+    0 0 0 1px oklch(0.6 0.1 160 / 8%);
 }
