@@ -55,7 +55,29 @@ gh api repos/{owner}/{repo}/contributors --jq 'length'
 - **SKIP** if < 50 stars — low-impact repo, not worth our time
 - **SKIP** if < 5 contributors — bus-factor risk, single maintainer may vanish
 
-### 6. Bot-Friendly Signals (does the repo welcome contributions?)
+### 6. Niche Fit (golden niche = agentic AI repos)
+Our highest-value targets are agentic AI / LLM framework repos. Check repo description and topics:
+```bash
+gh api repos/{owner}/{repo} --jq '{description: .description, topics: .topics}'
+```
+A repo is in the golden niche if its name, description, or topics match any of:
+- **Repo names**: langchain, langgraph, llama-index, autogen, crewai, semantic-kernel,
+  haystack, dspy, instructor, magentic, openai, anthropic, ollama, vllm, litellm,
+  chromadb, weaviate, qdrant, milvus, pinecone, lancedb
+- **Keywords**: agent, agentic, llm, large language model, rag, retrieval augmented,
+  embedding, vector store, prompt, chain, tool-use, function-calling, ai-assistant,
+  copilot, chatbot, inference, transformer, fine-tuning, mlops
+- **Topics**: `llm`, `agent`, `ai`, `machine-learning`, `nlp`, `langchain`, `rag`,
+  `vector-database`, `embedding`, `generative-ai`
+
+Scoring:
+- **+3 score** if repo is in the golden niche (agentic AI)
+- **+2 score** if repo has 1000+ stars (high-impact)
+- **+1 score** if repo has 200-1000 stars (medium impact)
+
+Set `niche_fit: true/false` in the output. Niche repos get priority in the work queue.
+
+### 7. Bot-Friendly Signals (does the repo welcome contributions?)
 Check for presence of:
 - `CONTRIBUTING.md` — **+1 score** (they've documented how to contribute)
 - `.github/ISSUE_TEMPLATE/` or issue templates — **+1 score** (organized)
@@ -75,12 +97,15 @@ A repo **MUST pass ALL** of these to be eligible:
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
-### Repo Health Score (1-10)
-Sum the bonus scores from checks 2, 3, 6 above:
-- **8-10**: Excellent — prioritize issues from this repo
-- **5-7**: Good — standard priority
-- **3-4**: Marginal — only pick exceptionally clear bugs
-- **1-2**: Poor — skip (should have been caught by health gate)
+### Repo Health Score (1-16)
+Sum the bonus scores from checks 2, 3, 6, 7 above:
+- **12-16**: Excellent — prioritize issues from this repo (likely a golden niche repo)
+- **8-11**: Good — standard priority
+- **5-7**: Marginal — only pick exceptionally clear bugs
+- **1-4**: Poor — skip (should have been caught by health gate)
+
+**Niche repos (agentic AI) with health score >= 8 get PRIORITY in the work queue.**
+When choosing between two issues of similar quality, always prefer the one from a niche repo.
 
 ## Process (after health gate passes)
 1. Clone repo to /tmp/clawoss-workdir/<repo-name>/ (shallow clone)
@@ -102,11 +127,12 @@ Sum the bonus scores from checks 2, 3, 6 above:
 
 ## Output
 Repo profile containing:
-- **Repo health score** (1-10) and individual check results
+- **Repo health score** (1-16) and individual check results
+- **Niche fit**: true/false — is this repo in the agentic AI / LLM golden niche?
 - **Merge velocity**: avg days to merge, merged PRs in last 30 days
 - **Review rate**: % of PRs that get review comments
 - **Open PR backlog**: current count
-- **Merge probability**: high (health >= 8) / medium (5-7) / low (< 5, consider skipping)
+- **Merge probability**: high (health >= 12 or niche + health >= 8) / medium (5-11) / low (< 5)
 - Tech stack and language
 - Code style configuration
 - Test command to run

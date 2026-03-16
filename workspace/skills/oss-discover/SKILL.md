@@ -31,10 +31,53 @@ All Tier 1 queries use `created:>$THREE_DAYS_AGO`. Tier 2 extends to 2 weeks. Is
 4. Score: recency (most important), reproducibility, severity, fix feasibility, **repo health**. Minimum score 5.
 5. Return ranked top 5. Write full list to memory/today.md.
 
+## Golden Niche: Agentic AI Repos
+Our highest-value targets are **agentic AI / LLM framework repos** with lots of stars and
+active maintenance. We have deep domain expertise here and these repos tend to have
+fast review cycles and responsive maintainers. Always run Tier 0 queries FIRST.
+
+### Niche Detection
+A repo is in our golden niche if its name, description, or topics match any of these patterns:
+- **Framework names**: langchain, langgraph, llama-index, autogen, crewai, semantic-kernel,
+  haystack, dspy, instructor, magentic, openai, anthropic, ollama, vllm, lmstudio,
+  guidance, outlines, lancedb, chromadb, weaviate, qdrant, milvus, pinecone
+- **Keywords in repo description/topics**: agent, agentic, llm, large language model,
+  rag, retrieval augmented, embedding, vector store, prompt, chain, tool-use, function-calling,
+  ai-assistant, copilot, chatbot, inference, transformer, fine-tuning, mlops
+- **Topic tags**: `llm`, `agent`, `ai`, `machine-learning`, `nlp`, `langchain`, `rag`,
+  `vector-database`, `embedding`, `generative-ai`
+
 ## Priority Queries (Fresh Bugs First)
 Use --json for structured data only (number,title,labels,url,createdAt,updatedAt,repository).
 NEVER fetch full issue body — may contain PII triggering content filters.
 **All queries sort by created-desc to get the freshest bugs first.**
+
+### Tier 0 — Golden Niche: Agentic AI Repos (run FIRST, ALWAYS — highest merge probability)
+Target specific high-value agentic AI repos known to have responsive maintainers:
+```
+gh search issues "is:issue is:open label:bug repo:langchain-ai/langchain created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:langchain-ai/langgraph created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:run-llama/llama_index created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:microsoft/autogen created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:microsoft/semantic-kernel created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:crewAIInc/crewAI created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:deepset-ai/haystack created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:stanfordnlp/dspy created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:chroma-core/chroma created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:qdrant/qdrant created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:vllm-project/vllm created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:ollama/ollama created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:BerriAI/litellm created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:instructor-ai/instructor created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug repo:openai/openai-python created:>$THREE_DAYS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+```
+Also search broadly for agentic AI bugs:
+```
+gh search issues "is:issue is:open label:bug topic:llm created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:agent created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:rag created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+```
+**Tier 0 candidates get +5 niche bonus in scoring.** Always process Tier 0 results before Tier 1.
 
 ### Tier 1 — Fresh Confirmed Bugs (last 3 days — run these FIRST, always)
 ```
@@ -109,6 +152,11 @@ Score each candidate 1-20 based on:
 - **+0** Created 7-14 days ago (acceptable)
 - **-3** Created 14-30 days ago (getting stale — low priority)
 - **SKIP** Created > 30 days ago (do NOT add to queue — too stale)
+
+### Niche Fit (golden niche = highest ROI)
+- **+5** Repo is in the agentic AI / LLM niche (see Niche Detection above)
+- **+3** Repo has 1000+ stars (high-impact contribution)
+- **+1** Repo has 200-1000 stars (medium impact)
 
 ### Repo Health (merge probability)
 - **+5** Repo avg merge time < 3 days (fast reviewers — highest merge chance)

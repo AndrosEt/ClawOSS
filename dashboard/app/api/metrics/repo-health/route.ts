@@ -125,6 +125,26 @@ export async function GET(request: Request) {
       // Table might not exist
     }
 
+    // Niche detection: agentic AI / LLM repos (our golden niche)
+    const NICHE_REPO_PATTERNS = [
+      /langchain/i, /langgraph/i, /llama.index/i, /llama_index/i, /autogen/i,
+      /crewai/i, /semantic.kernel/i, /haystack/i, /\bdspy\b/i, /instructor/i,
+      /magentic/i, /openai/i, /anthropic/i, /ollama/i, /\bvllm\b/i, /litellm/i,
+      /lmstudio/i, /guidance/i, /outlines/i, /lancedb/i, /chromadb/i,
+      /chroma.core/i, /weaviate/i, /qdrant/i, /milvus/i, /pinecone/i,
+      /transformers/i, /huggingface/i, /llama.cpp/i, /llamacpp/i, /mistral/i,
+      /cohere/i, /anyscale/i, /ray.project/i, /replicate/i, /together/i,
+    ];
+    const NICHE_KEYWORDS = [
+      /\bagent\b/i, /\bagentic\b/i, /\bllm\b/i, /\brag\b/i, /\bembedding/i,
+      /\bvector/i, /\binference\b/i, /\btransformer/i, /\bprompt/i,
+      /\bchatbot\b/i, /\bcopilot\b/i, /\bai[-_]assistant/i, /\bgenai\b/i,
+    ];
+    function isNicheRepo(repoSlug: string): boolean {
+      return NICHE_REPO_PATTERNS.some((p) => p.test(repoSlug)) ||
+        NICHE_KEYWORDS.some((p) => p.test(repoSlug));
+    }
+
     // Build repo health objects
     const repos = repoStats.map((r) => {
       const merged = r.merged ?? 0;
@@ -164,19 +184,33 @@ export async function GET(request: Request) {
       }
       // Quality contributes 10%
       healthScore += Math.min(r.avgQuality ?? 0, 100) * 0.1;
-      healthScore = Math.round(healthScore);
+      // Niche fit bonus (agentic AI repos get +15)
+      const nicheFit = isNicheRepo(r.repo);
+      if (nicheFit) healthScore += 15;
+      healthScore = Math.round(Math.min(healthScore, 100));
 
-      // Recommendation based on composite health
-      const recommendation: "target" | "watch" | "avoid" =
-        healthScore >= 50 && engagement === "responsive" ? "target"
-        : healthScore >= 30 ? "watch"
-        : "avoid";
+      // Recommended action for the pipeline
+      // - target_actively: responsive repo with proven merge history
+      // - one_more_try: open PR got review but not merged, follow up
+      // - build_trust_first: good repo but no history with us, start small
+      // - avoid: dead or hostile, don't waste tokens
+      let recommendedAction: "target_actively" | "one_more_try" | "build_trust_first" | "avoid";
+      if (merged > 0 && engagement === "responsive") {
+        recommendedAction = "target_actively";
+      } else if (openCount > 0 && reviewed > 0 && merged === 0) {
+        recommendedAction = "one_more_try";
+      } else if (engagement === "dead" || (total >= 3 && reviewed === 0)) {
+        recommendedAction = "avoid";
+      } else {
+        recommendedAction = "build_trust_first";
+      }
 
       return {
         repo: r.repo,
         healthScore,
         engagement,
-        recommendation,
+        nicheFit,
+        recommendedAction,
         prs: {
           total,
           merged,

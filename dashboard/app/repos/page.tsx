@@ -25,6 +25,29 @@ const engagementConfig = {
   },
 };
 
+const actionConfig = {
+  target_actively: {
+    label: "Target Actively",
+    color: "text-emerald-400 border-emerald-500/25 bg-emerald-500/8",
+    description: "Proven merge history, submit substantive PRs",
+  },
+  one_more_try: {
+    label: "One More Try",
+    color: "text-cyan-400 border-cyan-500/25 bg-cyan-500/8",
+    description: "Got review but not merged, follow up",
+  },
+  build_trust_first: {
+    label: "Build Trust",
+    color: "text-amber-400 border-amber-500/25 bg-amber-500/8",
+    description: "Good repo, start with small PR to build reputation",
+  },
+  avoid: {
+    label: "Avoid",
+    color: "text-red-400 border-red-500/25 bg-red-500/8",
+    description: "Dead or hostile, don't waste tokens",
+  },
+};
+
 function HealthScoreRing({ score }: { score: number }) {
   const color =
     score >= 60
@@ -55,6 +78,7 @@ function MiniMetric({ label, value, color }: { label: string; value: string; col
 
 function RepoCard({ repo }: { repo: RepoHealth }) {
   const eng = engagementConfig[repo.engagement];
+  const action = actionConfig[repo.recommendedAction];
 
   return (
     <Card className="card-lift">
@@ -62,7 +86,7 @@ function RepoCard({ repo }: { repo: RepoHealth }) {
         <div className="flex items-start gap-4">
           <HealthScoreRing score={repo.healthScore} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="text-sm font-semibold truncate">{repo.repo}</h3>
               <Badge
                 variant="outline"
@@ -70,6 +94,13 @@ function RepoCard({ repo }: { repo: RepoHealth }) {
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${eng.dot} mr-1`} />
                 {eng.label}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={`text-[10px] h-4 px-1.5 font-mono shrink-0 ${action.color}`}
+                title={action.description}
+              >
+                {action.label}
               </Badge>
             </div>
 

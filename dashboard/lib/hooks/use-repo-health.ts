@@ -4,7 +4,8 @@ export interface RepoHealth {
   repo: string;
   healthScore: number;
   engagement: "responsive" | "slow" | "dead";
-  recommendation: "target" | "watch" | "avoid";
+  nicheFit: boolean;
+  recommendedAction: "target_actively" | "one_more_try" | "build_trust_first" | "avoid";
   prs: {
     total: number;
     merged: number;

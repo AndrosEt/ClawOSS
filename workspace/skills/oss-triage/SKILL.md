@@ -130,6 +130,13 @@ Score each bug 1-20:
 - **-3** Created 14-30 days ago (getting stale — low priority)
 - **SKIP** Created > 30 days ago (do NOT attempt — too stale)
 
+### Niche Fit (golden niche = agentic AI repos — highest ROI)
+- **+5** Repo is in the agentic AI / LLM niche (langchain, autogen, crewai, llama-index,
+  semantic-kernel, haystack, dspy, chromadb, qdrant, vllm, ollama, litellm, instructor,
+  openai-python, or matches keywords: agent, llm, rag, embedding, vector, inference)
+- **+3** Repo has 1000+ stars (high-impact, visible contribution)
+- **+1** Repo has 200-1000 stars (medium impact)
+
 ### Repo Health (merge probability — from step 0d)
 - **+5** Repo avg merge time < 3 days (fast reviewers — highest merge chance)
 - **+3** Repo avg merge time < 7 days (responsive)
