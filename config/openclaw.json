@@ -49,7 +49,7 @@
           "mode": "off"
         },
         "heartbeat": {
-          "every": "10m",
+          "every": "5m",
           "model": "kimi-coding/k2p5",
           "session": "main",
           "target": "none",

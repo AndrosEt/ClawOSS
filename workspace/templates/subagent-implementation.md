@@ -111,10 +111,41 @@ Read the attached repo-conventions.md and issue-details.md.
    fi
    ```
 
-   **Check 3 — Already fixed in recent commits:**
-   Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
-   Also check: `git log --oneline --all --grep="{key error message or term}" -5`
-   If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
+   **Check 3 — Already fixed upstream (CRITICAL — run BEFORE writing any code):**
+   Check if the issue was recently resolved by a merged PR or closed:
+   ```bash
+   # 3a. Check if issue itself was closed/resolved
+   ISSUE_STATE=$(gh api "repos/{repo}/issues/{issue}" --jq '.state' 2>/dev/null)
+   if [ "$ISSUE_STATE" = "closed" ]; then
+     echo "ABORT: issue #{issue} is already closed"
+     rm -rf $WORKDIR && exit 1
+   fi
+
+   # 3b. Check recently merged PRs that reference this issue number
+   SEVEN_DAYS_AGO=$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d "7 days ago" +%Y-%m-%dT00:00:00Z)
+   RECENT_FIXES=$(gh pr list --repo {repo} --state merged --limit 30 --json number,title,body,mergedAt \
+     --jq "[.[] | select(.mergedAt > \"$SEVEN_DAYS_AGO\") | select(.body != null and (.body | test(\"#{issue}\"; \"i\")) or .title != null and (.title | test(\"#{issue}\"; \"i\")))] | length" 2>/dev/null || echo 0)
+   if [ "$RECENT_FIXES" -gt 0 ]; then
+     echo "ABORT: issue #{issue} appears to have been fixed in $RECENT_FIXES recently merged PR(s)"
+     rm -rf $WORKDIR && exit 1
+   fi
+
+   # 3c. Check recent commits for fix references
+   RECENT_FIX_COMMITS=$(gh api "repos/{repo}/commits?per_page=30" \
+     --jq "[.[] | select(.commit.message | test(\"#?{issue}\"; \"i\"))] | length" 2>/dev/null || echo 0)
+   if [ "$RECENT_FIX_COMMITS" -gt 0 ]; then
+     echo "WARNING: $RECENT_FIX_COMMITS recent commits reference issue #{issue} — verify not already fixed"
+     # Check if those commits actually fixed the issue (look for "fix", "close", "resolve")
+     FIX_COMMITS=$(gh api "repos/{repo}/commits?per_page=30" \
+       --jq "[.[] | select(.commit.message | test(\"(fix|close|resolve).*#?{issue}\"; \"i\"))] | length" 2>/dev/null || echo 0)
+     if [ "$FIX_COMMITS" -gt 0 ]; then
+       echo "ABORT: $FIX_COMMITS commits appear to fix issue #{issue}"
+       rm -rf $WORKDIR && exit 1
+     fi
+   fi
+   ```
+   If ANY of these checks indicate the issue is already resolved, ABANDON with reason `already_fixed_upstream`.
+   **This check prevents submitting duplicate fixes to repos where maintainers already merged a fix — which gets us flagged as bots and threatened with bans.**
 
    **Check 4 — Competing open PRs (same issue or same files):**
    ```bash

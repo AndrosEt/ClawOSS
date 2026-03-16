@@ -92,7 +92,24 @@ if [ "$ASSIGNEE_COUNT" -gt 0 ]; then
 fi
 ```
 
-If linked PRs or assignees found, SKIP with reason `superseded` or `assigned`. Mark in pr-ledger.md so we don't re-check.
+```bash
+# Check if issue is already closed
+ISSUE_STATE=$(gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state' 2>/dev/null || echo "open")
+if [ "$ISSUE_STATE" = "closed" ]; then
+  echo "SKIP: issue is already closed"
+  exit 0
+fi
+
+# Check if a recently merged PR already fixes this issue
+RECENT_FIXES=$(gh pr list --repo {owner}/{repo} --state merged --limit 20 --json title,body \
+  --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length" 2>/dev/null || echo 0)
+if [ "$RECENT_FIXES" -gt 0 ]; then
+  echo "SKIP: issue #{number} appears already fixed in $RECENT_FIXES recently merged PR(s)"
+  exit 0
+fi
+```
+
+If linked PRs, assignees, closed state, or recent fixes found, SKIP with reason `superseded`, `assigned`, or `already_fixed_upstream`. Mark in pr-ledger.md so we don't re-check.
 
 ## Step 1: Contribution Type Assessment
 

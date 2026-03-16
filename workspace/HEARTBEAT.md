@@ -102,6 +102,12 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
      `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.assignees | length'`
      If > 0: skip (assigned to someone).
      Mark skipped issues as `superseded` or `assigned` in pr-ledger.md so we don't re-check.
+  i. **ALREADY-FIXED CHECK** (CRITICAL — prevents ban-worthy duplicate submissions):
+     Check if a recently merged PR already fixes this issue:
+     `gh pr list --repo {owner}/{repo} --state merged --limit 20 --json number,title,body,mergedAt --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length"`
+     If > 0: skip with reason `already_fixed_upstream`. Also check if the issue itself is closed:
+     `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state'` — if "closed", skip.
+     **Submitting a fix for an already-resolved issue gets us flagged as bots and threatened with bans.**
   After spawn, LOOP BACK until 5 active or queue empty.
 - **Queue < 5**: run oss-discover. Target 20-30 candidates, score >= 5.
 - **Queue >= 10**: skip discovery, drain first.
@@ -110,7 +116,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 **4-ZERO.** Health gate: `bash scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
 **4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama).
-**4b-SUPERSESSION.** Check if issue is already being worked on: assigned? linked PRs? someone commented "I'll take this"? If yes, remove from queue and mark `superseded` or `assigned` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
+**4b-SUPERSESSION.** Check if issue is already being worked on OR already fixed: assigned? linked PRs? someone commented "I'll take this"? Issue closed? Recently merged PR referencing this issue? If yes, remove from queue and mark `superseded`, `assigned`, or `already_fixed_upstream` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d, >50 open PRs.
 **4d.** Quick research via web_search.
 

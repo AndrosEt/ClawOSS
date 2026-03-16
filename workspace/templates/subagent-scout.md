@@ -121,6 +121,7 @@ Before scoring, discard issues that won't pass triage:
 - **Supersession reject**: Check if issue has linked open PRs or is assigned:
   `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'` — if > 0, SKIP.
   `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.assignees | length'` — if > 0, SKIP.
+- **Already-fixed reject**: Check if issue is closed (`gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state'` = "closed") OR if a recently merged PR references the issue number (`gh pr list --repo {owner}/{repo} --state merged --limit 20 --json title,body --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length"` > 0). SKIP with reason `already_fixed_upstream`. **Submitting duplicate fixes gets us flagged as bots.**
 - **Dedup reject**: Check pr-ledger.md attachment — skip issues already attempted.
 
 ### Step 4: Score and Rank
