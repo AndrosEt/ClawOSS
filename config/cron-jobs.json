@@ -7,7 +7,7 @@
     "wakeMode": "next-heartbeat",
     "payload": {
       "kind": "agentTurn",
-      "message": "Run oss-discover in batch mode. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for anti-AI-PR policies and skip those repos.",
+      "message": "Run oss-discover in batch mode. Search target repos for candidate issues. Apply solvability scoring (labels, assignee, recency, repo receptiveness). Write top 10 items scoring >= 5 to memory/work-queue-staging.md (NOT work-queue.md -- staging file to avoid race conditions). Do NOT implement -- discover and score only. Check memory/repos/ for cached health results and skip repos that fail the health gate.",
       "lightContext": true
     },
     "delivery": { "mode": "none" }

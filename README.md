@@ -184,7 +184,7 @@ Every 10 minutes, OpenClaw wakes the agent. It reads `HEARTBEAT.md` and executes
 ▒       ╭────────────────────────────────────────╮                   │          ▒
 ▒       │  4. TRIAGE                             │                   │          ▒
 ▒       │  oss-triage: complexity, feasibility   │                   │          ▒
-▒       │  repo-analyzer: anti-AI policy check   │                   │          ▒
+▒       │  repo-analyzer: repo health check      │                   │          ▒
 ▒       │  web_search: upstream context          │                   │          ▒
 ▒       ╰───────────────────┬────────────────────╯                   │          ▒
 ▒                           ▼                                        │          ▒
@@ -343,7 +343,7 @@ The `plugins/pii-sanitizer/index.js` (101 lines) performs bidirectional `@` swap
 |-------|-------|-------------|
 | Discovery | `oss-discover` | `gh search issues` across all languages, score >= 5, write to queue |
 | Discovery | `oss-triage` | Assess complexity (simple/medium/complex), decide attempt/skip/defer |
-| Discovery | `repo-analyzer` | Read CONTRIBUTING.md, detect anti-AI policies, cache to `repos/` |
+| Discovery | `repo-analyzer` | Repo health gate: stars, merge velocity, review rate, cache to `repos/` |
 | Implement | `oss-implement` | Reproduce-first TDD: failing test → minimal fix → verify → evidence |
 | Implement | `oss-review` | 7-gate quality check: scope, quality, tests, security, anti-slop, git, PR |
 | Implement | `safety-checker` | 8-check final gate: budget, diff, secrets, branch, spam, CI, independent review |
