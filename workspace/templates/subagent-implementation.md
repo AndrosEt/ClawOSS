@@ -32,7 +32,13 @@ Read the attached repo-conventions.md and issue-details.md.
    mkdir -p $WORKDIR && cd $WORKDIR
    Clone repo INTO this directory. All work happens here.
 
-1b. CHECK IF ALREADY FIXED UPSTREAM:
+1b. READ REPO GUIDELINES:
+   Check for CONTRIBUTING.md and AGENTS.md in the repo root.
+   - CONTRIBUTING.md: follow its style/process/commit conventions
+   - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
+   If CONTRIBUTING.md requires a CLA you cannot sign, ABANDON with reason `cla_required`.
+
+1c. CHECK IF ALREADY FIXED UPSTREAM:
    Run `git log --oneline -20` and scan recent commits for keywords matching the issue.
    Also check: `git log --oneline --all --grep="{key error message or term}" -5`
    If the bug was already fixed in a recent commit, ABANDON with reason `already_fixed_upstream`.
@@ -84,8 +90,12 @@ Read the attached repo-conventions.md and issue-details.md.
       - Which language versions? (Python 3.8-3.12, Node 16/18/20, etc.)
       - Which build configurations? (debug/release, with/without optional deps)
       - What test suites beyond the obvious one? (linting, type checking, formatting)
-   b. Run ALL test suites the repo defines, not just `make test` or `pytest`:
-      - Unit tests (pytest, jest, go test, cargo test, make test, etc.)
+   b. Progressive test strategy (saves time — run targeted first, expand after):
+      1. Run TARGETED tests first — only the module/file you changed:
+         `pytest tests/test_<module>.py` or `jest <module>.test.ts` or `go test ./<pkg>/`
+      2. If targeted tests pass, run the FULL test suite.
+      3. If targeted tests fail, fix before running full suite (saves cycles).
+      Also run all other CI checks:
       - Linting (eslint, ruff, flake8, golangci-lint, clippy, etc.)
       - Type checking (mypy, pyright, tsc, etc.)
       - Formatters (black, prettier, gofmt — run in check mode)
@@ -104,17 +114,42 @@ Read the attached repo-conventions.md and issue-details.md.
    these tests because..." — a broken CI wastes the maintainer's time and damages our
    reputation. One bad PR can get us blocked from a repo forever.**
 
-7. REVIEW: Self-check diff:
-   - Does this FULLY resolve the reported issue? Partial fixes = abandon.
-   - Does it fix the root cause, not just the symptom? (for bugs)
-   - Is the fix correct? (for docs/typos, verify against actual code behavior)
-   - No feature additions or refactoring snuck in. STRIP them if found.
-   - Will this pass the FULL CI matrix? If unsure, run more tests.
-   - Scope, style, secrets, size (target 25-100 LOC, max 150 — smaller PRs merge 40% faster), commit msg.
-   - Commit type: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
-   - 3+ failures = abandon.
+7. REVIEW — ACT AS A SKEPTICAL REVIEWER (not the author):
+   Read your own diff as if you're a maintainer seeing it for the first time.
+   Score each item pass/fail:
+   - [ ] Does this FULLY resolve the reported issue? Partial fixes = abandon.
+   - [ ] Root cause addressed, not just symptom? (for bugs)
+   - [ ] Fix is factually correct? (for docs/typos, verify against actual code behavior)
+   - [ ] No feature additions, refactoring, or 'while I'm here' changes snuck in? STRIP if found.
+   - [ ] Every changed line is NECESSARY for the fix? Remove anything cosmetic.
+   - [ ] Code style matches surrounding code EXACTLY? (indentation, naming, patterns)
+   - [ ] Will this pass the FULL CI matrix? If unsure, run more tests.
+   - [ ] No unverified assumptions about third-party API behavior?
+   - [ ] Diff size: target 25-100 LOC, max 200. Smaller PRs merge 40% faster.
+   - [ ] Commit type correct: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
+   3+ failures = abandon. This review step catches the issues that get PRs rejected.
 
 8. SUBMIT: Commit, push, create PR with evidence.
+
+   **COMMIT TYPE GATE (mandatory):** Your commit MUST use one of these prefixes:
+   - `fix(scope): ...` — for bug fixes
+   - `docs(scope): ...` — for documentation fixes
+   - `test(scope): ...` — for test additions
+   NEVER use `feat:`, `chore:`, `refactor:`, `perf:`, or `style:`. If your commit starts with `feat:`, you are submitting a feature — ABANDON IMMEDIATELY. We only contribute fixes, docs, and tests.
+
+   **DIFF SIZE HARD GATE (mandatory — check BEFORE pushing):**
+   ```bash
+   DIFF_STATS=$(git diff --stat HEAD~1 | tail -1)
+   INSERTIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+   DELETIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+   TOTAL=$((${INSERTIONS:-0} + ${DELETIONS:-0}))
+   if [ "$TOTAL" -gt 200 ]; then
+     echo "ABORT: diff is $TOTAL lines (max 200). Smaller PRs merge 40% faster."
+     # Write result as failure with reason "scope_creep: diff too large ($TOTAL lines)"
+     # Clean up and exit
+   fi
+   ```
+   If total insertions + deletions > 200, ABANDON. Do not submit large PRs.
 
    **BRANCH NAME CHECK (mandatory):** Verify your branch starts with `clawoss/`:
    ```bash
@@ -126,15 +161,26 @@ Read the attached repo-conventions.md and issue-details.md.
    ```
    Valid prefixes: `clawoss/fix/`, `clawoss/docs/`, `clawoss/test/`, `clawoss/typo/`.
 
-   **DE-DUPLICATION CHECK (mandatory):** Before creating the PR, check for existing open PRs:
+   **DE-DUPLICATION CHECK (mandatory — NEVER SKIP):** Before creating the PR:
    ```bash
-   EXISTING=$(gh pr list --author @me --repo {repo} --state open --json number,title --jq 'length')
-   if [ "$EXISTING" -gt 0 ]; then
+   # ALWAYS use explicit username BillionClaw — @me fails in sub-agent contexts
+   # and is the root cause of duplicate PRs
+   EXISTING_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length')
+   if [ "$EXISTING_OPEN" -gt 0 ]; then
      echo "ABORT: open PR already exists for this repo"
      # Write result as failure with reason "duplicate_pr" and clean up
+     exit 1
+   fi
+   # Check for recently closed PRs (avoid re-submitting)
+   EXISTING_CLOSED=$(gh search prs --author BillionClaw --repo {repo} --state closed --json closedAt --jq '[.[] | select(.closedAt > "'"$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d '7 days ago' +%Y-%m-%dT00:00:00Z)"'")] | length')
+   if [ "$EXISTING_CLOSED" -gt 0 ]; then
+     echo "ABORT: we had a PR closed on this repo in the last 7 days"
+     # Write result as failure with reason "duplicate_pr: recently closed" and clean up
+     exit 1
    fi
    ```
-   If an open PR already exists for this repo, ABANDON. Do NOT create duplicate PRs.
+   If ANY open or recently-closed PR exists from us on this repo, ABANDON.
+   This prevents the 5x-duplicate-PR-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
    **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
    ```bash

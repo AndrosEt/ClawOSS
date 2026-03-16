@@ -181,9 +181,11 @@ By language (diversify): add `language:python`/`language:typescript`/`language:r
 For each candidate issue, quick-check the repo:
 1. **Stars >= 200** — `repository.stargazers_count` from search result JSON. Skip if < 200.
 2. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
-4. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
-5. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 14 days old).
-6. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
+3. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
+4. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 7 days old).
+5. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
+6. **Anti-bot/anti-AI policy and CLA detection** — handled automatically by `scripts/repo-health-check.sh`.
+   The script checks CONTRIBUTING.md for anti-bot phrases and detects CLA requirements via .clabot files, CLA GitHub Actions, CONTRIBUTING.md text, and a maintained org list (deepset-ai, iterative, Aider-AI, milvus-io, apache, microsoft, google, meta-llama). HARD SKIP if detected.
 
 If a repo fails the pre-filter, SKIP all issues from that repo. Cache the failure.
 

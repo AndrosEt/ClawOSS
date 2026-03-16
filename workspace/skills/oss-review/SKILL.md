@@ -37,7 +37,7 @@ Review changes against all 8 quality gates before submission. **Gate 0 (Contribu
 - Does the PR description include appropriate evidence (root cause analysis for bugs, verification for docs)?
 - If the work is incomplete: go back and fix it properly, or ABANDON.
 
-**Gate 1 — Scope**: Changes related to target issue only, no unrelated files, target 25-100 LOC (max 150). Every changed line must be necessary. Multi-file changes are fine if the scope demands it.
+**Gate 1 — Scope**: Changes related to target issue only, no unrelated files, target 25-100 LOC (max 200). Every changed line must be necessary. Multi-file changes are fine if the scope demands it.
 
 **Gate 2 — Code Quality**: Linter passes, no new warnings, matches repo style, no debug statements, no commented-out code
 

@@ -36,6 +36,8 @@ For test additions: understand the code path being tested.
 
 **1a. Understand the repo architecture:**
 - Read the project README, directory structure, and key configuration files
+- Read CONTRIBUTING.md if it exists — follow its style/process requirements
+- Read AGENTS.md if it exists — it may contain agent-specific instructions that override defaults
 - Identify the module/package structure and how components relate
 - Understand the data flow and execution model (sync/async, event-driven, etc.)
 
@@ -106,6 +108,7 @@ For all types:
 - Fix failures (max 2 tries) or abandon.
 - Record passing output as evidence.
 - Verify the fix addresses the root cause, not just the symptom.
+- **Hypothesis check**: If your fix relies on a specific API/library behavior (e.g., "escaping chars will make function X treat them as literals"), verify that assumption with a minimal test. If you cannot verify the assumption, state this clearly in the PR description: "Note: I was unable to verify that [specific assumption] holds in all cases." Do NOT submit fixes based on unverified assumptions about third-party API behavior.
 - **If tests don't pass, ABANDON. Do not submit untested PRs — a broken CI wastes maintainer time and gets us blocked.**
 
 ### 5. REVIEW (contribution-type-aware checks)
@@ -116,8 +119,9 @@ Self-check diff with these questions:
 4. **Is every change directly related to the issue?** Revert unrelated changes.
 5. **Did I accidentally add a feature or refactor code?** If yes, strip it out.
 6. **Is the commit type correct?** `fix` for bugs, `docs` for documentation, `test` for tests.
-7. Scoped to issue only? Matches style? No secrets/debug/AI-slop? 25-100 LOC target, max 150?
-8. If 3+ checks fail, abandon.
+7. Scoped to issue only? Matches style? No secrets/debug/AI-slop? 25-100 LOC target.
+8. **HARD SIZE GATE: if total insertions + deletions > 200, ABANDON.** Large PRs = scope creep.
+9. If 3+ checks fail, abandon.
 
 ### 6. SUBMIT
 Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(scope): desc`. Create PR:
@@ -129,9 +133,9 @@ Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(
 - Push to fork.
 
 ## Constraints
-- Target 25-100 LOC (max 150). Match repo style. No new deps unless essential.
+- Target 25-100 LOC. HARD MAX 200 — abort if exceeded. Match repo style. No new deps unless essential.
 - No AI-slop, no single-use helpers, variable names match repo conventions.
-- **Commit type must match contribution**: `fix` for bugs, `docs` for docs/typos, `test` for tests.
+- **Commit type must match contribution**: `fix` for bugs, `docs` for docs/typos, `test` for tests. NEVER use `feat:` — if you're committing a feature, ABANDON.
 - **Every line changed must be necessary to resolve the reported issue.**
 - **The contribution must COMPLETELY resolve the issue** — no partial work. If you can't fully complete it, ABANDON.
 - Multi-file changes are fine if the scope demands it — do it right, not minimal for minimal's sake.

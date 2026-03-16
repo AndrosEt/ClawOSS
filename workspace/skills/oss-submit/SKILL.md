@@ -23,10 +23,21 @@ Before pushing anything, ask one final time:
 - Does the PR reference a specific issue? If NO → ABANDON.
 - Is the branch named `clawoss/{fix,docs,test,typo}/...`? If NO → rename it with `git branch -m "clawoss/..."`.
 
-## De-Duplication Check (mandatory before `gh pr create`)
-Run: `gh pr list --author @me --repo OWNER/REPO --state open --json number,title --jq 'length'`
-If result > 0: **ABANDON. Do NOT create duplicate PRs.** One open PR per repo at a time.
-This prevents the 5x-duplicate-PR incident (e.g., instructor #2155-#2159).
+## De-Duplication Check (mandatory before `gh pr create` — NEVER SKIP)
+```bash
+# ALWAYS use explicit username, not @me (which can fail in sub-agent contexts)
+# Check 1: open PRs by BillionClaw on this repo
+OPEN_COUNT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state open --json number --jq 'length')
+# Check 2: recently closed PRs (avoid re-submitting to repos that closed our PR)
+CLOSED_RECENT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state closed --json closedAt --jq '[.[] | select(.closedAt > "7_DAYS_AGO")] | length')
+# Check 3: search for PRs targeting the same issue (catches cross-fork dupes)
+ISSUE_PRS=$(gh search prs --author BillionClaw "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
+```
+If ANY result > 0: **ABANDON. Do NOT create duplicate PRs.**
+- One open PR per repo at a time (not per issue — per REPO)
+- No re-submitting to repos that closed our PR in the last 7 days
+- No duplicate PRs for the same issue even across different branches
+This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
 ## Fork vs Direct Push
 1. Check if we have write access to the repo

@@ -21,13 +21,37 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - NEVER modify CI/CD pipelines without explicit approval
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
-- Target 25-100 LOC per PR (max 150). Smaller PRs merge 40% faster.
+- Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
 - Max 10 PRs/day, max 3 per repo/day, 30-min gap between same-repo PRs
 - Max 5 active PRs across all repos at any time
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting
 - If tests fail after 2 attempts, abandon
+
+## Known Repo Metadata (check before PR submission)
+
+**Non-main default branches** (gh api will detect these, but know them in advance):
+- `dlt-hub/dlt` targets `devel`
+- `allegroai/clearml` targets `master`
+- Always verify with `gh api repos/{owner}/{repo} --jq '.default_branch'`
+
+**CLA-required orgs** (HARD SKIP — we cannot sign CLAs, PRs will never merge):
+- `deepset-ai` (haystack) — CLA-assistant bot
+- `iterative` (dvc) — CLA bot
+- `Aider-AI` (aider) — Individual CLA
+- `milvus-io` (milvus) — DCO sign-off in every commit
+- `apache` — Apache ICLA required
+- `microsoft` — Microsoft CLA
+- `google` — Google CLA
+- `meta-llama` — Meta CLA
+- For unknown repos: `scripts/repo-health-check.sh` detects CLA via .clabot files, CLA workflows, and CONTRIBUTING.md text. SKIP if detected.
+
+**Anti-AI policy detection** (check CONTRIBUTING.md before first PR to any repo):
+- HARD SKIP if repo mentions: "no bot", "no ai generated", "human only", "no automated PRs"
+- The discover skill handles this automatically, but sub-agents must also check if not cached.
+
+**Per-repo contribution guides**: `memory/repos/{owner}_{repo}.md` — read before implementing.
 
 ## Repo Health Gate (mandatory -- run `scripts/repo-health-check.sh`)
 - Stars >= 200, last push < 2 weeks, merged PRs in 30d > 0

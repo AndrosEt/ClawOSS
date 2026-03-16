@@ -17,10 +17,10 @@ NOTE: `gh search issues` with qualifier combos silently returns empty. Use `gh a
 - `gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200&sort=created&order=desc&per_page=30"` — find maintainer-requested help
 - Add `--jq '.items[] | {number, title, html_url, created_at, repository_url}'` to extract fields
 - `gh pr create --title "{type}(...): ..." --body "..."` — submit contribution PRs (type = fix, docs, or test)
-- `gh pr list --author @me` — check own PRs
+- `gh pr list --author BillionClaw` — check own PRs (ALWAYS use explicit username, NOT @me — @me fails in sub-agent contexts)
 - `git diff --stat` — verify diff size before submission
 
 ## Safety Rules
 - Always use `gh pr create`, never `git push` to main
 - Always run the target repo's test suite before submitting
-- Always check diff size: target 25-100 lines, reject if >150 lines changed
+- Always check diff size: target 25-100 lines, max 200 lines changed

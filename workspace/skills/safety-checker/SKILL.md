@@ -1,6 +1,6 @@
 ---
 name: safety-checker
-description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size 25-100 LOC target (max 150), no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
+description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size 25-100 LOC target (HARD MAX 200), no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
 user-invocable: true
 ---
 
@@ -27,11 +27,20 @@ Confirm that this PR is a valid contribution, NOT a large feature or refactor:
 Verify daily token spend hasn't exceeded cap before starting new work.
 Check memory for today's token usage. If over budget, abort and enter idle mode.
 
-### 2. Diff Size
+### 2. Diff Size (HARD GATE — abort if exceeded)
 Run `git diff --stat` and verify:
-- Total lines changed: target 25-100, max 150
-- Files changed < 5
+- Total lines changed: target 25-100, **HARD MAX 200** (abort if exceeded)
+- Files changed < 10
 - No binary files in diff
+Enforcement:
+```bash
+DIFF_STATS=$(git diff --stat HEAD~1 | tail -1)
+INSERTIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+DELETIONS=$(echo "$DIFF_STATS" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+TOTAL=$((${INSERTIONS:-0} + ${DELETIONS:-0}))
+if [ "$TOTAL" -gt 200 ]; then echo "ABORT: diff $TOTAL lines > 200 max"; fi
+```
+If TOTAL > 200: **ABORT IMMEDIATELY**. Large PRs indicate scope creep or accidental refactoring.
 
 ### 3. Secret Scan
 Search staged changes for:
@@ -50,8 +59,7 @@ Check memory/wake-state.md for today's submissions:
 - **All repos: must be < 10 PRs today. If >= 10: ABORT IMMEDIATELY.** This is a hard ceiling.
 - This repo: must be < 3 PRs today. If >= 3: ABORT.
 - Last PR to this repo: must be > 30 minutes ago. If < 30 min: ABORT.
-- **Also verify:** Run `gh pr list --author @me --repo {owner}/{repo} --state open` — if we
-  already have an open PR for this repo, ABORT (avoid piling multiple PRs on one repo).
+- **Also verify:** Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` — if > 0, ABORT (avoid piling multiple PRs on one repo). ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
 ### 6. No Dangerous Commands
 Verify no force-push, no push to main/master, no `--force` flags.

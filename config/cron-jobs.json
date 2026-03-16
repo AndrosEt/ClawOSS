@@ -20,7 +20,7 @@
     "wakeMode": "now",
     "payload": {
       "kind": "systemEvent",
-      "text": "PR follow-up scan: run gh pr list --author @me --state open --json number,reviewDecision,statusCheckRollup,updatedAt. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent."
+      "text": "PR follow-up scan: run gh search prs --author BillionClaw --state open --json number,repository,reviewDecision,statusCheckRollup,updatedAt --limit 100. If any have new review comments or our-fault CI failures, add to memory/followup-staging.md with priority: urgent."
     }
   },
   {

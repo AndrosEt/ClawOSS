@@ -191,7 +191,7 @@ rm -rf $WORKDIR
 This is NON-OPTIONAL. Cloned repos waste 500MB-2GB each.
 
 ## Constraints
-- Target 25-100 LOC per revision round (max 150)
+- Target 25-100 LOC per revision round (max 200)
 - Commit type MUST remain the same as the original PR (`fix`/`docs`/`test`)
 - Never force-push — always regular push to update the PR
 - Never rebase the PR branch — just add new commits

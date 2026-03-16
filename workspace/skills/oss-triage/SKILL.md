@@ -63,8 +63,14 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 - Avg merge time > 14 days
 - Review rate < 50%
 - 50+ open PRs
+- Anti-bot/anti-AI policy detected in CONTRIBUTING.md (grep for "no bot", "no ai generated", "human only")
+- CLA required — detected via `scripts/repo-health-check.sh` (checks .clabot, CLA workflows, CONTRIBUTING.md text, and known CLA orgs). We cannot sign CLAs, so PRs can never merge.
 
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
+
+### 0d. Existing PR Check
+Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`.
+If > 0, SKIP: "already have open PR on this repo — max 1 active PR per repo."
 
 ## Step 1: Contribution Type Assessment
 

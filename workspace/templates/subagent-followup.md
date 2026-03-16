@@ -27,6 +27,7 @@ Follow the oss-pr-review-handler skill workflow:
    mkdir -p $WORKDIR && cd $WORKDIR
 
 2. Clone repo and checkout the PR branch (NOT main): git checkout {branch}
+   Check for AGENTS.md in repo root — if present, follow its agent-specific instructions.
 
 3. Read ALL review comments — understand what each reviewer is asking
 
@@ -46,6 +47,14 @@ Follow the oss-pr-review-handler skill workflow:
 
 10. If reviewer says the contribution is out of scope: close PR politely, mark as closed_scope_concern
 
+10b. If issue reporter or reviewer says "fix doesn't work" / "doesn't resolve the issue" / "wrong approach":
+    Close the PR with: "Thanks for the feedback. Closing this as the approach doesn't resolve the issue. Apologies for the noise."
+    Mark as fix_rejected. Do NOT iterate on a fundamentally broken fix — it wastes maintainer time.
+
+10c. If maintainer says "already fixed" / "fixed in latest release" / "resolved upstream":
+    Close the PR with: "Thanks for confirming — glad this is resolved. Closing as it's already fixed upstream."
+    Mark as already_fixed_upstream. Do NOT argue or ask for merge anyway.
+
 11. If round 3: post polite disengagement message, do NOT close PR yourself
 
 12. Write results to memory/subagent-result-followup-{repo}-{pr}.md
@@ -62,5 +71,6 @@ using the format defined in `templates/subagent-result-schema.md` with `type: fo
 
 **failure_reason MUST use a standard category** from the taxonomy in the schema.
 Common follow-up failures: `reviewer_rejected_scope`, `reviewer_requested_rewrite`,
-`max_rounds_exceeded`, `pr_closed_by_maintainer`, `branch_conflict`.
+`max_rounds_exceeded`, `pr_closed_by_maintainer`, `branch_conflict`,
+`fix_rejected`, `already_fixed_upstream`.
 Format: `"category: optional details"` — e.g., `"reviewer_rejected_scope: maintainer said not a bug"`.

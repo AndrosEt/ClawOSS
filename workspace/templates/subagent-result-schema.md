@@ -133,7 +133,7 @@ tracking, pattern detection, and dashboard aggregation.
 | Category | When to Use |
 |----------|-------------|
 | `cannot_reproduce` | Bug could not be reproduced with a failing test |
-| `too_complex` | Fix requires changes beyond our scope (>150 lines, >5 files, architectural) |
+| `too_complex` | Fix requires changes beyond our scope (>200 lines, >10 files, architectural) |
 | `tests_fail_after_fix` | Fix introduced regressions, could not resolve after 2 attempts |
 | `ci_incompatible` | Cannot run repo's test suite (missing deps, unsupported platform) |
 | `scope_creep` | Fix would require feature additions or refactoring beyond bug fix |
@@ -147,6 +147,7 @@ tracking, pattern detection, and dashboard aggregation.
 |----------|-------------|
 | `reviewer_rejected_scope` | Reviewer said the contribution is out of scope / not appropriate |
 | `reviewer_requested_rewrite` | Reviewer wants a fundamentally different approach |
+| `fix_rejected` | Issue reporter or maintainer says the fix doesn't work / wrong approach |
 | `max_rounds_exceeded` | Hit 3-round follow-up limit |
 | `pr_closed_by_maintainer` | Maintainer closed the PR |
 | `branch_conflict` | PR branch has merge conflicts we cannot resolve |
