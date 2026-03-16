@@ -192,13 +192,13 @@ elif [ "$OPEN_PRS" -lt 30 ]; then
   score=$((score + 1))
 fi
 
-# ─── 5. PR review rate (% of last 10 merged PRs that have reviews) ───
-# The pulls list endpoint returns null for comments/review_comments in some repos.
-# Instead, check actual reviews on recently merged PRs — more reliable signal.
+# ─── 5. PR review rate (% of last 5 merged PRs that have reviews) ───
+# Uses 5 PRs instead of 10 to reduce API calls (1 call per PR for reviews).
+# 5 is enough signal while halving the API budget for this section.
 TOTAL_PRS=0
 REVIEWED_PRS=0
-MERGED_PR_NUMBERS=$(gh api "repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=10" \
-  --jq '[.[] | select(.merged_at != null)] | .[0:10] | .[].number' 2>/dev/null || echo "")
+MERGED_PR_NUMBERS=$(gh api "repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=5" \
+  --jq '[.[] | select(.merged_at != null)] | .[0:5] | .[].number' 2>/dev/null || echo "")
 
 if [ -n "$MERGED_PR_NUMBERS" ]; then
   for PR_NUM in $MERGED_PR_NUMBERS; do
@@ -207,8 +207,7 @@ if [ -n "$MERGED_PR_NUMBERS" ]; then
     if [ "$REVIEW_COUNT" -gt 0 ]; then
       REVIEWED_PRS=$((REVIEWED_PRS + 1))
     fi
-    # Only check up to 10 to limit API calls
-    if [ "$TOTAL_PRS" -ge 10 ]; then break; fi
+    if [ "$TOTAL_PRS" -ge 5 ]; then break; fi
   done
 fi
 
@@ -246,12 +245,40 @@ else
   warnings+=("0 external contributor merges in recent 30 closed PRs")
 fi
 
-# ─── 7. CONTRIBUTING.md check (welcoming signal) ───
+# ─── 7. CONTRIBUTING.md check (welcoming signal + anti-bot detection) ───
 CONTRIBUTING=$(gh api "repos/${REPO}/contents/CONTRIBUTING.md" --jq '.content' 2>/dev/null || echo "")
 HAS_CONTRIBUTING=false
+ANTI_BOT=false
 if [ -n "$CONTRIBUTING" ]; then
   HAS_CONTRIBUTING=true
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
+  # Decode and check for anti-bot/anti-AI policies
+  CONTRIB_TEXT=$(echo "$CONTRIBUTING" | base64 -d 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "")
+  if echo "$CONTRIB_TEXT" | grep -qiE "no (bot|ai[- ]generated|automated|machine[- ]generated)|human[- ]only|not accept.*(bot|ai|automated)|ban.*(bot|ai)|prohibit.*(bot|ai)"; then
+    ANTI_BOT=true
+    reasons+=("anti-bot policy detected in CONTRIBUTING.md")
+    fail "anti-bot/anti-AI policy in CONTRIBUTING.md" "repo_health_fail: anti-bot policy detected"
+  fi
+fi
+
+# ─── 7b. CLA requirement detection ───
+# Repos requiring CLA that BillionClaw hasn't signed waste full implementation cycles
+HAS_CLA=false
+CLABOT=$(gh api "repos/${REPO}/contents/.clabot" --jq '.content' 2>/dev/null || echo "")
+if [ -n "$CLABOT" ]; then
+  HAS_CLA=true
+fi
+# Also check for CLA GitHub Actions
+if [ "$HAS_CLA" = "false" ]; then
+  CLA_ACTION=$(gh api "repos/${REPO}/contents/.github/workflows" \
+    --jq '[.[] | select(.name | test("cla"; "i"))] | length' 2>/dev/null || echo "0")
+  if [ "$CLA_ACTION" -gt 0 ]; then
+    HAS_CLA=true
+  fi
+fi
+if [ "$HAS_CLA" = "true" ]; then
+  warnings+=("CLA required — may block merge without signing")
+  score=$((score - 2))  # penalize but don't hard-fail (some CLAs are auto-signed)
 fi
 
 # ─── 8. Niche fit (agentic AI) ───
@@ -314,6 +341,8 @@ cat <<ENDJSON
     "archived": ${ARCHIVED},
     "has_ci": $([ "$HAS_CI" -gt 0 ] && echo true || echo false),
     "has_contributing": ${HAS_CONTRIBUTING},
+    "has_cla": ${HAS_CLA},
+    "anti_bot": ${ANTI_BOT},
     "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false)
   }
 }
