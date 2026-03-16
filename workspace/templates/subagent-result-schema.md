@@ -127,6 +127,7 @@ tracking, pattern detection, and dashboard aggregation.
 | `title_keyword_reject` | Issue title matched hard-reject keywords (add, extend, etc.) |
 | `label_reject` | Issue has hard-reject labels (enhancement, feature-request, etc.) |
 | `dedup_existing_pr` | We already have a PR for this issue or repo |
+| `superseded` | Another contributor already has an open PR linked to this issue (found via timeline API) |
 | `daily_limit_reached` | Hit daily PR limit (10/day) or per-repo limit (3/day) |
 
 ### Implementation Failures (caught during sub-agent work)

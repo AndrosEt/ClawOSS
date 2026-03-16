@@ -111,6 +111,9 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
 **IMMEDIATELY mark issue as `spawned_pending` in `memory/impl-spawn-state.md` BEFORE spawning the next agent.**
 **ALSO check: `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If > 0, SKIP — we already have an open PR for this repo. NEVER use `@me` — it fails in sub-agent contexts.**
 **Read `memory/repos/{owner}_{repo}.md`** if it exists — pass key info (target branch, CLA, CI) to the subagent via attachments.
+**5c. PASS OPEN PR CONTEXT**: Before spawning, fetch open PRs in the repo and pass as attachment:
+`gh pr list --repo {owner}/{repo} --state open --json number,title,headRefName --limit 20`
+This gives the sub-agent awareness of what's in flight so it can avoid file conflicts.
 
 Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 5. Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 

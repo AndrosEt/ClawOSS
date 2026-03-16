@@ -30,12 +30,7 @@ powered by OpenClaw. The changes have been validated against the repository's
 test suite and coding standards. Please review with the same rigor as any
 human contribution.
 
-## Contributor License Agreement
-
-By submitting this pull request, I confirm that my contribution is made
-under the terms of the project's license and I have the right to submit it.
-I agree that my contributions may be distributed under the project license.
-
-- [x] I have read and agree to the project's contributing guidelines
-- [x] This contribution is my original work (or properly attributed)
-- [x] I license this contribution under the project's existing license
+<!-- CLA RULE: Do NOT include a CLA section unless the repo explicitly requires one.
+     If the repo requires a CLA (check CONTRIBUTING.md, .clabot, or CI checks), follow
+     their specific CLA process. If the repo does NOT require a CLA, omit this section
+     entirely. Never claim to have signed a CLA you didn't sign. -->

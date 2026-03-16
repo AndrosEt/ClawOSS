@@ -40,18 +40,11 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh repo clone {repo} $WORKDIR -- --depth=50`
    All work happens here.
 
-1a. QUICK HEALTH CHECK (defense-in-depth — before investing time):
+1a. QUICK HEALTH CHECK (defense-in-depth):
    ```bash
    STARS=$(gh api repos/{repo} --jq '.stargazers_count' 2>/dev/null || echo 0)
-   if [ "$STARS" -lt 200 ]; then
-     echo "ABORT: repo has only $STARS stars (minimum 200)"
-     rm -rf $WORKDIR
-     # Write result as failure with reason "repo_health_fail: stars $STARS below 200"
-     exit 1
-   fi
+   [ "$STARS" -lt 200 ] && echo "ABORT: $STARS stars (<200)" && rm -rf $WORKDIR && exit 1
    ```
-   The orchestrator should have already verified this, but if the queue was populated
-   by a cron job that skipped health checks, this prevents wasting an entire cycle.
 
 1b. READ REPO GUIDELINES:
    Check for CONTRIBUTING.md and AGENTS.md in the repo root.
@@ -192,27 +185,14 @@ Read the attached repo-conventions.md and issue-details.md.
       - Formatters (black, prettier, gofmt — run in check mode)
       - Integration tests if they run in CI
       - Any custom test scripts in Makefile, package.json scripts, etc.
-   c. For cross-platform projects (C/C++, Rust, MicroPython, embedded, etc.):
-      - Does the fix touch platform-specific code? Check ALL target platforms.
-      - Does the fix use APIs or behaviors that differ across OS/architectures?
-      - If the repo builds for multiple targets (ARM, x86, RISC-V, etc.), verify
-        the fix is correct for ALL of them, not just the one you tested on.
-      - Example: micropython builds for stm32, esp32, rp2, unix — a fix that works
-        on unix but breaks stm32 is a BAD PR that wastes maintainer time.
+   c. For cross-platform projects: if the fix touches platform-specific code or uses
+      OS-dependent APIs, verify correctness for ALL target platforms (not just the one you tested on).
    d. Record passing output as evidence. The failing test MUST now pass. No regressions.
    e. Verify the fix addresses root cause, not just symptom.
-   f. **Hypothesis check**: If your fix relies on a specific API/library behavior, verify
-      that assumption with a minimal test. If you cannot verify it, state this in the PR:
-      "Note: Unable to verify that [assumption] holds in all cases."
-   **If tests don't pass, ABANDON. Do not submit untested PRs. Do not submit with "I skipped
-   these tests because..." — a broken CI wastes the maintainer's time and damages our
-   reputation. One bad PR can get us blocked from a repo forever.**
-   **If the project uses a language/framework where you CANNOT run tests locally (e.g., C# with
-   specific SDK requirements, Lua plugins needing a host app, embedded targets), you MUST:
-   (a) state this clearly in the PR description: "Tested: [what you actually tested]. Unable to
-   run [specific tests] locally due to [reason]."
-   (b) only submit if you are confident the fix is correct from code analysis alone.
-   Never claim tests pass if you didn't actually run them — maintainers WILL check.**
+   f. If your fix relies on unverified API behavior, state it in the PR description.
+   **If tests don't pass, ABANDON. A broken CI damages reputation — one bad PR gets us blocked.**
+   **If you CANNOT run tests locally** (C#, Lua, embedded): state what you tested and what you couldn't.
+   Never claim tests pass if you didn't run them.
 
 7. REVIEW — ACT AS A SKEPTICAL REVIEWER (not the author):
    Read your own diff as if you're a maintainer seeing it for the first time.
@@ -268,26 +248,13 @@ Read the attached repo-conventions.md and issue-details.md.
    ```
    Valid prefixes: `clawoss/fix/`, `clawoss/docs/`, `clawoss/test/`, `clawoss/typo/`.
 
-   **DE-DUPLICATION CHECK (mandatory — NEVER SKIP):** Before creating the PR:
+   **DE-DUPLICATION CHECK (mandatory):** Before creating the PR:
    ```bash
-   # ALWAYS use explicit username BillionClaw — @me fails in sub-agent contexts
-   # and is the root cause of duplicate PRs
    EXISTING_OPEN=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length')
-   if [ "$EXISTING_OPEN" -gt 0 ]; then
-     echo "ABORT: open PR already exists for this repo"
-     # Write result as failure with reason "dedup_existing_pr: open PR already exists" and clean up
-     exit 1
-   fi
-   # Check for recently closed PRs (avoid re-submitting)
+   [ "$EXISTING_OPEN" -gt 0 ] && echo "ABORT: open PR exists" && exit 1
    EXISTING_CLOSED=$(gh search prs --author BillionClaw --repo {repo} --state closed --json closedAt --jq '[.[] | select(.closedAt > "'"$(date -v-7d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -d '7 days ago' +%Y-%m-%dT00:00:00Z)"'")] | length')
-   if [ "$EXISTING_CLOSED" -gt 0 ]; then
-     echo "ABORT: we had a PR closed on this repo in the last 7 days"
-     # Write result as failure with reason "dedup_existing_pr: recently closed PR on this repo" and clean up
-     exit 1
-   fi
+   [ "$EXISTING_CLOSED" -gt 0 ] && echo "ABORT: recently closed PR on this repo" && exit 1
    ```
-   If ANY open or recently-closed PR exists from us on this repo, ABANDON.
-   This prevents the 5x-duplicate-PR-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
    **FORK & PUSH (mandatory):** We don't have write access to upstream repos. Fork first, then push:
    ```bash
@@ -332,12 +299,8 @@ Read the attached repo-conventions.md and issue-details.md.
    Include AI disclosure in the PR body (MANDATORY — transparency builds trust):
    '> **Note:** This contribution was generated with AI assistance (@BillionClaw / ClawOSS).'
 
-   **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox or claim in the PR body
-   UNLESS the repo explicitly requires a CLA and you have actually completed their CLA process.
-   If the repo has a CLA requirement, you should have ABANDONED at step 1b (CLA org hard reject).
-   If you somehow reach this point with a CLA-required repo, ABANDON NOW — do not submit.
-   If the repo does NOT require a CLA, do NOT mention CLA at all — no checkbox, no claim, nothing.
-   Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected.
+   **CLA RULE:** Never include CLA claims unless the repo requires it AND you completed their process.
+   CLA repos should have been caught at step 1b. No CLA mention = correct for non-CLA repos.
 
 9. Do NOT wait for remote CI. Submit and report result.
 

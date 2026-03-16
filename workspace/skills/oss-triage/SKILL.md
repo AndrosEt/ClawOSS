@@ -73,6 +73,27 @@ Write "SKIP: repo health gate failed — {reason}" and cache the result.
 Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`.
 If > 0, SKIP: "already have open PR on this repo — max 1 active PR per repo."
 
+### 0e. Supersession Check (CRITICAL — prevents wasted cycles)
+Before scoring, check if someone else is already working on this issue:
+
+```bash
+# Check for linked PRs (other contributors already submitted fixes)
+LINKED_OPEN=$(gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length' 2>/dev/null || echo 0)
+if [ "$LINKED_OPEN" -gt 0 ]; then
+  echo "SKIP: issue already has $LINKED_OPEN open linked PR(s)"
+  exit 0
+fi
+
+# Check if issue is assigned
+ASSIGNEE_COUNT=$(gh api "repos/{owner}/{repo}/issues/{number}" --jq '.assignees | length' 2>/dev/null || echo 0)
+if [ "$ASSIGNEE_COUNT" -gt 0 ]; then
+  echo "SKIP: issue is assigned to someone"
+  exit 0
+fi
+```
+
+If linked PRs or assignees found, SKIP with reason `superseded` or `assigned`. Mark in pr-ledger.md so we don't re-check.
+
 ## Step 1: Contribution Type Assessment
 
 Determine the contribution type (in order of merge probability):

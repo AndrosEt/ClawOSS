@@ -25,8 +25,13 @@ Bug queries use `created:>$THREE_DAYS_AGO`. Easy-win queries extend to 2 weeks.
 Issues older than 1 month are SKIPPED entirely.
 
 ## Pre-Checks (before ANY query)
-1. Read `memory/pr-ledger.md` — SKIP issues already attempted.
+1. Read `memory/pr-ledger.md` — SKIP issues already attempted, superseded, or assigned.
 2. Check daily PR count — if at limit (10), triage-only mode.
+3. For each candidate issue, quick-check supersession before scoring:
+   - `gh api "repos/{owner}/{repo}/issues/{number}" --jq '{assignees: (.assignees | length), linked_prs: 0}'`
+   - If issue has assignees > 0, SKIP (assigned to someone else).
+   - Check issue timeline for linked PRs: if open PRs exist, SKIP (already being worked on).
+   - Mark skipped issues as `superseded` or `assigned` in pr-ledger.md.
 
 ## Trust-Building Strategy (CRITICAL for merge rate)
 **Depth over breadth.** 3 merged PRs at one repo > 30 unreviewed PRs across 30 repos.
