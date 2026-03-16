@@ -20,7 +20,8 @@ repo: owner/repo
 issue: 12345
 pr_url: https://github.com/owner/repo/pull/67890
 pr_number: 67890
-branch: clawoss/fix/description
+pr_category: bug_fix | docs | typo | test | dep_update | dead_code | other
+branch: clawoss/{fix,docs,test,typo}/description
 files_changed: 3
 additions: 25
 deletions: 8
@@ -76,6 +77,7 @@ Any additional context (e.g., "CI not available in environment", "issue was alre
 | issue | yes | issue number |
 | pr_url | if success | full GitHub PR URL |
 | pr_number | if success | PR number |
+| pr_category | if success | `bug_fix`, `docs`, `typo`, `test`, `dep_update`, `dead_code`, or `other` |
 | branch | if success | branch name |
 | files_changed | if success | integer |
 | additions | if success | integer |
@@ -143,7 +145,7 @@ tracking, pattern detection, and dashboard aggregation.
 ### Follow-up Failures (caught during PR review handling)
 | Category | When to Use |
 |----------|-------------|
-| `reviewer_rejected_scope` | Reviewer said this is not a bug fix / out of scope |
+| `reviewer_rejected_scope` | Reviewer said the contribution is out of scope / not appropriate |
 | `reviewer_requested_rewrite` | Reviewer wants a fundamentally different approach |
 | `max_rounds_exceeded` | Hit 3-round follow-up limit |
 | `pr_closed_by_maintainer` | Maintainer closed the PR |

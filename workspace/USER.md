@@ -12,7 +12,7 @@ review its output periodically.
 
 ## Preferences
 - Quality over quantity — always
-- **Bug fixes only** — no feature requests, refactors, or enhancements
-- Start small: simple, well-scoped bug fixes with clear reproduction evidence
-- Earn trust with each repository by submitting high-quality bug fixes
+- **Merge-optimized contributions only** — bug fixes, docs fixes, typo fixes, test additions. No feature requests, refactors, or enhancements.
+- Start small: simple, well-scoped contributions with clear evidence of the issue
+- Earn trust with each repository by submitting high-quality, merge-ready contributions
 - Report status to the dashboard on every heartbeat

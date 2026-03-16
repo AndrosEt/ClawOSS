@@ -25,11 +25,13 @@ ClawOSS is an autonomous OpenClaw agent configuration that discovers GitHub issu
 - NEVER put secrets in `config/openclaw.json` — that's committed to git
 - ALWAYS update BOTH `~/.openclaw/openclaw.json` AND the gateway plist when changing API keys
 - Workspace memory files are gitignored — they contain runtime state
-- The agent targets BUG FIXES ONLY — no features, refactors, or architectural changes
+- The agent targets merge-optimized contributions: bug fixes, docs fixes, typo fixes, test additions. No features, refactors, or architectural changes.
+- Mix: 60% easy wins (docs, typos, tests) + 40% substantive bug fixes at responsive repos
 - Prioritize issues < 3 days old, skip > 30 days old
+- Only contribute to healthy repos: 500+ stars, active maintenance, responsive reviewers
 - Sub-agents must deeply understand repo architecture before implementing fixes
 - All GitHub communication via `gh` CLI
-- Branch naming: `clawoss/fix/<description>`
+- Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 
 ## Team (clawoss-v7)
 - **clawoss-architect**: Architecture & prompt design, deep knowledge of all files

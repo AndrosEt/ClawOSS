@@ -36,7 +36,7 @@ Write to memory/YYYY-MM-DD.md:
 ## Work in Progress
 - Repo: owner/repo
 - Issue: #1234
-- Branch: clawoss/fix/1234-description
+- Branch: clawoss/{fix,docs,test,typo}/1234-description
 - Status: implementing / reviewing / blocked
 - Next step: [what to do after compaction]
 ```

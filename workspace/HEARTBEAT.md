@@ -122,89 +122,30 @@ Check if a sub-agent session is active from a previous cycle:
 
 ## 2. PR Follow-ups (HIGHEST PRIORITY — before any new work)
 
-PR follow-ups are MORE IMPORTANT than starting new implementations. A reviewer
-waiting for a response reflects poorly on the project. Always handle follow-ups first.
-
 ### 2a. Detect PRs Needing Attention
-Run:
 ```bash
 gh pr list --author @me --state open --json number,title,url,updatedAt,reviewDecision,statusCheckRollup,comments
 ```
-
-For each open PR, fetch review details:
-```bash
-# Inline file comments (code review comments)
-gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[].id, .[].body, .[].path, .[].created_at, .[].user.login'
-
-# General PR comments (issue-level discussion)
-gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[].id, .[].body, .[].created_at, .[].user.login'
-```
+For each open PR, fetch inline comments (`gh api repos/.../pulls/{n}/comments`) and
+general comments (`gh api repos/.../issues/{n}/comments`).
 
 ### 2b. Classify Each PR
-Read memory/pr-followup-state.md to check round counts, last-checked timestamps, and status.
+Read pr-followup-state.md. **SPAWNED_PENDING GUARD:** skip PRs with status `spawned_pending`.
 
-**SPAWNED_PENDING GUARD:** If a PR's status in pr-followup-state.md is `spawned_pending`,
-a sub-agent is ALREADY working on it. Do NOT spawn another. Skip to the next PR.
-Only PRs with status `pending_review`, `follow_up_round_N`, or no entry get new sub-agents.
+| Classification | Condition | Action |
+|---|---|---|
+| `changes_requested` | CHANGES_REQUESTED or new change-request comments | Spawn follow-up if round < 3 |
+| `comment_only` | Questions/discussion, not change requests | Spawn follow-up to respond |
+| `approved` | reviewDecision=APPROVED | Log success, no sub-agent |
+| `ci_failing` | CI failures that are our fault | Spawn follow-up (like changes_requested) |
+| `stale` | No activity >7 days | Close with polite comment, update state |
+| `merged` | PR was merged | Log success |
 
-For each open PR, classify:
-
-**`changes_requested`** — reviewDecision is "CHANGES_REQUESTED" or there are new inline/general
-comments requesting code changes since our last push:
-- Check current round count in pr-followup-state.md
-- If status is `spawned_pending`: SKIP (sub-agent already working)
-- If round < 3: spawn a follow-up sub-agent (PRIORITY)
-- If round >= 3: do NOT spawn. PR is in disengaged state. Skip.
-
-**`comment_only`** — new comments that are questions or discussions (not change requests):
-- If status is `spawned_pending`: SKIP (sub-agent already working)
-- Spawn a follow-up sub-agent to respond thoughtfully
-- Counts as a round only if code changes are pushed
-
-**`approved`** — reviewDecision is "APPROVED":
-- Log success in memory/pr-followup-state.md (status: approved)
-- No sub-agent needed. Continue.
-
-**`ci_failing`** — statusCheckRollup shows failures that are our fault:
-- Treat like `changes_requested` — spawn sub-agent to fix CI
-- Round count increments
-
-**`stale`** — no review activity for >7 days (compare updatedAt to now):
-- Close with polite comment:
-  ```bash
-  gh pr close {number} --repo {owner}/{repo} --comment "Closing this PR as it hasn't received review activity in over a week. If the fix is still wanted, I'm happy to resubmit. Thank you for your time."
-  ```
-- Update pr-followup-state.md: status = closed_stale
-- Remove from pipeline-state.md
-
-**`merged`** — PR was merged:
-- Update pr-followup-state.md: status = merged
-- Log success. Continue.
-
-### 2c. Write Follow-up Context & Spawn Sub-Agent
-For each PR needing a sub-agent, write context to `memory/subagent-inputs/followup-{repo}-{pr}.md`
-with PR details, review comments (inline + general), and diff summary (first 200 lines).
-
-Read the spawn template from `templates/subagent-followup.md`.
-Substitute the variables: `{owner}`, `{repo}`, `{pr}`, `{branch}`, `{round}`, `{number}`.
-Pass the substituted Task Prompt as the `task` parameter to sessions_spawn.
-Use the Spawn Config from the template for `label` and `attachments`.
-
-**IMMEDIATELY after spawning**, set the PR's status to `spawned_pending` in
-memory/pr-followup-state.md. This prevents re-spawning on the next heartbeat cycle.
-
-**Follow-up sub-agents get PRIORITY over implementation sub-agents.**
-Count active sub-agents. If follow-ups + implementations would exceed 5, defer new implementations.
-**BATCH LIMIT: Max 2 follow-up sub-agents per heartbeat cycle.** If more PRs need follow-ups,
-they will be processed on subsequent cycles. This prevents thundering herd on first activation
-when many open PRs exist simultaneously.
-
-### 2e. Update State
-After spawning (or skipping) each follow-up:
-- If spawned: status is already `spawned_pending` (set in 2d). Update timestamp.
-- If PR was closed (stale/rejected): remove from active tracking
-
-Then continue to step 3. Do NOT go directly to step 6.
+### 2c. Spawn Follow-up Sub-Agent
+Write context to `memory/subagent-inputs/followup-{repo}-{pr}.md` (PR details, comments, diff).
+Use `templates/subagent-followup.md`. Set status to `spawned_pending` immediately after spawn.
+**Max 2 follow-up sub-agents per cycle.** Follow-ups get priority over implementations.
+Then continue to step 3.
 
 ## 3. Merge Staging Files & Pick Work (up to 5 concurrent tasks)
 

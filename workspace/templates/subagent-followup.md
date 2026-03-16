@@ -4,7 +4,7 @@
 - `{owner}` — repo owner (e.g., `facebook`)
 - `{repo}` — repo name (e.g., `react`)
 - `{pr}` — PR number (e.g., `12345`)
-- `{branch}` — PR branch name (e.g., `clawoss/fix/null-check`)
+- `{branch}` — PR branch name (e.g., `clawoss/fix/null-check`, `clawoss/docs/update-readme`)
 - `{round}` — current revision round (1, 2, or 3)
 - `{number}` — same as {pr} (for gh CLI commands)
 - `{comment_id}` — inline comment ID (for threaded replies)
