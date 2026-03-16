@@ -24,16 +24,12 @@ ERRORS=${ERRORS:-0}
 LOCK_COUNT=$(ls "$MEMORY_DIR/locks/"*.lock 2>/dev/null | wc -l | xargs)
 
 # Queue depth
-QUEUE_DEPTH=0
-if [ -f "$MEMORY_DIR/work-queue.md" ]; then
-  QUEUE_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue.md" 2>/dev/null || echo 0)
-fi
+QUEUE_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue.md" 2>/dev/null || true)
+QUEUE_DEPTH=${QUEUE_DEPTH:-0}
 
 # Staging queue
-STAGING_DEPTH=0
-if [ -f "$MEMORY_DIR/work-queue-staging.md" ]; then
-  STAGING_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue-staging.md" 2>/dev/null || echo 0)
-fi
+STAGING_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue-staging.md" 2>/dev/null || true)
+STAGING_DEPTH=${STAGING_DEPTH:-0}
 
 # Open PRs
 OPEN_PRS=$(gh search prs --author BillionClaw --state open --json number --jq 'length' 2>/dev/null || echo 0)
@@ -81,16 +77,12 @@ else
 fi
 
 # Followup staging
-FOLLOWUP_COUNT=0
-if [ -f "$MEMORY_DIR/followup-staging.md" ]; then
-  FOLLOWUP_COUNT=$(grep -c '^\- ' "$MEMORY_DIR/followup-staging.md" 2>/dev/null || echo 0)
-fi
+FOLLOWUP_COUNT=$(grep -c '^\- ' "$MEMORY_DIR/followup-staging.md" 2>/dev/null || true)
+FOLLOWUP_COUNT=${FOLLOWUP_COUNT:-0}
 
 # Pending spawns
-PENDING_SPAWNS=0
-if [ -f "$MEMORY_DIR/impl-spawn-state.md" ]; then
-  PENDING_SPAWNS=$(grep -c "spawned_pending" "$MEMORY_DIR/impl-spawn-state.md" 2>/dev/null || echo 0)
-fi
+PENDING_SPAWNS=$(grep -c "spawned_pending" "$MEMORY_DIR/impl-spawn-state.md" 2>/dev/null || true)
+PENDING_SPAWNS=${PENDING_SPAWNS:-0}
 
 cat <<ENDJSON
 {

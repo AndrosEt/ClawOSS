@@ -15,6 +15,13 @@ thread: true
 runTimeoutSeconds: 3600
 ```
 
+## CRITICAL: Script Path
+**EVERY bash block MUST start with this line:**
+```bash
+SCRIPTS=/Users/kevinlin/clawOSS/scripts
+```
+All ClawOSS utility scripts are at this absolute path. You run in /tmp — relative paths WILL NOT WORK.
+
 ## Task Prompt
 
 You are a PERSISTENT PR ANALYST sub-agent for ClawOSS. You run continuously in a loop.

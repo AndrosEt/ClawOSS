@@ -1,63 +1,113 @@
 # V10 Monitor Status Report
-**Timestamp**: 2026-03-17 02:47 (UTC+8)
-**Agent**: clawoss (main session 00dbf181)
+
+**Timestamp**: 2026-03-17 02:57 (UTC+8) -- Updated
+**Agent**: clawoss (main session 00dbf181, 74k/262k = 28%)
 **Model**: kimi-coding/k2p5 (200k ctx)
 
+---
+
+## Executive Summary
+
+The zombie slot issue is **RESOLVED**. The capacity footer now correctly reads "Active: 4/10 (2 impl + 2 always-on)" and the agent is spawning new work. One subagent (mem0) already completed a PR this cycle. The scripts PATH issue is **still broken** -- gate checks are being silently skipped.
+
 ## Agent Health
-- **Status**: RUNNING (active 2m ago at time of check)
-- **Gateway**: Running (PID 20877), restarted at 02:40:56 after SIGTERM
-- **Heartbeat**: 5m interval, started after gateway restart
-- **Sessions**: 4 active .jsonl files, 32 total sessions in index
-- **Compaction**: 0 (main session at 69 lines, healthy)
 
-## Throughput Today (2026-03-17)
-- **PRs Submitted**: 12 today
-- **Total Open PRs**: 41 (tracked in pr-followup-state.md), work-queue says 48
-- **Active Subagents**: 7/7 MAX CAPACITY
-  - 5 implementation slots (kreuzberg, OpenHands x2, mastra x2 -- some failed/completed)
-  - 1 scout (scout-tier0)
-  - 1 pr-monitor
+| Metric | Value |
+|--------|-------|
+| Gateway | Running (pid 20877), reachable 37ms |
+| Main session | 74k/262k tokens (28%) -- healthy |
+| Total sessions | 33+ (growing with new spawns) |
+| Heartbeat | 5m interval |
+| Last wake | ~02:50 (new cycle observed) |
+| Errors this hour | 0 (stale counter, real errors happening) |
 
-## Active Subagent Detail
+## Slot Capacity (FIXED)
+
+**Footer now reads**: `Active: 4/10 (2 impl + 2 always-on)` -- **CORRECT**
+
+**Current running subagents:**
 | Issue | Repo | Status | Notes |
 |-------|------|--------|-------|
-| DioCrafts/OxiCloud#200 | OxiCloud | **ACTIVE** (22 lines, reading CONTRIBUTING.md) | Working through gate checks |
-| kreuzberg-dev/kreuzberg#495 | kreuzberg | failed_restart | No result file written |
-| OpenHands/OpenHands#13358 | OpenHands | failed_restart | Slack duplicate messages |
-| OpenHands/OpenHands#13408 | OpenHands | failed_restart | Mouse selection crash |
-| mastra-ai/mastra#14323 | mastra | killed_superseded | Correctly skipped (existing PR #14326) |
-| mastra-ai/mastra#14338 | mastra | killed_superseded | Zod schema errors |
-| FlowiseAI/Flowise#5982 | Flowise | completed | PR #5985 submitted |
+| mem0ai/mem0#4364 | mem0 | running (completed per logs) | PR submitted -- stats widget HTTPS fix |
+| DioCrafts/OxiCloud#200 | OxiCloud | running | Stuck reading non-existent address_book.rs |
+| thinkst/canarytokens-docker#200 | canarytokens-docker | running | NEW -- ENOENT on frontend files |
+| mastra-ai/mastra#14338 | mastra | running | Spawned_at 02:34 looks stale |
 
-## Issues Found
+**Always-on subagents:**
+- scout-tier0: running
+- pr-monitor: running
 
-### 1. CRITICAL: Gateway SIGTERM + Restart at 02:40
-The gateway received SIGTERM at 02:40:46 and restarted at 02:40:56. This killed running subagent sessions. The `sessions.patch` call failed with "label already in use: mastra-ai/mastra#14323" immediately before the SIGTERM. The restart appears to have been triggered by a config reload (`config change detected; evaluating reload`).
+**Free impl slots**: ~4-6 (depending on stale entries)
 
-### 2. WARN: Missing scripts in subagent cwd
-The OxiCloud subagent tried to run `scripts/check-already-fixed.sh` and `scripts/check-supersession.sh` but got ENOENT. The scripts exist at `/Users/kevinlin/clawOSS/scripts/` but the subagent's working directory doesn't include them in its PATH. The subagent recovered by running gate checks manually.
+## RESOLVED: Zombie Slot Capacity (was CRITICAL)
 
-### 3. WARN: 3 failed_restart subagents
-kreuzberg#495, OpenHands#13358, OpenHands#13408 all show `failed_restart` status. No result files were written for kreuzberg (confirmed ENOENT in logs). These slots are effectively dead -- the agent reports 7/7 MAX CAPACITY but only 1-2 subagents are actually doing work.
+The footer was updated from "Active: 7/7 MAX CAPACITY" to "Active: 4/10". The agent is now correctly spawning new work. This was the #1 throughput blocker and is now fixed.
 
-### 4. INFO: "keevinlin" typo in HEARTBEAT.md read
-Log shows `ENOENT: no such file or directory, access '/Users/keevinlin/clawOSS/workspace/HEARTBEAT.md'` at 02:30:44. This is a transient error (double 'e' in username) -- likely the model hallucinated the path during a tool call. The agent recovered since HEARTBEAT.md was read successfully afterward.
+## REMAINING Issue: Scripts PATH (STILL BROKEN)
 
-### 5. INFO: PR followup cron disabled
-The pr-followup-check cron job is disabled (replaced by PR Monitor subagent). This is expected behavior.
+At 02:54:58, check-already-fixed.sh and check-supersession.sh STILL failed:
+```
+bash: scripts/check-already-fixed.sh: No such file or directory
+bash: scripts/check-supersession.sh: No such file or directory
+```
 
-### 6. INFO: Gateway service config warning
-`openclaw logs` reports "Service config looks out of date or non-standard" -- the gateway uses Node from nvm which can break after upgrades. Non-blocking but worth noting.
+**Root cause**: Agent workspace is `/Users/kevinlin/clawoss/workspace` (from openclaw.json). Scripts are at `/Users/kevinlin/clawOSS/scripts/` (parent dir). `scripts/foo.sh` resolves to workspace/scripts/ which only has lock scripts.
 
-## Behavior Assessment
-- **V10 behavior**: Partially. The agent is using P(merge) scoring (visible in work-queue scores), supersession checking (correctly skipped mastra#14323), and always-on subagents (scout + pr-monitor).
-- **Scout running**: Yes (scout-tier0)
-- **PR Monitor running**: Yes (pr-monitor)
-- **CLA handling**: Not observed in this cycle
-- **Script usage**: Subagents reference scripts but can't find them (PATH issue)
-- **CONTRIBUTING.md check**: Yes (OxiCloud subagent reading it)
+**Impact**: ALL quality gate checks are silently skipped. The agent is submitting PRs without running:
+- check-blocklist.sh (avoid banned repos)
+- check-already-fixed.sh (avoid duplicate work)
+- check-supersession.sh (avoid superseded issues)
+- repo-health-check.sh (avoid unhealthy repos)
 
-## Recommendations
-1. **Fix dead subagent slots**: 3 failed_restart subagents are consuming capacity slots without doing work. The orchestrator should detect and reclaim these.
-2. **Fix script PATH for subagents**: Subagents need scripts/ in their PATH or should use absolute paths.
-3. **Run `openclaw doctor`**: Gateway service config is flagged as out of date.
+**Files that need updating** (relative -> absolute paths):
+1. `workspace/HEARTBEAT.md` -- 4 references
+2. `workspace/AGENTS.md` -- 1 reference
+3. `workspace/skills/oss-discover/SKILL.md` -- 4 references
+4. `workspace/skills/oss-triage/SKILL.md` -- 2 references
+5. `workspace/skills/repo-analyzer/SKILL.md` -- 2 references
+
+Note: The daily-discovery cron job ALREADY uses absolute path -- only prompt files need fixing.
+
+## Issue: OxiCloud Subagent Stuck (MEDIUM)
+
+The OxiCloud subagent tried to read `address_book.rs` which doesn't exist in the repo. Git index last modified 02:47 (10+ min stale). Lock still held at `/Users/kevinlin/clawOSS/workspace/memory/locks/DioCrafts_OxiCloud.lock`. May need manual cleanup.
+
+## Issue: Error Tracking Stale (LOW)
+
+`wake-state.md` error counter stuck at 0 despite 10+ real errors per cycle.
+
+## Today's Throughput
+
+- **Completed implementations**: 12 (including mem0 this cycle)
+- **Failed/killed**: 4
+- **Abandoned**: 1
+- **Currently running**: 3-4 (some may be completing)
+- **Success rate**: 12/17 = 71%
+
+## Timeline
+
+| Time | Event |
+|------|-------|
+| 02:20 | Batch spawn: Flowise, langflow, open-webui |
+| 02:25 | Spawn: kreuzberg (failed), OpenHands#13357 |
+| 02:27 | Spawn: OpenHands#13358 (killed_avoidlist) |
+| 02:34 | Spawn: mastra#14323 (killed_superseded), OpenHands#13408 (killed_avoidlist) |
+| 02:40 | Gateway SIGTERM + restart, killed active subagents |
+| 02:41 | Spawn: OxiCloud#200 |
+| 02:48 | Zombie slots partially fixed (table labels), footer still stale |
+| 02:50 | **Capacity footer FIXED** -- "Active: 4/10" |
+| 02:50 | Spawn: mem0#4364 |
+| 02:51 | Spawn: canarytokens-docker#200 |
+| 02:55 | Scripts still failing (check-already-fixed, check-supersession) |
+| 02:56 | mem0#4364 subagent completed -- PR submitted |
+
+## Priority Actions
+
+1. ~~**P0**: Fix capacity footer~~ -- RESOLVED
+2. **P0**: Change all script paths to absolute in prompt files
+3. **P1**: Clean up OxiCloud stuck subagent and release lock
+4. **P2**: Fix error counter in wake-state.md
+
+---
+
+*Monitoring continuously. Next full scan in ~5 min.*

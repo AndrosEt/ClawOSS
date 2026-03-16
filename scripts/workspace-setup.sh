@@ -22,12 +22,9 @@ ENDJSON
 TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
 if [ -f "$TRUST_FILE" ]; then
   # Check deprioritized section for this repo
-  if grep -qi "^\| *\`\?${OWNER}/${REPO_NAME}\`\?" "$TRUST_FILE" | grep -qi "permanent\|skip\|ban\|deprioritize" 2>/dev/null; then
-    # More precise: check if repo appears in deprioritized section
-    IN_DEPRIORITIZED=$(awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
-    if [ -n "$IN_DEPRIORITIZED" ]; then
-      fail "Repo ${REPO} is in blocklist (deprioritized in trust-repos.md)"
-    fi
+  IN_DEPRIORITIZED=$(awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  if [ -n "$IN_DEPRIORITIZED" ]; then
+    fail "Repo ${REPO} is in blocklist (deprioritized in trust-repos.md)"
   fi
 fi
 

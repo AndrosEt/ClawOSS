@@ -4,10 +4,14 @@
 # Outputs JSON: {"score": 65, "breakdown": {...}, "recommendation": "proceed|skip"}
 # Exit 0 always (score in JSON)
 
-if [ "${1:-}" = "--help" ] || [ $# -lt 1 ]; then
+if [ "${1:-}" = "--help" ]; then
   echo "Usage: compute-merge-probability.sh <owner/repo> [issue_number] [--type bug|docs|typo|test] [--size small|medium|large]"
   echo "Outputs JSON with P(merge) score 0-100"
   exit 0
+fi
+if [ $# -lt 1 ]; then
+  echo "Usage: compute-merge-probability.sh <owner/repo> [issue_number]" >&2
+  exit 1
 fi
 
 REPO="$1"
