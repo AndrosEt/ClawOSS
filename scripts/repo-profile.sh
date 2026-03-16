@@ -1,169 +1,138 @@
 #!/usr/bin/env bash
-# repo-profile.sh — Full repo intelligence in one call
+# repo-profile.sh — Full repo intelligence: health + direction + trust + CONTRIBUTING
 # Usage: repo-profile.sh <owner/repo> [--write]
-# Combines: health check + direction analysis + trust score + CONTRIBUTING parsing + CLA + anti-AI
-# --write flag: writes complete profile to memory/repos/{owner}_{repo}.md
-# Outputs JSON with all data. Exit 0 = healthy, Exit 1 = skip
-
-if [ "${1:-}" = "--help" ]; then
-  echo "Usage: repo-profile.sh <owner/repo> [--write]"
-  echo "Full repo intelligence: health, direction, trust, CLA, anti-AI, merge patterns."
-  exit 0
-fi
+# --write: save profile to workspace/memory/repos/<owner>_<repo>.md
+# Exit 0 = healthy, Exit 1 = unhealthy
 
 REPO="${1:?Usage: repo-profile.sh <owner/repo> [--write]}"
 OWNER="${REPO%%/*}"
 REPO_NAME="${REPO##*/}"
 PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
-SCRIPTS="$PROJECT_DIR/scripts"
-WRITE_PROFILE=false
+WRITE_PROFILE=""
 
-shift 1 2>/dev/null || true
+shift
 while [ $# -gt 0 ]; do
   case "$1" in
-    --write) WRITE_PROFILE=true; shift ;;
+    --write) WRITE_PROFILE="true"; shift ;;
     *) shift ;;
   esac
 done
 
-# ─── 1. Health check ───
-HEALTH_JSON=$(bash "$SCRIPTS/repo-health-check.sh" "$REPO" 2>/dev/null)
-HEALTH_EXIT=$?
+# ─── 1. Basic repo metadata ───
+REPO_DATA=$(gh api "repos/${REPO}" --jq '{
+  stars: .stargazers_count,
+  forks: .forks_count,
+  open_issues: .open_issues_count,
+  language: .language,
+  default_branch: .default_branch,
+  license: (.license.spdx_id // "none"),
+  archived: .archived,
+  pushed_at: .pushed_at,
+  topics: .topics,
+  description: .description
+}' 2>/dev/null || echo '{}')
 
-if [ $HEALTH_EXIT -ne 0 ]; then
-  # Unhealthy — output health result and exit
-  echo "$HEALTH_JSON"
-  exit 1
+STARS=$(echo "$REPO_DATA" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("stars",0))' 2>/dev/null || echo 0)
+ARCHIVED=$(echo "$REPO_DATA" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("archived",False)).lower())' 2>/dev/null || echo "false")
+DEFAULT_BRANCH=$(echo "$REPO_DATA" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("default_branch","main"))' 2>/dev/null || echo "main")
+
+# ─── 2. Health gates ───
+HEALTHY="true"
+HEALTH_REASON="ok"
+
+[ "$ARCHIVED" = "true" ] && HEALTHY="false" && HEALTH_REASON="Repository is archived"
+[ "$STARS" -lt 200 ] && HEALTHY="false" && HEALTH_REASON="Stars ($STARS) below 200 minimum"
+
+# Last push staleness
+PUSHED_AT=$(echo "$REPO_DATA" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pushed_at",""))' 2>/dev/null || echo "")
+DAYS_SINCE_PUSH=0
+if [ -n "$PUSHED_AT" ]; then
+  PUSH_TS=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$PUSHED_AT" +%s 2>/dev/null || date -d "$PUSHED_AT" +%s 2>/dev/null || echo 0)
+  NOW_TS=$(date +%s)
+  DAYS_SINCE_PUSH=$(( (NOW_TS - PUSH_TS) / 86400 ))
+  [ "$DAYS_SINCE_PUSH" -gt 90 ] && HEALTHY="false" && HEALTH_REASON="No push in ${DAYS_SINCE_PUSH} days"
 fi
 
-# ─── 2. Direction analysis ───
-DIRECTION_JSON=$(bash "$SCRIPTS/analyze-repo-direction.sh" "$REPO" 2>/dev/null || echo '{}')
+# ─── 3. Responsiveness (median PR merge time) ───
+MEDIAN_MERGE_DAYS=$(gh pr list --repo "$REPO" --state merged --limit 5 --json mergedAt,createdAt --jq '[.[] | {c: .createdAt, m: .mergedAt}]' 2>/dev/null | python3 -c "
+import json,sys
+from datetime import datetime
+prs = json.load(sys.stdin)
+if not prs: print(0)
+else:
+    deltas = []
+    for pr in prs:
+        try:
+            c = datetime.fromisoformat(pr['c'].replace('Z','+00:00'))
+            m = datetime.fromisoformat(pr['m'].replace('Z','+00:00'))
+            deltas.append((m-c).days)
+        except: pass
+    print(sorted(deltas)[len(deltas)//2] if deltas else 0)
+" 2>/dev/null || echo 0)
 
-# ─── 3. Trust score ───
+# ─── 4. CONTRIBUTING.md ───
+CONTRIBUTING=$(curl -sL "https://raw.githubusercontent.com/${REPO}/${DEFAULT_BRANCH}/CONTRIBUTING.md" 2>/dev/null | head -200)
+HAS_CONTRIBUTING="false"
+HAS_CLA="false"
+CLA_TYPE="none"
+ANTI_BOT="false"
+
+if [ -n "$CONTRIBUTING" ] && ! echo "$CONTRIBUTING" | head -1 | grep -q "^404"; then
+  HAS_CONTRIBUTING="true"
+  echo "$CONTRIBUTING" | grep -qiE "contributor license agreement|dco|signed-off-by" && HAS_CLA="true"
+  echo "$CONTRIBUTING" | grep -qiE "developer certificate of origin|dco|signed-off-by" && CLA_TYPE="dco"
+  echo "$CONTRIBUTING" | grep -qiE "contributor license agreement" && [ "$CLA_TYPE" = "none" ] && CLA_TYPE="cla-assistant"
+  echo "$CONTRIBUTING" | grep -qiE "no (bot|ai[- ]generated|automated)|human[- ]only" && ANTI_BOT="true" && HEALTHY="false" && HEALTH_REASON="Anti-bot policy"
+fi
+
+# ─── 5. Trust score ───
 TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
-TRUST_TIER="unknown"
-TRUST_SCORE=0.3
+TRUST_SCORE=5
+TRUST_STATUS="unknown"
 if [ -f "$TRUST_FILE" ]; then
-  if awk '/^## Tier 1/,/^## /' "$TRUST_FILE" | grep -qi "$REPO"; then
-    TRUST_TIER="tier1"
-    TRUST_SCORE=1.0
-  elif awk '/^## Tier 2/,/^## /' "$TRUST_FILE" | grep -qi "$REPO"; then
-    TRUST_TIER="tier2"
-    TRUST_SCORE=0.7
-  elif awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -qi "$REPO"; then
-    TRUST_TIER="deprioritized"
-    TRUST_SCORE=0.0
-  else
-    TRUST_TIER="new"
-    TRUST_SCORE=0.3
+  ACTIVE_LINE=$(awk '/^## Active/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  DEPRI_LINE=$(awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  if [ -n "$ACTIVE_LINE" ]; then
+    TRUST_STATUS="active"
+    TRUST_SCORE=$(echo "$ACTIVE_LINE" | grep -oE '[0-9]+' | head -1)
+    TRUST_SCORE="${TRUST_SCORE:-7}"
+  elif [ -n "$DEPRI_LINE" ]; then
+    TRUST_STATUS="deprioritized"
+    TRUST_SCORE=0
   fi
 fi
 
-# ─── 4. CONTRIBUTING.md analysis ───
-CONTRIB_JSON=$(bash "$SCRIPTS/check-contributing-guide.sh" "$REPO" 2>/dev/null || echo '{}')
+# ─── 6. Recent commit themes ───
+RECENT_COMMITS=$(gh api "repos/${REPO}/commits?per_page=20" --jq '[.[].commit.message | split("\n")[0]]' 2>/dev/null || echo "[]")
 
-# ─── 5. CLA detection ───
-CLA_JSON=$(bash "$SCRIPTS/sign-cla.sh" "$REPO" 2>/dev/null || echo '{"cla_type": "unknown"}')
-CLA_EXIT=$?
-
-# ─── 6. Blocklist check ───
-BLOCKLIST_JSON=$(bash "$SCRIPTS/check-blocklist.sh" "$REPO" 2>/dev/null || echo '{"blocked": false}')
-IS_BLOCKED=$(echo "$BLOCKLIST_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('blocked', False))" 2>/dev/null || echo "False")
-
-# ─── 7. Combine into full profile ───
-PROFILE=$(python3 -c "
-import json, sys
-
-health = json.loads('''$(echo "$HEALTH_JSON" | python3 -c "import json,sys; print(json.dumps(json.loads(sys.stdin.read())))" 2>/dev/null || echo '{}')''')
-direction = json.loads('''$(echo "$DIRECTION_JSON" | python3 -c "import json,sys; print(json.dumps(json.loads(sys.stdin.read())))" 2>/dev/null || echo '{}')''')
-contrib = json.loads('''$(echo "$CONTRIB_JSON" | python3 -c "import json,sys; print(json.dumps(json.loads(sys.stdin.read())))" 2>/dev/null || echo '{}')''')
-cla = json.loads('''$(echo "$CLA_JSON" | python3 -c "import json,sys; print(json.dumps(json.loads(sys.stdin.read())))" 2>/dev/null || echo '{}')''')
-
-profile = {
-    'repo': '$REPO',
-    'healthy': True,
-    'health_score': health.get('score', 0),
-    'trust_tier': '$TRUST_TIER',
-    'trust_score': $TRUST_SCORE,
-    'is_blocked': $IS_BLOCKED,
-    'health_metrics': health.get('metrics', {}),
-    'direction': {
-        'active_modules': direction.get('active_modules', [])[:5],
-        'priority_labels': direction.get('priority_labels', []),
-        'latest_release': direction.get('latest_release', {}),
-        'default_branch': direction.get('default_branch', 'main'),
-    },
-    'contributing': {
-        'has_contributing': contrib.get('has_contributing', False),
-        'target_branch': contrib.get('target_branch', 'main'),
-        'commit_convention': contrib.get('commit_convention', 'none'),
-        'ai_disclosure': contrib.get('ai_disclosure', 'none'),
-        'anti_ai_policy': contrib.get('anti_ai_policy', False),
-    },
-    'cla': {
-        'type': cla.get('cla_type', 'none'),
-        'signed': cla.get('signed', True),
-    },
-}
-print(json.dumps(profile, indent=2))
-" 2>/dev/null || echo '{"repo": "'"$REPO"'", "error": "profile generation failed"}')
-
-echo "$PROFILE"
-
-# ─── 8. Write to memory if requested ───
-if [ "$WRITE_PROFILE" = true ]; then
+# ─── 7. Write profile if requested ───
+if [ "$WRITE_PROFILE" = "true" ]; then
   PROFILE_DIR="$PROJECT_DIR/workspace/memory/repos"
   mkdir -p "$PROFILE_DIR"
-  PROFILE_FILE="$PROFILE_DIR/${OWNER}_${REPO_NAME}.md"
+  cat > "$PROFILE_DIR/${OWNER}_${REPO_NAME}.md" <<EOMD
+# ${REPO} Profile
+Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-  cat > "$PROFILE_FILE" <<PROFILE_EOF
-# Repo Profile: $REPO
-**Generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-## Health
-$(echo "$HEALTH_JSON" | python3 -c "
-import json,sys
-d = json.load(sys.stdin)
-m = d.get('metrics', {})
-print(f'- Score: {d.get(\"score\", 0)}')
-print(f'- Stars: {m.get(\"stars\", 0)}')
-print(f'- Merge velocity: {m.get(\"recent_merges_30d\", 0)} merges/30d, avg {m.get(\"avg_merge_days\", 0)}d')
-print(f'- Review rate: {m.get(\"review_rate_pct\", 0)}%')
-print(f'- Open PRs: {m.get(\"open_prs\", 0)}')
-print(f'- Niche fit: {m.get(\"niche_fit\", False)}')
-" 2>/dev/null || echo "- Health data unavailable")
-
-## Trust
-- Tier: $TRUST_TIER
-- Score: $TRUST_SCORE
-
-## Direction
-$(echo "$DIRECTION_JSON" | python3 -c "
-import json,sys
-d = json.load(sys.stdin)
-mods = d.get('active_modules', [])
-print(f'- Default branch: {d.get(\"default_branch\", \"main\")}')
-if mods:
-    print(f'- Active modules: {', '.join(m[\"module\"] for m in mods[:5])}')
-labels = d.get('priority_labels', [])
-if labels:
-    print(f'- Priority labels: {', '.join(labels)}')
-rel = d.get('latest_release', {})
-if rel.get('tag'):
-    print(f'- Latest release: {rel[\"tag\"]} ({rel.get(\"date\", \"unknown\")})')
-" 2>/dev/null || echo "- Direction data unavailable")
-
-## Contributing
-$(echo "$CONTRIB_JSON" | python3 -c "
-import json,sys
-d = json.load(sys.stdin)
-print(f'- Target branch: {d.get(\"target_branch\", \"main\")}')
-print(f'- Commit convention: {d.get(\"commit_convention\", \"none\")}')
-print(f'- CLA type: {d.get(\"cla_type\", \"none\")}')
-print(f'- AI disclosure: {d.get(\"ai_disclosure\", \"none\")}')
-print(f'- Anti-AI policy: {d.get(\"anti_ai_policy\", False)}')
-" 2>/dev/null || echo "- Contributing data unavailable")
-PROFILE_EOF
+- Stars: ${STARS} | Language: $(echo "$REPO_DATA" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("language","?"))' 2>/dev/null)
+- Default branch: ${DEFAULT_BRANCH} | Merge time: ${MEDIAN_MERGE_DAYS}d
+- CLA: ${HAS_CLA} (${CLA_TYPE}) | Anti-bot: ${ANTI_BOT}
+- Trust: ${TRUST_STATUS} (${TRUST_SCORE})
+EOMD
 fi
 
-exit 0
+# ─── 8. Output JSON ───
+cat <<ENDJSON
+{
+  "repo": "$REPO",
+  "healthy": $HEALTHY,
+  "health_reason": $(echo "$HEALTH_REASON" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '"ok"'),
+  "metrics": {"stars": $STARS, "days_since_push": $DAYS_SINCE_PUSH, "median_merge_days": $MEDIAN_MERGE_DAYS},
+  "repo_data": $REPO_DATA,
+  "contributing": {"has_contributing": $HAS_CONTRIBUTING, "has_cla": $HAS_CLA, "cla_type": "$CLA_TYPE", "anti_bot": $ANTI_BOT},
+  "trust": {"status": "$TRUST_STATUS", "score": ${TRUST_SCORE:-5}},
+  "default_branch": "$DEFAULT_BRANCH",
+  "recent_commits": $RECENT_COMMITS
+}
+ENDJSON
+
+[ "$HEALTHY" = "true" ] && exit 0 || exit 1

@@ -59,6 +59,10 @@ Read the attached repo-conventions.md and issue-details.md.
 
 1b. READ FULL REPO GUIDELINES (setup extracted metadata, now read the full text):
    ```bash
+   # Parse CONTRIBUTING.md for structured metadata (branch target, CLA, test/lint commands)
+   CONTRIB=$(bash $SCRIPTS/check-contributing-guide.sh {repo} --workspace $WORKDIR)
+   echo "$CONTRIB" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d.get(\"branch_target\",\"main\")} | CLA: {d.get(\"cla_type\",\"none\")} | Tests: {d.get(\"test_commands\",[])} | Lint: {d.get(\"lint_commands\",[])} | Anti-bot: {d.get(\"anti_bot\",False)}')"
+   # Also read the raw text for any nuances the parser missed
    for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md AGENTS.md; do
      [ -f "$WORKDIR/$f" ] && echo "=== $f ===" && head -200 "$WORKDIR/$f"
    done
@@ -221,7 +225,8 @@ Read the attached repo-conventions.md and issue-details.md.
 
 10. CLEANUP: After submit or abandon, ALWAYS run:
     ```bash
-    bash $SCRIPTS/workspace-cleanup.sh $WORKDIR
+    bash $SCRIPTS/unlock-repo.sh {repo}    # Release repo lock first
+    bash $SCRIPTS/workspace-cleanup.sh $WORKDIR  # Remove workspace files
     ```
     This is NON-OPTIONAL. Removes workspace + lock file. Cloned repos waste 500MB-2GB each.
 

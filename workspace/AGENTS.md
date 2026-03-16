@@ -69,7 +69,7 @@ A superseded PR wastes our cycle AND annoys maintainers. Prevention is 100x chea
 
 **Per-repo contribution guides**: `memory/repos/{owner}_{repo}.md` — read before implementing.
 
-## Repo Health Gate (mandatory -- run `scripts/repo-health-check.sh`)
+## Repo Health Gate (mandatory -- run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`)
 - Stars >= 200, last push < 2 weeks, merged PRs in 30d > 0
 - Avg merge time <= 14 days, review rate > 50%, open PRs < 50
 - Cache results in `memory/repos/` for 7 days. Skip repos that fail ANY check.

@@ -1,37 +1,36 @@
 #!/usr/bin/env bash
-# lock-repo.sh — Atomic lock for dedup system
-# Usage: lock-repo.sh <owner/repo> <issue_url>
-# Exit 0 = lock acquired, Exit 1 = already locked
+# lock-repo.sh — Atomic lock for a repo to prevent duplicate work
+# Usage: lock-repo.sh <owner/repo> <issue_number> [<reason>]
+# Exit 0 = locked, Exit 1 = already locked by another agent
 
-REPO="${1:?Usage: lock-repo.sh <owner/repo> <issue_url>}"
-ISSUE_URL="${2:?Usage: lock-repo.sh <owner/repo> <issue_url>}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-/Users/kevinlin/clawOSS/workspace}"
-LOCK_DIR="${WORKSPACE_DIR}/memory/locks"
-LOCK_FILE="${LOCK_DIR}/${REPO//\//_}.lock"
+REPO="${1:?Usage: lock-repo.sh <owner/repo> <issue_number> [reason]}"
+ISSUE="${2:?Usage: lock-repo.sh <owner/repo> <issue_number>}"
+REASON="${3:-workspace-setup}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+OWNER="${REPO%%/*}"
+REPO_NAME="${REPO##*/}"
 
-# Ensure lock directory exists
+LOCK_DIR="$PROJECT_DIR/workspace/memory/locks"
+LOCK_FILE="$LOCK_DIR/${OWNER}_${REPO_NAME}.lock"
+
 mkdir -p "$LOCK_DIR"
 
-# Check for existing lock
+# Check existing lock
 if [ -f "$LOCK_FILE" ]; then
-  # Check if stale (> 1 hour old)
-  if [ "$(uname)" = "Darwin" ]; then
-    LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_FILE") ))
-  else
-    LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCK_FILE") ))
-  fi
-
-  if [ "$LOCK_AGE" -gt 3600 ]; then
-    # Stale lock — remove and re-acquire
+  # Stale after 1 hour
+  if find "$LOCK_FILE" -mmin +60 -print 2>/dev/null | grep -q .; then
     rm -f "$LOCK_FILE"
   else
     EXISTING=$(cat "$LOCK_FILE" 2>/dev/null || echo "unknown")
-    echo "{\"locked\": false, \"repo\": \"$REPO\", \"reason\": \"already locked\", \"existing_lock\": \"$EXISTING\", \"age_seconds\": $LOCK_AGE}"
+    echo "{\"locked\": false, \"reason\": \"already locked\", \"existing\": $(echo "$EXISTING" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '\"unknown\"')}"
     exit 1
   fi
 fi
 
-# Acquire lock
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ${ISSUE_URL}" > "$LOCK_FILE"
-echo "{\"locked\": true, \"repo\": \"$REPO\", \"issue\": \"$ISSUE_URL\"}"
+# Create lock atomically (using temp file + mv for atomicity)
+TMPLOCK=$(mktemp "$LOCK_DIR/.tmp.XXXXXX")
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | ${REPO}#${ISSUE} | ${REASON}" > "$TMPLOCK"
+mv "$TMPLOCK" "$LOCK_FILE"
+
+echo "{\"locked\": true, \"repo\": \"$REPO\", \"issue\": $ISSUE, \"lock_file\": \"$LOCK_FILE\"}"
 exit 0

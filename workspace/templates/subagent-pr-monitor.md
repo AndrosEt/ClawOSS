@@ -56,8 +56,12 @@ for pr in prs:
 print(f'Total: {len(prs)} PRs')
 "
 ```
-The batch script fetches ALL BillionClaw PRs in one pass, then calls `scan-pr-reviews.sh` for each.
-Each result has: classification, urgency, latest_review_state, ci_failed, is_stale, comment_count, reviews, comments.
+The batch script fetches ALL BillionClaw PRs in one pass with reviews and comments.
+For PRs needing deeper analysis (changes_requested, ci_failing), run per-PR scan:
+```bash
+DEEP_SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh {owner}/{repo} {pr_number})
+echo "$DEEP_SCAN" | python3 -c "import json,sys; d=json.load(sys.stdin); c=d['classification']; print(f'State: {c[\"state\"]} | Action: {c[\"action\"]} | Feedback: {c.get(\"latest_feedback\",[])[: 1]}')"
+```
 ALWAYS uses `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
 ### Step 3: Classify Each PR

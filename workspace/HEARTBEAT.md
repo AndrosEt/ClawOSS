@@ -8,7 +8,7 @@ Keep all 7 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 
 ## 0. Health Checks
-**0a. Quick status snapshot**: `bash scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
+**0a. Quick status snapshot**: `bash /Users/kevinlin/clawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
 **0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
 **0b. Circuit breakers**: Read wake-state.md (or use heartbeat-status.sh output). HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
 **0b2. Cycle guardrails** (prevent runaway cycles and quota burn):
@@ -56,7 +56,7 @@ Always-on subagents use 3 slots (scout + PR monitor + PR analyst). Remaining 7 a
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
-**Clean stale locks + orphaned state**: `bash scripts/cleanup-stale-sessions.sh` (removes locks >1hr, resets orphaned spawned_pending entries)
+**Clean stale locks + orphaned state**: `bash /Users/kevinlin/clawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >1hr, resets orphaned spawned_pending entries)
 
 ## 2. PR Follow-ups (delegated to PR Monitor — main agent handles code changes only)
 The PR Monitor subagent (step 0.5) continuously scans ALL open PRs and handles simple actions
@@ -97,7 +97,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
   d. Prefer different repos across concurrent agents. NEVER have 2 agents working the same repo simultaneously.
   e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
   f. **TITLE REJECT**: Skip if title whole-word matches: `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`.
-  g. **HEALTH GATE**: `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 1 = skip. Cache 7 days.
+  g. **HEALTH GATE**: `bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}`. Exit 1 = skip. Cache 7 days.
   g2. **DASHBOARD BLOCKLIST**: If step 0c returned `avoidRepos`, skip any repo in that list. If step 0c returned `reposWithOpenPRs`, skip any repo in that list (focus on follow-ups instead).
   h. **SUPERSESSION CHECK**: Before spawning, quick-check if issue already has linked PRs or is assigned:
      `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'`
@@ -116,7 +116,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 - **Queue >= 10**: skip discovery, drain first.
 
 ## 4. Triage (< 3 min, main session)
-**4-ZERO.** Health gate: `bash scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
+**4-ZERO.** Health gate: `bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh`. Exit 1 = remove, go to step 3.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
 **4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama).
 **4b-SUPERSESSION.** Check if issue is already being worked on OR already fixed: assigned? linked PRs? someone commented "I'll take this"? Issue closed? Recently merged PR referencing this issue? If yes, remove from queue and mark `superseded`, `assigned`, or `already_fixed_upstream` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.

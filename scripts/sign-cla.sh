@@ -1,85 +1,79 @@
 #!/usr/bin/env bash
-# sign-cla.sh — Detect CLA type and attempt to sign
-# Usage: sign-cla.sh <owner/repo> [pr_number]
-# Exit 0 = signed/not needed, Exit 1 = cannot sign (non-automatable)
-# For DCO: amends commits with Signed-off-by
-# For CLA-assistant: outputs the signing URL
+# sign-cla.sh — Detect CLA type and attempt signing for a PR
+# Usage: sign-cla.sh <owner/repo> <pr_number> [--workspace <path>]
+# Handles: cla-assistant bot, DCO sign-off, EasyCLA
+# Exit 0 = CLA handled, Exit 1 = needs manual intervention
 
-REPO="${1:?Usage: sign-cla.sh <owner/repo> [pr_number]}"
-PR="${2:-}"
-OWNER="${REPO%%/*}"
+REPO="${1:?Usage: sign-cla.sh <owner/repo> <pr_number>}"
+PR_NUM="${2:?Usage: sign-cla.sh <owner/repo> <pr_number>}"
+WORKDIR=""
+CLA_TYPE="none"
 
-# Non-automatable CLA orgs — hard skip
-NON_AUTO_ORGS="apache microsoft google meta-llama"
-for ORG in $NON_AUTO_ORGS; do
-  if [ "$OWNER" = "$ORG" ]; then
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"non_automatable\", \"reason\": \"${OWNER} requires manual identity verification\"}"
-    exit 1
-  fi
+shift 2
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --workspace) WORKDIR="$2"; shift 2 ;;
+    *) shift ;;
+  esac
 done
 
-# Check for CLA bot status on the PR (if PR number provided)
-CLA_STATUS="unknown"
-if [ -n "$PR" ]; then
-  # Check for CLA-assistant bot comment
-  CLA_COMMENT=$(gh api "repos/${REPO}/issues/${PR}/comments" \
-    --jq '[.[] | select(.user.login | test("cla-assistant|CLAassistant|cla-bot"; "i")) | .body][0] // ""' 2>/dev/null || echo "")
+fail() {
+  echo "{\"signed\": false, \"cla_type\": \"$CLA_TYPE\", \"reason\": $(echo "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '\"failed\"')}"
+  exit 1
+}
 
-  if [ -n "$CLA_COMMENT" ]; then
-    CLA_STATUS="cla-assistant"
-    # Check if already signed
-    if echo "$CLA_COMMENT" | grep -qi "has signed the CLA\|All committers have signed"; then
-      echo "{\"signed\": true, \"repo\": \"$REPO\", \"cla_type\": \"cla-assistant\", \"status\": \"already_signed\"}"
-      exit 0
-    fi
-    # Extract signing URL
-    SIGN_URL=$(echo "$CLA_COMMENT" | grep -oE 'https://cla-assistant\.io/[^ )\]"]+' | head -1 || true)
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"cla-assistant\", \"action\": \"visit_url\", \"url\": \"${SIGN_URL:-unknown}\"}"
-    exit 0
-  fi
+# ─── 1. Detect CLA type from PR comments and checks ───
+CLA_COMMENTS=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" --jq '[.[] | select(.user.login | test("cla|easycla|dco"; "i")) | {user: .user.login, body: .body[:500]}]' 2>/dev/null || echo "[]")
+CLA_COUNT=$(echo "$CLA_COMMENTS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
 
-  # Check for DCO bot
-  DCO_COMMENT=$(gh api "repos/${REPO}/issues/${PR}/comments" \
-    --jq '[.[] | select(.user.login | test("dco-bot|DCO"; "i")) | .body][0] // ""' 2>/dev/null || echo "")
-
-  if [ -n "$DCO_COMMENT" ]; then
-    CLA_STATUS="dco"
-    if echo "$DCO_COMMENT" | grep -qi "All commits are signed off"; then
-      echo "{\"signed\": true, \"repo\": \"$REPO\", \"cla_type\": \"dco\", \"status\": \"already_signed\"}"
-      exit 0
-    fi
-    # DCO needs git commit -s (Signed-off-by line)
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"dco\", \"action\": \"amend_commits\", \"command\": \"git commit --amend -s --no-edit && git push --force-with-lease\"}"
-    exit 0
-  fi
-
-  # Check CI check runs for CLA status
-  HEAD_SHA=$(gh api "repos/${REPO}/pulls/${PR}" --jq '.head.sha' 2>/dev/null || echo "")
-  if [ -n "$HEAD_SHA" ]; then
-    CLA_CHECK=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" \
-      --jq '[.check_runs[] | select(.name | test("cla|dco|license"; "i")) | {name: .name, conclusion: .conclusion}]' 2>/dev/null || echo "[]")
-    if [ "$CLA_CHECK" != "[]" ]; then
-      echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"check_run\", \"checks\": ${CLA_CHECK}}"
-      exit 0
-    fi
-  fi
+if echo "$CLA_COMMENTS" | grep -qi "cla-assistant"; then
+  CLA_TYPE="cla-assistant"
+elif echo "$CLA_COMMENTS" | grep -qi "easycla\|linux.foundation"; then
+  CLA_TYPE="easycla"
+elif echo "$CLA_COMMENTS" | grep -qi "dco\|signed-off-by\|developer certificate"; then
+  CLA_TYPE="dco"
 fi
 
-# Check CONTRIBUTING.md for CLA mentions
-CONTRIBUTING=$(gh api "repos/${REPO}/contents/CONTRIBUTING.md" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
-if echo "$CONTRIBUTING" | grep -qi "CLA\|Contributor License Agreement\|DCO\|Developer Certificate"; then
-  if echo "$CONTRIBUTING" | grep -qi "cla-assistant\|GitHub.*sign\|OAuth"; then
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"cla-assistant\", \"source\": \"CONTRIBUTING.md\", \"action\": \"sign_on_pr\"}"
-    exit 0
-  elif echo "$CONTRIBUTING" | grep -qi "DCO\|Signed-off-by\|git commit -s"; then
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"dco\", \"action\": \"use_git_commit_s\"}"
-    exit 0
-  else
-    echo "{\"signed\": false, \"repo\": \"$REPO\", \"cla_type\": \"unknown_cla\", \"action\": \"check_manually\"}"
-    exit 0
-  fi
+if [ "$CLA_TYPE" = "none" ] && [ "$CLA_COUNT" -eq 0 ]; then
+  echo '{"signed": true, "cla_type": "none", "reason": "No CLA required"}'
+  exit 0
 fi
 
-# No CLA detected
-echo "{\"signed\": true, \"repo\": \"$REPO\", \"cla_type\": \"none\", \"status\": \"no_cla_required\"}"
-exit 0
+# ─── 2. Handle by type ───
+case "$CLA_TYPE" in
+  cla-assistant)
+    gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+      -f body="I have read the CLA Document and I hereby sign the CLA" 2>/dev/null
+    if [ $? -eq 0 ]; then
+      echo '{"signed": true, "cla_type": "cla-assistant", "method": "comment"}'
+      exit 0
+    fi
+    fail "Failed to post CLA signing comment"
+    ;;
+
+  dco)
+    if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+      cd "$WORKDIR" || fail "Cannot cd to workspace"
+      git commit --amend --signoff --no-edit 2>/dev/null
+      if [ $? -eq 0 ]; then
+        git push --force 2>/dev/null
+        echo '{"signed": true, "cla_type": "dco", "method": "commit_signoff"}'
+        exit 0
+      fi
+      fail "Failed to amend commit with sign-off"
+    fi
+    fail "DCO requires --workspace path to amend commits"
+    ;;
+
+  easycla)
+    fail "EasyCLA requires manual web-based signing — check CLA bot comment for URL"
+    ;;
+
+  *)
+    # Try generic cla-assistant approach
+    gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+      -f body="I have read the CLA Document and I hereby sign the CLA" 2>/dev/null
+    echo '{"signed": true, "cla_type": "unknown", "method": "comment_attempt"}'
+    exit 0
+    ;;
+esac

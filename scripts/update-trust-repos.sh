@@ -1,127 +1,124 @@
 #!/usr/bin/env bash
-# update-trust-repos.sh — Atomically update trust-repos.md
-# Usage: update-trust-repos.sh <owner/repo> <action> [reason]
-# Actions: promote (move to higher tier), deprioritize (add to blocklist), remove (clean from all)
-# Exit 0 = updated, Exit 1 = error
+# update-trust-repos.sh — Atomic trust-repos.md management
+# Usage: update-trust-repos.sh <action> <owner/repo> [--score N] [--reason <text>]
+# Actions: promote (add/update in Active), deprioritize (move to Deprioritized), remove
+# Exit 0 = updated, Exit 1 = failed
 
-if [ "${1:-}" = "--help" ] || [ $# -lt 2 ]; then
-  echo "Usage: update-trust-repos.sh <owner/repo> <action> [reason]"
-  echo "Actions: promote, deprioritize, remove"
-  echo "Example: update-trust-repos.sh facebook/react deprioritize 'hostile maintainer, ban threat'"
-  exit 0
-fi
-
-REPO="${1:?Usage: update-trust-repos.sh <owner/repo> <action> [reason]}"
-ACTION="${2:?}"
-REASON="${3:-}"
+ACTION="${1:?Usage: update-trust-repos.sh <action> <owner/repo> [--score N] [--reason <text>]}"
+REPO="${2:?Usage: update-trust-repos.sh <action> <owner/repo>}"
 PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
 TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
-TODAY=$(date +%Y-%m-%d)
+SCORE=""
+REASON=""
 
-# Ensure file exists with basic structure
+shift 2
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --score) SCORE="$2"; shift 2 ;;
+    --reason) REASON="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+OWNER="${REPO%%/*}"
+REPO_NAME="${REPO##*/}"
+
+# Create trust file if it doesn't exist
 if [ ! -f "$TRUST_FILE" ]; then
   mkdir -p "$(dirname "$TRUST_FILE")"
-  cat > "$TRUST_FILE" <<'INIT_EOF'
+  cat > "$TRUST_FILE" <<EOMD
 # Trust Repos
 
-## Tier 1 (Merged PRs — highest trust)
+## Active
+| Repo | Score | Notes |
+|------|-------|-------|
 
-## Tier 2 (Positive engagement)
-
-## New (No history)
-
-## Deprioritized (Skip)
-
-INIT_EOF
+## Deprioritized
+| Repo | Reason | Skip Until |
+|------|--------|------------|
+EOMD
 fi
 
-# Helper: remove repo from all sections
-remove_from_all() {
-  local repo="$1"
-  local escaped=$(echo "$repo" | sed 's/\//\\\//g')
-  # Remove lines containing the repo (case-insensitive)
-  python3 -c "
-import re, sys
-content = open('$TRUST_FILE').read()
-# Remove lines containing the repo (any section)
+# ─── Perform action ───
+python3 -c "
+import sys, re
+
+action = '$ACTION'
+repo = '$REPO'
+score = '${SCORE:-7}'
+reason = '${REASON:-}'
+
+with open('$TRUST_FILE', 'r') as f:
+    content = f.read()
+
 lines = content.split('\n')
-filtered = [l for l in lines if not re.search(r'$escaped', l, re.IGNORECASE)]
-# Clean up double blank lines
-cleaned = re.sub(r'\n{3,}', '\n\n', '\n'.join(filtered))
-open('$TRUST_FILE', 'w').write(cleaned)
+new_lines = []
+in_active = False
+in_depri = False
+found_in_active = False
+found_in_depri = False
+
+for line in lines:
+    lower = line.lower()
+
+    if '## active' in lower:
+        in_active = True
+        in_depri = False
+    elif '## deprioritized' in lower:
+        in_active = False
+        in_depri = True
+    elif line.startswith('## '):
+        in_active = False
+        in_depri = False
+
+    # Check if this line contains our repo
+    repo_lower = repo.lower()
+    if repo_lower in lower and '|' in line:
+        if in_active:
+            found_in_active = True
+            if action == 'promote':
+                # Update score
+                new_lines.append(f'| \`{repo}\` | {score} | {reason} |')
+                continue
+            elif action == 'deprioritize' or action == 'remove':
+                # Skip this line (remove from active)
+                continue
+        elif in_depri:
+            found_in_depri = True
+            if action == 'promote' or action == 'remove':
+                # Skip this line (remove from deprioritized)
+                continue
+            elif action == 'deprioritize':
+                # Update reason
+                new_lines.append(f'| \`{repo}\` | {reason} | permanent |')
+                continue
+
+    new_lines.append(line)
+
+# Add new entries if not found
+result = '\n'.join(new_lines)
+
+if action == 'promote' and not found_in_active:
+    # Add to Active section after the table header
+    active_header = '|------|-------|-------|'
+    if active_header in result:
+        result = result.replace(active_header, active_header + f'\n| \`{repo}\` | {score} | {reason} |')
+
+if action == 'deprioritize' and not found_in_depri:
+    # Add to Deprioritized section after its table header
+    depri_header = '|------|--------|------------|'
+    if depri_header in result:
+        result = result.replace(depri_header, depri_header + f'\n| \`{repo}\` | {reason} | permanent |')
+
+with open('$TRUST_FILE', 'w') as f:
+    f.write(result)
+
+print(f'{{\"success\": true, \"action\": \"{action}\", \"repo\": \"{repo}\", \"score\": \"{score}\"}}')
 " 2>/dev/null
-}
 
-case "$ACTION" in
-  promote)
-    # Remove from current location, add to Tier 1
-    remove_from_all "$REPO"
-    python3 -c "
-content = open('$TRUST_FILE').read()
-# Find Tier 1 section and append
-marker = '## Tier 1'
-if marker in content:
-    idx = content.index(marker) + len(marker)
-    # Find the end of the header line
-    newline = content.index('\n', idx)
-    # Find the next section or end
-    next_section = content.find('\n## ', newline + 1)
-    if next_section == -1:
-        next_section = len(content)
-    # Insert before next section
-    entry = '| \`$REPO\` | Merged PR | $TODAY |\n'
-    content = content[:next_section] + entry + content[next_section:]
-else:
-    content += '\n## Tier 1 (Merged PRs — highest trust)\n| \`$REPO\` | Merged PR | $TODAY |\n'
-open('$TRUST_FILE', 'w').write(content)
-" 2>/dev/null
-    echo "{\"updated\": true, \"repo\": \"$REPO\", \"action\": \"promoted\", \"tier\": \"tier1\"}"
-    ;;
-
-  deprioritize)
-    SKIP_UNTIL=""
-    IS_PERMANENT=false
-    if [ -z "$REASON" ]; then
-      REASON="deprioritized"
-    fi
-    # Check if reason says permanent
-    if echo "$REASON" | grep -qi "permanent\|ban\|hostile"; then
-      SKIP_UNTIL="permanent"
-      IS_PERMANENT=true
-    else
-      # Default: 30 days
-      if date -v+30d +%Y-%m-%d &>/dev/null; then
-        SKIP_UNTIL=$(date -v+30d +%Y-%m-%d)
-      else
-        SKIP_UNTIL=$(date -d "+30 days" +%Y-%m-%d)
-      fi
-    fi
-
-    remove_from_all "$REPO"
-    python3 -c "
-content = open('$TRUST_FILE').read()
-marker = '## Deprioritized'
-entry = '| \`$REPO\` | $REASON | Skip Until: $SKIP_UNTIL |\n'
-if marker in content:
-    idx = content.index(marker)
-    newline = content.index('\n', idx)
-    content = content[:newline+1] + entry + content[newline+1:]
-else:
-    content += '\n## Deprioritized (Skip)\n' + entry
-open('$TRUST_FILE', 'w').write(content)
-" 2>/dev/null
-    echo "{\"updated\": true, \"repo\": \"$REPO\", \"action\": \"deprioritized\", \"reason\": $(echo "$REASON" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'), \"skip_until\": \"$SKIP_UNTIL\"}"
-    ;;
-
-  remove)
-    remove_from_all "$REPO"
-    echo "{\"updated\": true, \"repo\": \"$REPO\", \"action\": \"removed\"}"
-    ;;
-
-  *)
-    echo "{\"updated\": false, \"repo\": \"$REPO\", \"error\": \"unknown action: $ACTION\"}"
-    exit 1
-    ;;
-esac
-
-exit 0
+if [ $? -eq 0 ]; then
+  exit 0
+else
+  echo '{"success": false, "reason": "python script failed"}'
+  exit 1
+fi

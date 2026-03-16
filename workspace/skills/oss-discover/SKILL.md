@@ -44,7 +44,7 @@ Trusted repos get **+8 bonus** in scoring. This is the single biggest lever for 
 1. **FIRST**: Search trusted repos (memory/trust-repos.md) for fresh issues — these are highest priority.
 2. Run Priority Queries (Tier 0 first, then 1, then 2) for new repo discovery.
 3. Filter: stars >= 200, not in pr-ledger, created within time window
-4. **Repo health pre-filter** (BEFORE scoring): quick-check via `scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
+4. **Repo health pre-filter** (BEFORE scoring): quick-check via `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
 5. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5. **+8 trusted repo bonus.**
 6. Return ranked top 10. Write full list to memory/today.md.
 
@@ -63,7 +63,7 @@ Search GitHub using topic tags and description keywords — do NOT rely on a fix
 
 ### Known High-Value Repos (supplement, not replace, criteria search)
 These are verified high-star, actively-maintained repos in our niche. The agent should discover more autonomously.
-Always run `scripts/repo-health-check.sh` before targeting — this list is not a bypass.
+Always run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh` before targeting — this list is not a bypass.
 
 **Agent Frameworks & Orchestration (highest value):**
 langchain-ai/langchain *(requires issue assignment — comment first)*, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
@@ -200,8 +200,8 @@ For each candidate issue, quick-check the repo:
 2. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
 3. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
 4. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 7 days old).
-5. **Run `scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
-6. **Anti-bot/anti-AI policy detection** — handled automatically by `scripts/repo-health-check.sh`.
+5. **Run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
+6. **Anti-bot/anti-AI policy detection** — handled automatically by `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`.
    The script checks CONTRIBUTING.md for anti-bot phrases. HARD SKIP if anti-bot policy detected.
    Automatable CLA/DCO repos are allowed (CLA-assistant, DCO). Non-automatable CLAs (apache, microsoft, google, meta-llama) are hard-skipped by the script.
 7. **AI disclosure policy detection** — some repos require explicit AI disclosure in a specific format (e.g., qdrant requires AI contributions to be clearly labeled). When writing repo guides to `memory/repos/`, note any AI disclosure requirements found in CONTRIBUTING.md so subagents can follow them exactly. This is NOT a skip reason — it's metadata for subagents to comply with.

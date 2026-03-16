@@ -1,101 +1,107 @@
 #!/usr/bin/env bash
-# check-contributing-guide.sh — Parse CONTRIBUTING.md for repo metadata
-# Usage: check-contributing-guide.sh <owner/repo>
-# Outputs JSON with commit conventions, PR requirements, AI policy, CLA, branch targets
+# check-contributing-guide.sh — Parse CONTRIBUTING.md and extract metadata
+# Usage: check-contributing-guide.sh <owner/repo> [--workspace <path>]
+# Outputs JSON with branch target, PR conventions, CLA, testing requirements
+# Exit 0 always
 
 REPO="${1:?Usage: check-contributing-guide.sh <owner/repo>}"
+WORKDIR=""
 
-# Fetch CONTRIBUTING.md
-CONTENT=$(gh api "repos/${REPO}/contents/CONTRIBUTING.md" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+shift
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --workspace) WORKDIR="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
 
-if [ -z "$CONTENT" ]; then
-  # Try .github/CONTRIBUTING.md
-  CONTENT=$(gh api "repos/${REPO}/contents/.github/CONTRIBUTING.md" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
-fi
-
-# Default branch
 DEFAULT_BRANCH=$(gh api "repos/${REPO}" --jq '.default_branch' 2>/dev/null || echo "main")
 
-# Detect commit conventions
-COMMIT_CONVENTION="unknown"
-if echo "$CONTENT" | grep -qi "conventional commit\|feat:\|fix:\|chore:"; then
-  COMMIT_CONVENTION="conventional"
-elif echo "$CONTENT" | grep -qi "angular.*commit\|type(scope)"; then
-  COMMIT_CONVENTION="angular"
+# ─── 1. Find and read CONTRIBUTING.md ───
+CONTRIBUTING=""
+SOURCE="none"
+
+if [ -n "$WORKDIR" ] && [ -d "$WORKDIR" ]; then
+  for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md; do
+    if [ -f "$WORKDIR/$f" ]; then
+      CONTRIBUTING=$(head -300 "$WORKDIR/$f")
+      SOURCE="$f"
+      break
+    fi
+  done
 fi
 
-# Detect PR template requirements
-HAS_PR_TEMPLATE=false
-PR_TEMPLATE=$(gh api "repos/${REPO}/contents/.github/pull_request_template.md" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
-if [ -n "$PR_TEMPLATE" ]; then
-  HAS_PR_TEMPLATE=true
+# Fallback: fetch from GitHub
+if [ -z "$CONTRIBUTING" ]; then
+  for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md; do
+    CONTENT=$(curl -sL "https://raw.githubusercontent.com/${REPO}/${DEFAULT_BRANCH}/${f}" 2>/dev/null)
+    if [ -n "$CONTENT" ] && ! echo "$CONTENT" | head -1 | grep -q "^404"; then
+      CONTRIBUTING="$CONTENT"
+      SOURCE="$f (remote)"
+      break
+    fi
+  done
 fi
 
-# Detect AI disclosure policy
-AI_DISCLOSURE="none"
-if echo "$CONTENT" | grep -qi "AI.*disclos\|disclose.*AI\|AI.*generat\|machine.*generat\|LLM.*generat"; then
-  AI_DISCLOSURE="required"
+if [ -z "$CONTRIBUTING" ]; then
+  echo '{"has_contributing": false, "repo": "'"$REPO"'", "source": "none"}'
+  exit 0
 fi
 
-# Detect anti-bot/anti-AI policy
-ANTI_AI=false
-if echo "$CONTENT" | grep -qi "no bot\|no ai generated\|human only\|no automated PR\|no LLM\|prohibit.*AI\|ban.*bot"; then
-  ANTI_AI=true
-fi
+# ─── 2. Extract metadata ───
+python3 -c "
+import json, re, sys
 
-# Detect CLA requirements
-CLA_TYPE="none"
-if echo "$CONTENT" | grep -qi "CLA\|Contributor License Agreement"; then
-  if echo "$CONTENT" | grep -qi "cla-assistant\|GitHub.*OAuth\|sign.*GitHub"; then
-    CLA_TYPE="cla-assistant"
-  elif echo "$CONTENT" | grep -qi "ICLA\|Individual Contributor"; then
-    CLA_TYPE="icla"
-  else
-    CLA_TYPE="unknown"
-  fi
-elif echo "$CONTENT" | grep -qi "DCO\|Developer Certificate\|Signed-off-by\|git commit -s"; then
-  CLA_TYPE="dco"
-fi
-
-# Detect branch target
-TARGET_BRANCH="$DEFAULT_BRANCH"
-if echo "$CONTENT" | grep -qi "target.*dev\|branch.*dev\|PR.*dev\b"; then
-  TARGET_BRANCH="dev"
-elif echo "$CONTENT" | grep -qi "target.*develop\|branch.*develop"; then
-  TARGET_BRANCH="develop"
-elif echo "$CONTENT" | grep -qi "target.*devel\b\|branch.*devel\b"; then
-  TARGET_BRANCH="devel"
-fi
-
-# Detect test requirements
-TESTS_REQUIRED=false
-if echo "$CONTENT" | grep -qi "tests.*required\|must.*include.*test\|add.*test\|test.*coverage"; then
-  TESTS_REQUIRED=true
-fi
-
-# Detect issue linking requirements
-ISSUE_LINK_REQUIRED=false
-if echo "$CONTENT" | grep -qi "link.*issue\|reference.*issue\|must.*have.*issue\|require.*issue"; then
-  ISSUE_LINK_REQUIRED=true
-fi
-
-HAS_CONTRIBUTING=true
-if [ -z "$CONTENT" ]; then
-  HAS_CONTRIBUTING=false
-fi
-
-cat <<ENDJSON
-{
-  "repo": "$REPO",
-  "has_contributing": $HAS_CONTRIBUTING,
-  "default_branch": "$DEFAULT_BRANCH",
-  "target_branch": "$TARGET_BRANCH",
-  "commit_convention": "$COMMIT_CONVENTION",
-  "has_pr_template": $HAS_PR_TEMPLATE,
-  "ai_disclosure": "$AI_DISCLOSURE",
-  "anti_ai_policy": $ANTI_AI,
-  "cla_type": "$CLA_TYPE",
-  "tests_required": $TESTS_REQUIRED,
-  "issue_link_required": $ISSUE_LINK_REQUIRED
+text = sys.stdin.read()
+result = {
+    'has_contributing': True,
+    'repo': '$REPO',
+    'source': '$SOURCE',
+    'default_branch': '$DEFAULT_BRANCH',
 }
-ENDJSON
+
+# Branch target
+m = re.search(r'(?:branch|target|base).*?[\x60\"]([\w./-]+)[\x60\"]', text, re.I)
+result['branch_target'] = m.group(1) if m else '$DEFAULT_BRANCH'
+
+# PR title format
+if re.search(r'conventional.commit|feat:|fix:|chore:', text, re.I):
+    result['pr_title_format'] = 'conventional-commits'
+else:
+    result['pr_title_format'] = 'freeform'
+
+# CLA
+has_cla = False
+cla_type = 'none'
+if re.search(r'contributor license agreement|sign.*(cla|contributor)', text, re.I):
+    has_cla = True
+    cla_type = 'cla-assistant'
+if re.search(r'developer certificate of origin|dco|signed-off-by', text, re.I):
+    has_cla = True
+    cla_type = 'dco'
+result['has_cla'] = has_cla
+result['cla_type'] = cla_type
+
+# Testing
+test_cmds = re.findall(r'[\x60]((?:npm|yarn|make|cargo|go|pytest|bundle|gradle|mvn)\s+\w+)[\x60]', text)
+result['test_commands'] = test_cmds[:5]
+result['tests_required'] = bool(re.search(r'run.*test|test.*required|make test', text, re.I))
+
+# Linting
+lint_cmds = re.findall(r'[\x60]((?:npm|yarn|make|cargo|go)\s+(?:lint|fmt|format|check)\w*)[\x60]', text)
+result['lint_commands'] = lint_cmds[:5]
+result['lint_required'] = bool(re.search(r'lint|format|style', text, re.I))
+
+# Anti-bot
+result['anti_bot'] = bool(re.search(r'no (bot|ai[- ]generated|automated)|human[- ]only|not accept.*(bot|ai)', text, re.I))
+
+# AI disclosure
+result['ai_disclosure'] = bool(re.search(r'ai.*(disclos|label|tag)|disclose.*ai|generated.*by.*ai', text, re.I))
+
+# Issue linking
+result['requires_issue_link'] = bool(re.search(r'link.*issue|reference.*issue|fixes #|closes #|must.*issue', text, re.I))
+
+print(json.dumps(result, indent=2))
+" <<< "$CONTRIBUTING" 2>/dev/null || echo "{\"has_contributing\": true, \"repo\": \"$REPO\", \"source\": \"$SOURCE\", \"parse_error\": true}"
+
+exit 0

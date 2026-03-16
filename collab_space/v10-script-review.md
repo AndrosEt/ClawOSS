@@ -225,13 +225,50 @@ Each test should:
 
 ---
 
+## Round 2: New Script Review (14 scripts from commit 6d433f5)
+
+### batch-close-invalid.sh
+- **P1-5**: Line 78 — auto-closes stale PRs (>14 days, no reviews). Contradicts "never close PRs" policy. PR monitor says "Do NOT close, only bump." Stale check should be removed or changed to bump.
+
+### respond-to-review.sh
+- **P2-7**: Line 44 — identity response says "AI-assisted development tools". AGENTS.md forbids "AI assistance". Recommend: "automated tooling" instead.
+
+### workspace-submit.sh
+- **P1-6**: Line 49 — size gate is 500 lines, should be 200. All docs say HARD MAX 200.
+- **P1-7**: Lines 85-96 — PR body missing required disclosure line from template.
+- **P1-8**: Line 79 — dedup regex `#${ISSUE}` has no word boundary. `#3` matches `#30`, `#300`.
+- **P2-8**: Line 100 — anti-slop filter deletes words mid-sentence, produces broken text.
+- **P2-9**: No format-pr-description.sh integration despite template referencing it.
+
+### scan-pr-reviews.sh (rewritten)
+- FIXED: stale threshold issue (no longer in script)
+- FIXED: JSON boolean issue (rewritten with Python)
+- Minor: bash variable interpolation into Python (safe in practice)
+
+---
+
 ## Summary
 
-The scripts are well-structured and implement the right logic. The main issues are:
-1. **P1-1**: Blocklist check in workspace-setup.sh is a complete no-op (piped grep -q)
-2. **P1-3**: `grep -oP` doesn't work on macOS — heartbeat-status.sh will always show 0
-3. **P1-4**: `--merged` flag doesn't exist for `gh search prs`
-4. **P2-3**: Invalid JSON booleans in scan-pr-reviews.sh output
-5. **P2-6**: No input validation — minor injection risk
+### P1 bugs (must fix before deploying):
+1. **P1-1**: workspace-setup.sh blocklist check is a no-op (piped grep -q)
+2. **P1-2**: workspace-setup.sh HEALTH_RESULT uninitialized in fallback
+3. **P1-3**: heartbeat-status.sh `grep -oP` doesn't work on macOS
+4. **P1-4**: pr-portfolio-stats.sh `--merged` flag doesn't exist for `gh search prs`
+5. **P1-5**: batch-close-invalid.sh auto-closes stale PRs, contradicts "never close" policy
+6. **P1-6**: workspace-submit.sh size gate 500→200
+7. **P1-7**: workspace-submit.sh PR body missing disclosure line
+8. **P1-8**: workspace-submit.sh dedup regex no word boundary
 
-Fix P1s before deploying. P2s should be fixed in the same pass.
+### P2 bugs:
+1. **P2-1**: workspace-cleanup.sh lock matching never works
+2. **P2-2**: compute-merge-probability.sh threshold 30 vs spec 40 (may be intentional)
+3. **P2-5**: responsiveness weight 15 vs adopted 20 (may be intentional)
+4. **P2-6**: No input validation on REPO argument
+5. **P2-7**: respond-to-review.sh identity text too close to forbidden "AI assistance"
+6. **P2-8**: workspace-submit.sh anti-slop filter breaks sentences
+7. **P2-9**: workspace-submit.sh missing format-pr-description.sh integration
+
+### Cross-file PATH bug (P0):
+- HEARTBEAT.md, AGENTS.md, 3 skill files use relative `scripts/` paths
+- Agent workspace is `/Users/kevinlin/clawoss/workspace/` — scripts resolve to wrong location
+- ALL gate checks silently skipped. See collab_space/v10-critique-three-design-flaws.md.

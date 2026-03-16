@@ -1,131 +1,94 @@
 #!/usr/bin/env bash
-# scan-pr-reviews.sh — Check a PR's review status, comments, CI, and mergeable state
-# Usage: ./scan-pr-reviews.sh owner/repo pr_number
-# Outputs JSON with classification: approved/changes_requested/comment_only/stale/ci_failing
-# Exit 0 always (classification in JSON)
+# scan-pr-reviews.sh — Classify a single PR's review state and determine next action
+# Usage: scan-pr-reviews.sh <owner/repo> <pr_number>
+# Outputs JSON with review state, action needed, reviewer feedback
+# Exit 0 always
 
-if [ "${1:-}" = "--help" ] || [ $# -lt 2 ]; then
-  echo "Usage: scan-pr-reviews.sh <owner/repo> <pr_number>"
-  echo "Outputs JSON with PR review classification"
-  exit 0
-fi
+REPO="${1:?Usage: scan-pr-reviews.sh <owner/repo> <pr_number>}"
+PR_NUM="${2:?Usage: scan-pr-reviews.sh <owner/repo> <pr_number>}"
 
-REPO="$1"
-PR="$2"
+# ─── 1. Fetch reviews ───
+REVIEWS=$(gh api "repos/${REPO}/pulls/${PR_NUM}/reviews" --jq '[.[] | {
+  state: .state, user: .user.login, submitted_at: .submitted_at, body: (.body // "")[:500]
+}]' 2>/dev/null || echo "[]")
 
-# Date calculations
-if date -v-1d +%Y-%m-%d &>/dev/null; then
-  SEVEN_DAYS_AGO=$(date -v-7d +%Y-%m-%dT00:00:00Z)
-else
-  SEVEN_DAYS_AGO=$(date -d "7 days ago" +%Y-%m-%dT00:00:00Z)
-fi
+# ─── 2. Fetch issue comments ───
+COMMENTS=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments?per_page=10&sort=created&direction=desc" --jq '[.[] | {
+  user: .user.login, body: (.body // "")[:300], created_at: .created_at
+}]' 2>/dev/null || echo "[]")
 
-# Fetch PR data
-PR_DATA=$(gh api "repos/${REPO}/pulls/${PR}" --jq '{
-  state: .state,
-  mergeable: .mergeable,
-  mergeable_state: .mergeable_state,
-  updated_at: .updated_at,
-  created_at: .created_at,
-  draft: .draft,
-  head_ref: .head.ref,
-  additions: .additions,
-  deletions: .deletions,
-  changed_files: .changed_files
-}' 2>/dev/null || echo '{}')
+# ─── 3. Fetch CI status ───
+HEAD_SHA=$(gh api "repos/${REPO}/pulls/${PR_NUM}" --jq '.head.sha' 2>/dev/null || echo "")
+CI_STATUS="unknown"
+[ -n "$HEAD_SHA" ] && CI_STATUS=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" --jq '.state' 2>/dev/null || echo "unknown")
 
-# Fetch reviews
-REVIEWS=$(gh api "repos/${REPO}/pulls/${PR}/reviews" \
-  --jq '[.[] | {state: .state, user: .user.login, submitted_at: .submitted_at, body: (.body | .[0:200])}]' 2>/dev/null || echo '[]')
+# ─── 4. Check runs (GitHub Actions) ───
+CI_CHECKS="unknown"
+[ -n "$HEAD_SHA" ] && CI_CHECKS=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" --jq '{
+  total: .total_count,
+  success: [.check_runs[] | select(.conclusion == "success")] | length,
+  failure: [.check_runs[] | select(.conclusion == "failure")] | length,
+  pending: [.check_runs[] | select(.status == "in_progress" or .status == "queued")] | length
+}' 2>/dev/null || echo '{"total": 0}')
 
-# Fetch comments (non-bot only)
-COMMENTS=$(gh api "repos/${REPO}/issues/${PR}/comments" \
-  --jq '[.[] | select(.user.login | test("bot$"; "i") | not) | {user: .user.login, created_at: .created_at, body: (.body | .[0:200])}]' 2>/dev/null || echo '[]')
+# ─── 5. Classify ───
+python3 -c "
+import json
 
-# Fetch CI status
-CI_STATUS=$(gh api "repos/${REPO}/commits/$(gh api "repos/${REPO}/pulls/${PR}" --jq '.head.sha' 2>/dev/null)/check-runs" \
-  --jq '{total: .total_count, passed: ([.check_runs[] | select(.conclusion == "success")] | length), failed: ([.check_runs[] | select(.conclusion == "failure")] | length), pending: ([.check_runs[] | select(.status != "completed")] | length)}' 2>/dev/null || echo '{"total": 0, "passed": 0, "failed": 0, "pending": 0}')
+reviews = $REVIEWS
+comments = $COMMENTS
+ci = '$CI_STATUS'
+ci_checks = $CI_CHECKS
 
-# Classify the PR
-CLASSIFICATION="unknown"
-LATEST_REVIEW_STATE=$(echo "$REVIEWS" | python3 -c "
-import json, sys
-reviews = json.load(sys.stdin)
-if not reviews:
-    print('none')
+# Latest review per reviewer
+latest = {}
+for r in reviews:
+    u = r['user']
+    if u not in latest or r['submitted_at'] > latest[u]['submitted_at']:
+        latest[u] = r
+
+states = [v['state'] for v in latest.values()]
+has_approval = 'APPROVED' in states
+has_changes = 'CHANGES_REQUESTED' in states
+
+# Unanswered maintainer comments
+unanswered = [c for c in comments if c['user'] != 'BillionClaw'][:1]
+
+# Determine state + action
+if has_changes:
+    state, action = 'changes_requested', 'address_review'
+elif has_approval and ci in ('success', 'unknown'):
+    state, action = 'approved', 'ready_to_merge'
+elif has_approval:
+    state, action = 'approved_ci_pending', 'wait_for_ci'
+elif ci == 'failure' or (isinstance(ci_checks, dict) and ci_checks.get('failure', 0) > 0):
+    state, action = 'ci_failing', 'fix_ci'
+elif unanswered:
+    state, action = 'comment_pending', 'respond_to_comment'
+elif len(reviews) == 0:
+    state, action = 'awaiting_review', 'wait'
 else:
-    # Get latest review per reviewer (most recent wins)
-    latest = {}
-    for r in reviews:
-        latest[r['user']] = r['state']
-    states = list(latest.values())
-    if 'CHANGES_REQUESTED' in states:
-        print('changes_requested')
-    elif 'APPROVED' in states:
-        print('approved')
-    elif 'COMMENTED' in states:
-        print('commented')
-    else:
-        print('pending')
-" 2>/dev/null || echo "none")
+    state, action = 'in_review', 'wait'
 
-# Check CI failures
-CI_FAILED=$(echo "$CI_STATUS" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if d.get('failed',0) > 0 else 'no')" 2>/dev/null || echo "no")
+# Extract feedback from changes_requested reviews
+feedback = [r['body'] for r in latest.values() if r['state'] == 'CHANGES_REQUESTED' and r['body']]
 
-# Check staleness
-IS_STALE=$(echo "$PR_DATA" | python3 -c "
-import json, sys
-from datetime import datetime, timezone
-data = json.load(sys.stdin)
-updated = data.get('updated_at', '')
-if updated:
-    updated_dt = datetime.fromisoformat(updated.replace('Z', '+00:00'))
-    age = (datetime.now(timezone.utc) - updated_dt).days
-    print('yes' if age >= 7 else 'no')
-else:
-    print('no')
-" 2>/dev/null || echo "no")
-
-# Determine classification
-COMMENT_COUNT=$(echo "$COMMENTS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
-
-if [ "$LATEST_REVIEW_STATE" = "approved" ]; then
-  CLASSIFICATION="approved"
-elif [ "$LATEST_REVIEW_STATE" = "changes_requested" ]; then
-  CLASSIFICATION="changes_requested"
-elif [ "$CI_FAILED" = "yes" ]; then
-  CLASSIFICATION="ci_failing"
-elif [ "$IS_STALE" = "yes" ] && [ "$COMMENT_COUNT" -eq 0 ] 2>/dev/null; then
-  CLASSIFICATION="stale"
-elif [ "$COMMENT_COUNT" -gt 0 ] 2>/dev/null; then
-  CLASSIFICATION="comment_only"
-else
-  CLASSIFICATION="pending_review"
-fi
-
-# Determine urgency
-URGENCY="normal"
-if [ "$CLASSIFICATION" = "approved" ]; then
-  URGENCY="merge_now"
-elif [ "$CLASSIFICATION" = "changes_requested" ]; then
-  URGENCY="urgent"
-elif [ "$CLASSIFICATION" = "ci_failing" ]; then
-  URGENCY="urgent"
-fi
-
-cat <<EOF
-{
-  "repo": "${REPO}",
-  "pr": ${PR},
-  "classification": "${CLASSIFICATION}",
-  "urgency": "${URGENCY}",
-  "latest_review_state": "${LATEST_REVIEW_STATE}",
-  "ci_failed": ${CI_FAILED/yes/true},
-  "is_stale": ${IS_STALE/yes/true},
-  "comment_count": ${COMMENT_COUNT},
-  "pr_data": ${PR_DATA},
-  "ci_status": ${CI_STATUS},
-  "reviews": ${REVIEWS},
-  "comments": ${COMMENTS}
+result = {
+    'repo': '$REPO',
+    'pr_number': $PR_NUM,
+    'state': state,
+    'action': action,
+    'has_approval': has_approval,
+    'has_changes_requested': has_changes,
+    'ci_status': ci,
+    'ci_checks': ci_checks if isinstance(ci_checks, dict) else {},
+    'review_count': len(reviews),
+    'unique_reviewers': len(latest),
+    'reviewer_feedback': feedback[:3],
+    'unanswered_comments': len(unanswered),
+    'reviews': reviews[-5:]
 }
-EOF
+print(json.dumps(result, indent=2))
+" 2>/dev/null || echo "{\"repo\": \"$REPO\", \"pr_number\": $PR_NUM, \"state\": \"unknown\", \"action\": \"wait\"}"
+
+exit 0
