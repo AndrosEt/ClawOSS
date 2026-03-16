@@ -124,34 +124,39 @@ else
 fi
 
 # ─── 3b. Average days to merge (from last 10 merged PRs) ───
+# Uses Python for correct date math across month/year boundaries
 AVG_MERGE_DAYS=0
 MERGE_DATA=$(gh api "repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=10" \
   --jq '[.[] | select(.merged_at != null) | {created: .created_at, merged: .merged_at}]' 2>/dev/null || echo "[]")
 
 if [ "$MERGE_DATA" != "[]" ]; then
-  AVG_MERGE_DAYS=$(echo "$MERGE_DATA" | jq '
-    [.[] |
-      (((.merged | split("T")[0] | split("-") | .[0] + .[1] + .[2]) | tonumber) -
-       ((.created | split("T")[0] | split("-") | .[0] + .[1] + .[2]) | tonumber))
-    ] | if length > 0 then (add / length) else 0 end | floor
-  ' 2>/dev/null || echo "0")
-  # Fallback: use simpler epoch-based calculation if jq date math fails
-  if [ "$AVG_MERGE_DAYS" = "0" ] || [ -z "$AVG_MERGE_DAYS" ]; then
-    AVG_MERGE_DAYS=$(echo "$MERGE_DATA" | jq -r '
-      [.[] | {c: .created, m: .merged}] |
-      if length > 0 then
-        [.[] | ((.m[:10] | split("-") | (.[0]|tonumber)*365 + (.[1]|tonumber)*30 + (.[2]|tonumber)) -
-               ((.c[:10] | split("-") | (.[0]|tonumber)*365 + (.[1]|tonumber)*30 + (.[2]|tonumber))))] |
-        add / length | floor
-      else 0 end
-    ' 2>/dev/null || echo "0")
-  fi
+  AVG_MERGE_DAYS=$(python3 -c "
+import json, sys
+from datetime import datetime
+data = json.loads(sys.stdin.read())
+if not data:
+    print(0)
+    sys.exit()
+days = []
+for pr in data:
+    try:
+        c = datetime.fromisoformat(pr['created'].replace('Z','+00:00'))
+        m = datetime.fromisoformat(pr['merged'].replace('Z','+00:00'))
+        days.append((m - c).days)
+    except: pass
+print(int(sum(days)/len(days)) if days else 0)
+" <<< "$MERGE_DATA" 2>/dev/null || echo "0")
 fi
 
-# Hard skip if avg merge time > 14 days
-if [ "$AVG_MERGE_DAYS" -gt 14 ] 2>/dev/null; then
-  reasons+=("avg_merge_days=${AVG_MERGE_DAYS} (>14)")
-  fail "avg merge time ${AVG_MERGE_DAYS} days (>14d)" "repo_health_fail: avg merge time ${AVG_MERGE_DAYS}d exceeds 14d limit"
+# Tiered merge time limits: relaxed for large repos (5000+ stars)
+if [ "$STARS" -ge 5000 ]; then
+  MERGE_LIMIT=30
+else
+  MERGE_LIMIT=14
+fi
+if [ "$AVG_MERGE_DAYS" -gt "$MERGE_LIMIT" ] 2>/dev/null; then
+  reasons+=("avg_merge_days=${AVG_MERGE_DAYS} (>${MERGE_LIMIT})")
+  fail "avg merge time ${AVG_MERGE_DAYS} days (>${MERGE_LIMIT}d)" "repo_health_fail: avg merge time ${AVG_MERGE_DAYS}d exceeds ${MERGE_LIMIT}d limit"
 fi
 # Score bonus for fast merge
 if [ "$AVG_MERGE_DAYS" -le 3 ] 2>/dev/null; then
@@ -162,11 +167,19 @@ elif [ "$AVG_MERGE_DAYS" -le 14 ] 2>/dev/null; then
   score=$((score + 1))
 fi
 
-# ─── 4. Open PR backlog ───
-OPEN_PRS=$(gh api "repos/${REPO}/pulls?state=open&per_page=100" --jq 'length' 2>/dev/null || echo "0")
-if [ "$OPEN_PRS" -ge 50 ]; then
-  reasons+=("open_prs=${OPEN_PRS} (>=50)")
-  fail "${OPEN_PRS} open PRs (>=50, overwhelmed)" "repo_health_fail: ${OPEN_PRS} open PRs, maintainers overwhelmed"
+# ─── 4. Open PR backlog (use search API for accurate count beyond 100) ───
+OPEN_PRS=$(gh api "/search/issues?q=is:pr+is:open+repo:${REPO}&per_page=1" --jq '.total_count' 2>/dev/null || echo "0")
+# Tiered PR limits: relaxed for large repos
+if [ "$STARS" -ge 20000 ]; then
+  PR_LIMIT=1000  # mega-repos (vllm, langchain, transformers) have huge PR volume
+elif [ "$STARS" -ge 5000 ]; then
+  PR_LIMIT=500
+else
+  PR_LIMIT=50
+fi
+if [ "$OPEN_PRS" -ge "$PR_LIMIT" ]; then
+  reasons+=("open_prs=${OPEN_PRS} (>=${PR_LIMIT})")
+  fail "${OPEN_PRS} open PRs (>=${PR_LIMIT}, overwhelmed)" "repo_health_fail: ${OPEN_PRS} open PRs, maintainers overwhelmed"
 fi
 if [ "$OPEN_PRS" -lt 10 ]; then
   score=$((score + 2))
@@ -174,15 +187,24 @@ elif [ "$OPEN_PRS" -lt 30 ]; then
   score=$((score + 1))
 fi
 
-# ─── 5. PR review rate (% of last 20 PRs with review comments) ───
+# ─── 5. PR review rate (% of last 10 merged PRs that have reviews) ───
+# The pulls list endpoint returns null for comments/review_comments in some repos.
+# Instead, check actual reviews on recently merged PRs — more reliable signal.
 TOTAL_PRS=0
 REVIEWED_PRS=0
-REVIEW_DATA=$(gh api "repos/${REPO}/pulls?state=all&sort=updated&direction=desc&per_page=20" \
-  --jq '[.[] | {comments: .comments, review_comments: .review_comments}]' 2>/dev/null || echo "[]")
+MERGED_PR_NUMBERS=$(gh api "repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=10" \
+  --jq '[.[] | select(.merged_at != null)] | .[0:10] | .[].number' 2>/dev/null || echo "")
 
-if [ "$REVIEW_DATA" != "[]" ]; then
-  TOTAL_PRS=$(echo "$REVIEW_DATA" | jq 'length')
-  REVIEWED_PRS=$(echo "$REVIEW_DATA" | jq '[.[] | select(.comments > 0 or .review_comments > 0)] | length')
+if [ -n "$MERGED_PR_NUMBERS" ]; then
+  for PR_NUM in $MERGED_PR_NUMBERS; do
+    TOTAL_PRS=$((TOTAL_PRS + 1))
+    REVIEW_COUNT=$(gh api "repos/${REPO}/pulls/${PR_NUM}/reviews" --jq 'length' 2>/dev/null || echo "0")
+    if [ "$REVIEW_COUNT" -gt 0 ]; then
+      REVIEWED_PRS=$((REVIEWED_PRS + 1))
+    fi
+    # Only check up to 10 to limit API calls
+    if [ "$TOTAL_PRS" -ge 10 ]; then break; fi
+  done
 fi
 
 if [ "$TOTAL_PRS" -gt 0 ]; then
@@ -191,9 +213,15 @@ else
   REVIEW_RATE=0
 fi
 
-if [ "$REVIEW_RATE" -lt 50 ]; then
-  reasons+=("review_rate=${REVIEW_RATE}% (<50%)")
-  fail "review rate ${REVIEW_RATE}% (<50%)" "repo_health_fail: review rate ${REVIEW_RATE}% below 50% minimum"
+# Tiered review rate: relaxed for large repos (5000+ stars)
+if [ "$STARS" -ge 5000 ]; then
+  REVIEW_MIN=30
+else
+  REVIEW_MIN=50
+fi
+if [ "$REVIEW_RATE" -lt "$REVIEW_MIN" ]; then
+  reasons+=("review_rate=${REVIEW_RATE}% (<${REVIEW_MIN}%)")
+  fail "review rate ${REVIEW_RATE}% (<${REVIEW_MIN}%)" "repo_health_fail: review rate ${REVIEW_RATE}% below ${REVIEW_MIN}% minimum"
 fi
 if [ "$REVIEW_RATE" -ge 80 ]; then
   score=$((score + 3))
