@@ -46,8 +46,8 @@ fi
 
 # ─── 2. Size gate — reject massive diffs ───
 LINES_CHANGED=$(git diff HEAD --stat 2>/dev/null | tail -1 | grep -oE '[0-9]+ insertion|[0-9]+ deletion' | grep -oE '[0-9]+' | paste -sd+ - | bc 2>/dev/null || echo 0)
-if [ "$LINES_CHANGED" -gt 500 ]; then
-  fail "Diff too large (${LINES_CHANGED} lines changed, max 500)"
+if [ "$LINES_CHANGED" -gt 200 ]; then
+  fail "Diff too large (${LINES_CHANGED} lines changed, max 200). Smaller PRs merge 40% faster."
 fi
 
 # ─── 3. Commit changes ───
@@ -76,7 +76,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # ─── 6. Dedup check — no existing open PR for this issue ───
-EXISTING=$(gh pr list --repo "$REPO" --author BillionClaw --state open --json number,title --jq "[.[] | select(.title | test(\"#${ISSUE}|issue.${ISSUE}\"; \"i\"))] | length" 2>/dev/null || echo 0)
+EXISTING=$(gh pr list --repo "$REPO" --author BillionClaw --state open --json number,title --jq "[.[] | select(.title | test(\"#${ISSUE}\\\\b|issue[- ]?${ISSUE}\\\\b\"; \"i\"))] | length" 2>/dev/null || echo 0)
 if [ "$EXISTING" -gt 0 ]; then
   fail "Already have an open PR for issue #${ISSUE}"
 fi
@@ -93,7 +93,9 @@ $(git log --oneline "${DEFAULT_BRANCH}..${BRANCH}" 2>/dev/null | head -5)
 ## Testing
 
 - Ran existing test suite
-- Verified fix addresses the reported issue"
+- Verified fix addresses the reported issue
+
+> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper."
 
 # ─── 8. Apply anti-slop filter to PR body ───
 SLOP_WORDS="leverage|enhance|streamline|robust|comprehensive|cutting-edge|seamless|groundbreaking|paradigm|synergy|holistic|empower"

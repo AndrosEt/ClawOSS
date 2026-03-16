@@ -21,26 +21,41 @@ ENDJSON
 # ─── 1. Blocklist check (fastest, no API calls) ───
 TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
 if [ -f "$TRUST_FILE" ]; then
-  # Check deprioritized section for this repo
-  IN_DEPRIORITIZED=$(awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  # Check deprioritized section — handle backtick-wrapped names and plain names
+  IN_DEPRIORITIZED=$(awk '/^## Deprioritized/,/^$/' "$TRUST_FILE" | grep -i "${REPO}\|${OWNER}/${REPO_NAME}" || true)
   if [ -n "$IN_DEPRIORITIZED" ]; then
-    fail "Repo ${REPO} is in blocklist (deprioritized in trust-repos.md)"
+    # Check if skip date has expired
+    SKIP_DATE=$(echo "$IN_DEPRIORITIZED" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -1 || echo "")
+    IS_PERMANENT=$(echo "$IN_DEPRIORITIZED" | grep -ic "permanent" || echo 0)
+    if [ "$IS_PERMANENT" -gt 0 ]; then
+      fail "Repo ${REPO} is permanently blocklisted"
+    elif [ -n "$SKIP_DATE" ]; then
+      TODAY=$(date +%Y-%m-%d)
+      if [[ "$TODAY" < "$SKIP_DATE" ]]; then
+        fail "Repo ${REPO} is blocklisted until ${SKIP_DATE}"
+      fi
+      # Skip date expired — repo is no longer blocked
+    else
+      fail "Repo ${REPO} is in blocklist (deprioritized in trust-repos.md)"
+    fi
   fi
 fi
 
 # ─── 2. Repo health check ───
+HEALTH_RESULT='{"pass":true,"score":0,"metrics":{"stars":0}}'  # Default — overwritten below
 HEALTH_SCRIPT="$PROJECT_DIR/scripts/repo-health-check.sh"
 if [ -x "$HEALTH_SCRIPT" ]; then
-  HEALTH_RESULT=$(bash "$HEALTH_SCRIPT" "$REPO" 2>/dev/null)
-  HEALTH_EXIT=$?
-  if [ $HEALTH_EXIT -ne 0 ]; then
-    HEALTH_REASON=$(echo "$HEALTH_RESULT" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("reason","health check failed"))' 2>/dev/null || echo "health check failed")
+  HEALTH_RESULT=$(bash "$HEALTH_SCRIPT" "$REPO" 2>/dev/null || echo '{"pass":false,"reason":"script error"}')
+  HEALTH_PASS=$(echo "$HEALTH_RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pass",False))' 2>/dev/null || echo "False")
+  if [ "$HEALTH_PASS" != "True" ]; then
+    HEALTH_REASON=$(echo "$HEALTH_RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("reason","health check failed"))' 2>/dev/null || echo "health check failed")
     fail "Health check failed: $HEALTH_REASON"
   fi
 else
-  # Fallback: quick star check
+  # Fallback: quick star check (script not found/executable)
   STARS=$(gh api "repos/${REPO}" --jq '.stargazers_count' 2>/dev/null || echo 0)
   [ "$STARS" -lt 200 ] && fail "Stars ${STARS} below 200 minimum"
+  HEALTH_RESULT="{\"pass\":true,\"score\":5,\"metrics\":{\"stars\":${STARS}}}"
 fi
 
 # ─── 3. Already-fixed check ───

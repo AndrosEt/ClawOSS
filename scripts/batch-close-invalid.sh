@@ -66,26 +66,8 @@ for pr in prs:
             except:
                 pass
 
-    # Check if PR is stale (>14 days no activity, no reviews)
-    if not reason:
-        from datetime import datetime, timezone
-        updated = pr.get('updatedAt', '')
-        if updated:
-            try:
-                updated_dt = datetime.fromisoformat(updated.replace('Z', '+00:00'))
-                now = datetime.now(timezone.utc)
-                days_stale = (now - updated_dt).days
-                if days_stale > 14:
-                    try:
-                        r = subprocess.run(['gh', 'api', f'repos/{repo_name}/pulls/{number}/reviews',
-                                           '--jq', 'length'],
-                                          capture_output=True, text=True, timeout=10)
-                        if r.returncode == 0 and r.stdout.strip() == '0':
-                            reason = f'stale_{days_stale}_days_no_reviews'
-                    except:
-                        pass
-            except:
-                pass
+    # NOTE: Stale PRs are NOT closed (V10 never-close policy).
+    # Stale PRs get a bump comment from the PR Monitor subagent instead.
 
     if reason:
         if not dry_run:
