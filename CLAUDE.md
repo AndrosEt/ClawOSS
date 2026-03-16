@@ -41,6 +41,23 @@ ClawOSS is an autonomous OpenClaw agent configuration that discovers GitHub issu
 - Teammates must NEVER be shut down unless user explicitly requests it
 - Teammates actively cross-communicate via DMs
 
+## Research — ALWAYS Use DeepWiki
+When you have ANY question about OpenClaw internals (config, tools, APIs, hooks, sessions, heartbeat, compaction), use DeepWiki FIRST:
+```
+mcp__deepwiki__ask_question(repoName: "openclaw/openclaw", question: "your question")
+```
+Do NOT guess about OpenClaw behavior. Past incidents from guessing: wrong config keys, wrong tool names, broken gateway. DeepWiki has AI-summarized docs for the entire OpenClaw repo.
+
+Also use DeepWiki for any open-source repo you're integrating with or contributing to.
+
+## Prompts Are The Product
+The quality of ClawOSS output is 100% determined by its prompts. When strategy changes:
+- Update ALL prompt files immediately (openclaw.json heartbeat, HEARTBEAT.md, skills, templates)
+- HEARTBEAT.md must stay under 20000 chars (OpenClaw truncates at this limit)
+- AGENTS.md must stay under 20000 chars
+- After prompt changes, the agent hot-reloads config — use `openclaw config set` for heartbeat prompt updates
+- Review prompts regularly for cross-file consistency
+
 ## Model
 - Kimi Code k2p5 via direct API (`https://api.kimi.com/coding/`)
 - NOT OpenRouter (content filter blocks @ symbols in code)
