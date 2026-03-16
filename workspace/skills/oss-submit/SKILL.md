@@ -19,6 +19,7 @@ Before pushing anything, ask one final time:
 - Does the PR FULLY resolve the reported issue? If NO (partial fix) → ABANDON.
 - For bugs: does the fix address the root cause? If NO → go back and fix properly.
 - For docs/typos: is the corrected text factually accurate? If NO → verify against code.
+- For tests: do the tests meaningfully exercise the target code path? If NO → improve them.
 - Does the PR reference a specific issue? If NO → ABANDON.
 - Is the branch named `clawoss/{fix,docs,test,typo}/...`? If NO → fix it.
 

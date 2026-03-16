@@ -17,6 +17,7 @@ Confirm that this PR is a valid contribution, NOT a large feature or refactor:
 - **Does this FULLY resolve the issue?** A partial fix is not acceptable — abort and skip.
 - For bugs: does the fix address the root cause, not just the symptom?
 - For docs/typos: is the corrected text factually accurate (verified against code)?
+- For tests: do the tests meaningfully exercise the target code path?
 - Check commit messages: is the type correct? (`fix` for bugs, `docs` for docs/typos, `test` for tests)
 - **If this is a large feature addition, enhancement, or refactor: ABORT IMMEDIATELY.**
 - **If this is partial work that doesn't fully resolve the issue: ABORT.**
@@ -65,6 +66,7 @@ Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue des
 - **The work is complete — it fully resolves the reported issue, not just partially**
 - For bugs: the fix addresses the root cause, not just the surface symptom
 - For docs/typos: the corrected text is factually accurate
+- For tests: the tests are meaningful and follow repo conventions
 - Every changed line is necessary for resolving the reported issue
 
 ## On Failure
