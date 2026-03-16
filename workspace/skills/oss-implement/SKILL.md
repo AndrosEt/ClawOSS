@@ -39,23 +39,21 @@ For test additions: understand the code path being tested.
 - Identify the module/package structure and how components relate
 - Understand the data flow and execution model (sync/async, event-driven, etc.)
 
-**1b. Trace the bug through the full execution path:**
-- Start from the entry point (API handler, CLI command, event listener, etc.)
-- Follow the code path that leads to the reported error
-- Read EVERY function in the call chain, not just the file where the error occurs
-- Identify where the incorrect behavior diverges from the expected behavior
+**1b. Trace the relevant code path (bugs: mandatory; docs/typos/tests: read relevant modules):**
+- **Bugs**: Start from the entry point, follow the code path to the error, read EVERY function in the call chain
+- **Docs/typos**: Read the source code the documentation describes — verify what the actual behavior is
+- **Tests**: Read the module being tested, understand its public API and edge cases
 
-**1c. Identify the ROOT CAUSE:**
-- Why does the bug exist? (not just WHERE it manifests)
-- Is it a logic error, edge case, race condition, incorrect assumption, missing validation?
-- Could the same root cause affect other parts of the codebase?
-- Check for similar patterns elsewhere — use grep/search to find related code
+**1c. Identify what needs to change:**
+- **Bugs**: Why does the bug exist? Logic error, edge case, race condition, missing validation?
+  Could the same root cause affect other parts of the codebase? Check for similar patterns.
+- **Docs/typos**: What is the correct text? Verify against actual code behavior.
+- **Tests**: What code paths are untested? What edge cases matter?
 
 **1d. Plan the complete fix:**
 - What needs to change to fully resolve the issue?
 - If the fix requires touching multiple files across the codebase, that's fine — do it right
-- Will your fix handle all edge cases of this bug, or just the one reported?
-- **If the bug is too complex to fully resolve: ABANDON rather than submit a partial fix**
+- **If the issue is too complex to fully resolve: ABANDON rather than submit a partial fix**
 
 ### 2. REPRODUCE (mandatory for bugs — adapted for other types)
 **For bug fixes:**
@@ -74,14 +72,18 @@ For test additions: understand the code path being tested.
 - Write the new test targeting the identified code path
 - The test should pass with current code (unless it's a test for a known bug)
 
-### 3. IMPLEMENT (comprehensive root-cause fix)
-- Fix the ROOT CAUSE identified in Step 1, not just the surface symptom
-- If the fix correctly requires changes across multiple files, do it — a proper fix spanning 3 files is better than a hack in 1 file
+### 3. IMPLEMENT (type-appropriate fix)
+**For bug fixes:** Fix the ROOT CAUSE identified in Step 1, not just the surface symptom.
+**For docs/typos:** Apply the minimal correct change. Cross-check against actual code behavior.
+**For test additions:** Write tests following repo conventions. Ensure meaningful coverage.
+
+For all types:
+- If the fix correctly requires changes across multiple files, do it — do it right
 - Match existing code style exactly
 - **No "while I'm here" improvements** — do not refactor surrounding code
 - **No feature additions** — do not add new functionality even if it seems related
-- **No scope creep** — if you discover other bugs, file separate issues, do NOT fix them here
-- **But DO fix the reported bug completely** — a partial fix is worse than no fix
+- **No scope creep** — if you discover other issues, file them separately, do NOT fix them here
+- **DO resolve the reported issue completely** — a partial fix is worse than no fix
 
 ### 4. VERIFY — FULL CI MATRIX (a broken CI is WORSE than no PR)
 **4a. Read `.github/workflows/` FIRST** to understand the full CI matrix:
