@@ -10,7 +10,15 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 ## 0. Health Checks
 **0a. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >70%: flush to memory, /compact, re-read state. >50%: compact before next cycle.
 **0b. Circuit breakers**: Read wake-state.md. HEARTBEAT_OK if consecutive_wakes >= 50 or errors_this_hour >= 2.
-**0c. Dashboard self-check** (optional, skip if dashboard unreachable): `curl -s https://clawoss-dashboard.vercel.app/api/agent/health-check`. Read `directives` array — these are data-driven corrections (slow down, follow up first, avoid dead repos). Read `avoidRepos` — do NOT submit to these repos.
+**0c. Dashboard self-check** (run every cycle, skip if dashboard unreachable):
+```bash
+HEALTH=$(curl -s --max-time 5 https://clawoss-dashboard.vercel.app/api/agent/health-check)
+```
+Parse the response and OBEY all three fields:
+- `directives`: plain-English corrections (slow down, follow up first, avoid dead repos). Read and follow.
+- `avoidRepos`: repos with 2+ PRs and 0 merges — do NOT submit new PRs to any of these.
+- `reposWithOpenPRs`: repos where we already have open PRs — do NOT submit new PRs, focus on follow-ups instead.
+If curl fails or times out, proceed without dashboard data — the other gates still apply.
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
@@ -88,6 +96,7 @@ Count active sub-agents (sessions_list, exclude main + stale >30min).
   e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
   f. **TITLE REJECT**: Skip if title whole-word matches: `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`.
   g. **HEALTH GATE**: `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 1 = skip. Cache 7 days.
+  g2. **DASHBOARD BLOCKLIST**: If step 0c returned `avoidRepos`, skip any repo in that list. If step 0c returned `reposWithOpenPRs`, skip any repo in that list (focus on follow-ups instead).
   h. **SUPERSESSION CHECK**: Before spawning, quick-check if issue already has linked PRs or is assigned:
      `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'`
      If > 0: skip (someone else is already working on it).
