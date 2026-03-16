@@ -1,115 +1,114 @@
 #!/usr/bin/env bash
-# batch-fetch-pr-status.sh — Fetch all BillionClaw PRs with reviews, comments, CI status
-# Usage: batch-fetch-pr-status.sh [--open] [--closed] [--merged]
-# Default: --open only
-# Outputs JSON array with full status for each PR (classification, urgency, reviews, comments, CI)
-
-if [ "${1:-}" = "--help" ]; then
-  echo "Usage: batch-fetch-pr-status.sh [--open] [--closed] [--merged]"
-  echo "Fetches all BillionClaw PRs with reviews, comments, and CI status."
-  exit 0
-fi
+# batch-fetch-pr-status.sh — Fetch status of all open BillionClaw PRs
+# Usage: batch-fetch-pr-status.sh [--limit N] [--repo owner/repo]
+# Outputs JSON array with review state, comments, CI status for each PR
+# Exit 0 always
 
 PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
-SCRIPTS="$PROJECT_DIR/scripts"
-FETCH_OPEN=false
-FETCH_CLOSED=false
-FETCH_MERGED=false
+LIMIT=50
+FILTER_REPO=""
 
-# Parse args — default to --open if none specified
-if [ $# -eq 0 ]; then
-  FETCH_OPEN=true
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --limit) LIMIT="$2"; shift 2 ;;
+    --repo) FILTER_REPO="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+# ─── 1. Fetch all open PRs ───
+if [ -n "$FILTER_REPO" ]; then
+  PRS=$(gh pr list --repo "$FILTER_REPO" --author BillionClaw --state open --limit "$LIMIT" \
+    --json number,title,url,createdAt,updatedAt,headRefName,baseRefName,reviewDecision,isDraft,labels \
+    2>/dev/null || echo "[]")
 else
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --open) FETCH_OPEN=true; shift ;;
-      --closed) FETCH_CLOSED=true; shift ;;
-      --merged) FETCH_MERGED=true; shift ;;
-      *) shift ;;
-    esac
-  done
+  PRS=$(gh search prs --author BillionClaw --state open --limit "$LIMIT" \
+    --json repository,number,title,url,createdAt,updatedAt \
+    2>/dev/null || echo "[]")
 fi
 
-# ─── 1. Fetch PR list ───
-PRS="[]"
-if [ "$FETCH_OPEN" = true ]; then
-  OPEN_PRS=$(gh search prs --author BillionClaw --state open --limit 50 \
-    --json repository,number,title,url,updatedAt,createdAt 2>/dev/null || echo '[]')
-  PRS=$(echo "$PRS $OPEN_PRS" | python3 -c "
-import json, sys
-parts = sys.stdin.read().split(']')
-result = []
-for p in parts:
-    p = p.strip().lstrip('[').strip()
-    if p:
-        try: result.extend(json.loads('[' + p + ']'))
-        except: pass
-print(json.dumps(result))
-" 2>/dev/null || echo '[]')
-fi
-
-if [ "$FETCH_CLOSED" = true ]; then
-  CLOSED_PRS=$(gh search prs --author BillionClaw --state closed --limit 50 \
-    --json repository,number,title,url,updatedAt,createdAt 2>/dev/null || echo '[]')
-  PRS=$(python3 -c "
-import json
-a = json.loads('$PRS')
-b = json.loads('''$CLOSED_PRS''')
-print(json.dumps(a + b))
-" 2>/dev/null || echo "$PRS")
-fi
-
-if [ "$FETCH_MERGED" = true ]; then
-  MERGED_PRS=$(gh search prs --author BillionClaw --merged --limit 50 \
-    --json repository,number,title,url,updatedAt,createdAt 2>/dev/null || echo '[]')
-  PRS=$(python3 -c "
-import json
-a = json.loads('$PRS')
-b = json.loads('''$MERGED_PRS''')
-print(json.dumps(a + b))
-" 2>/dev/null || echo "$PRS")
-fi
-
-# ─── 2. For each PR, get full status via scan-pr-reviews.sh ───
-PR_COUNT=$(echo "$PRS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
+PR_COUNT=$(echo "$PRS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
 
 if [ "$PR_COUNT" -eq 0 ]; then
-  echo '[]'
+  echo '{"prs": [], "count": 0, "needs_action": []}'
   exit 0
 fi
 
-# Process each PR — extract repo and number, call scan script
-echo "$PRS" | python3 -c "
-import json, sys, subprocess, os
+# ─── 2. Enrich each PR with review/comment data ───
+ENRICHED=$(python3 << 'PYEOF'
+import json, sys, subprocess
 
-prs = json.load(sys.stdin)
-scripts_dir = os.environ.get('PROJECT_DIR', '/Users/kevinlin/clawOSS') + '/scripts'
+prs_raw = sys.stdin.read()
+prs = json.loads(prs_raw)
 results = []
+needs_action = []
+filter_repo = "$FILTER_REPO" if "$FILTER_REPO" else ""
 
 for pr in prs:
     repo = pr.get('repository', {})
-    repo_name = repo.get('nameWithOwner', '') if isinstance(repo, dict) else str(repo)
-    number = pr.get('number', 0)
+    if isinstance(repo, dict):
+        repo_name = repo.get('nameWithOwner', '')
+    else:
+        repo_name = filter_repo
 
+    number = pr.get('number', 0)
     if not repo_name or not number:
         continue
 
+    # Fetch reviews
     try:
-        result = subprocess.run(
-            ['bash', f'{scripts_dir}/scan-pr-reviews.sh', repo_name, str(number)],
-            capture_output=True, text=True, timeout=30
+        rev_out = subprocess.run(
+            ['gh', 'api', f'repos/{repo_name}/pulls/{number}/reviews', '--jq',
+             '[.[] | {state: .state, user: .user.login, submitted_at: .submitted_at}]'],
+            capture_output=True, text=True, timeout=15
         )
-        scan = json.loads(result.stdout) if result.stdout.strip() else {}
-    except Exception as e:
-        scan = {'error': str(e)}
+        reviews = json.loads(rev_out.stdout) if rev_out.returncode == 0 else []
+    except:
+        reviews = []
 
-    scan['title'] = pr.get('title', '')
-    scan['url'] = pr.get('url', '')
-    scan['created_at'] = pr.get('createdAt', '')
-    scan['updated_at'] = pr.get('updatedAt', '')
-    results.append(scan)
+    # Fetch latest comments
+    try:
+        com_out = subprocess.run(
+            ['gh', 'api', f'repos/{repo_name}/issues/{number}/comments',
+             '--jq', '[.[-5:] | .[] | {user: .user.login, created_at: .created_at, body: .body[:200]}]'],
+            capture_output=True, text=True, timeout=15
+        )
+        comments = json.loads(com_out.stdout) if com_out.returncode == 0 else []
+    except:
+        comments = []
 
-print(json.dumps(results, indent=2))
-" 2>/dev/null || echo '[]'
+    # Classify action needed
+    action = 'none'
+    review_states = [r['state'] for r in reviews]
+    if 'CHANGES_REQUESTED' in review_states:
+        action = 'address_review'
+    elif 'APPROVED' in review_states:
+        action = 'ready_to_merge'
+    elif comments and comments[-1].get('user', '') != 'BillionClaw':
+        action = 'respond_to_comment'
 
+    entry = {
+        'repo': repo_name,
+        'number': number,
+        'title': pr.get('title', ''),
+        'url': pr.get('url', ''),
+        'created_at': pr.get('createdAt', ''),
+        'reviews': reviews[-3:],
+        'latest_comments': comments[-3:],
+        'action_needed': action
+    }
+    results.append(entry)
+    if action != 'none':
+        needs_action.append({'repo': repo_name, 'number': number, 'action': action})
+
+print(json.dumps({'prs': results, 'count': len(results), 'needs_action': needs_action}, indent=2))
+PYEOF
+ <<< "$PRS" 2>/dev/null)
+
+if [ -z "$ENRICHED" ]; then
+  echo '{"prs": [], "count": 0, "needs_action": [], "error": "enrichment failed"}'
+  exit 0
+fi
+
+echo "$ENRICHED"
 exit 0

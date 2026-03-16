@@ -1,200 +1,124 @@
 #!/usr/bin/env bash
-# compute-merge-probability.sh — Compute P(merge) 0-100 using V10 weighted formula
-# Usage: ./compute-merge-probability.sh owner/repo [issue_number] [--type bug|docs|typo|test] [--size small|medium|large]
-# Outputs JSON: {"score": 65, "breakdown": {...}, "recommendation": "proceed|skip"}
-# Exit 0 always (score in JSON)
+# compute-merge-probability.sh — Calculate P(merge) score for an issue/repo pair
+# Usage: compute-merge-probability.sh <owner/repo> <issue_number> [--type fix|docs|test|typo]
+# Outputs JSON with score 0-100 and component breakdown
+# Exit 0 always (score=0 means skip)
 
-if [ "${1:-}" = "--help" ]; then
-  echo "Usage: compute-merge-probability.sh <owner/repo> [issue_number] [--type bug|docs|typo|test] [--size small|medium|large]"
-  echo "Outputs JSON with P(merge) score 0-100"
-  exit 0
-fi
-if [ $# -lt 1 ]; then
-  echo "Usage: compute-merge-probability.sh <owner/repo> [issue_number]" >&2
-  exit 1
-fi
+REPO="${1:?Usage: compute-merge-probability.sh <owner/repo> <issue_number> [--type TYPE]}"
+ISSUE="${2:?Usage: compute-merge-probability.sh <owner/repo> <issue_number>}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+TYPE="fix"
 
-REPO="$1"
-ISSUE="${2:-}"
-TYPE="bug"
-SIZE="medium"
-WORKSPACE_DIR="${WORKSPACE_DIR:-/Users/kevinlin/clawOSS/workspace}"
-
-# Parse optional flags
-shift
-shift 2>/dev/null || true
+shift 2
 while [ $# -gt 0 ]; do
   case "$1" in
     --type) TYPE="$2"; shift 2 ;;
-    --size) SIZE="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
 
-# Date calculations
-if date -v-1d +%Y-%m-%d &>/dev/null; then
-  THREE_DAYS_AGO=$(date -v-3d +%Y-%m-%dT00:00:00Z)
-  SEVEN_DAYS_AGO=$(date -v-7d +%Y-%m-%dT00:00:00Z)
-  FOURTEEN_DAYS_AGO=$(date -v-14d +%Y-%m-%dT00:00:00Z)
-  THIRTY_DAYS_AGO=$(date -v-30d +%Y-%m-%dT00:00:00Z)
-else
-  THREE_DAYS_AGO=$(date -d "3 days ago" +%Y-%m-%dT00:00:00Z)
-  SEVEN_DAYS_AGO=$(date -d "7 days ago" +%Y-%m-%dT00:00:00Z)
-  FOURTEEN_DAYS_AGO=$(date -d "14 days ago" +%Y-%m-%dT00:00:00Z)
-  THIRTY_DAYS_AGO=$(date -d "30 days ago" +%Y-%m-%dT00:00:00Z)
-fi
+OWNER="${REPO%%/*}"
+REPO_NAME="${REPO##*/}"
 
-# --- Factor 1: task_type_score (weight: 15) ---
+# Weights: 15% task_type + 20% size + 15% responsiveness + 25% trust + 10% freshness + 10% contributor_fit + 5% competition
+W_TYPE=15 W_SIZE=20 W_RESPONSIVE=15 W_TRUST=25 W_FRESH=10 W_FIT=10 W_COMP=5
+
+# ─── 1. Task type score (0-100) ───
 case "$TYPE" in
-  docs|typo|documentation) task_type=100 ;;
-  test) task_type=75 ;;
-  bug|fix) task_type=50 ;;
-  *) task_type=0 ;;
+  docs|typo) S_TYPE=90 ;;
+  test)      S_TYPE=80 ;;
+  fix)       S_TYPE=70 ;;
+  *)         S_TYPE=50 ;;
 esac
-task_type_weighted=$(( task_type * 15 / 100 ))
 
-# --- Factor 2: size_score (weight: 20) ---
-case "$SIZE" in
-  small) size_val=100 ;;    # <30 LOC
-  medium) size_val=70 ;;    # 30-100 LOC
-  large) size_val=30 ;;     # 100-200 LOC
-  *) size_val=0 ;;          # >200 LOC
-esac
-size_weighted=$(( size_val * 20 / 100 ))
-
-# --- Factor 3: repo_responsiveness (weight: 15) ---
-# Check avg merge time from recent merged PRs
-AVG_MERGE_DAYS=14  # default
-MERGED_DATA=$(gh pr list --repo "$REPO" --state merged --limit 10 --json createdAt,mergedAt 2>/dev/null || echo "[]")
-if [ "$MERGED_DATA" != "[]" ] && [ -n "$MERGED_DATA" ]; then
-  # Count merged PRs to check if any exist
-  MERGE_COUNT=$(echo "$MERGED_DATA" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
-  if [ "$MERGE_COUNT" -gt 0 ] 2>/dev/null; then
-    AVG_MERGE_DAYS=$(echo "$MERGED_DATA" | python3 -c "
-import json, sys
-from datetime import datetime
-prs = json.load(sys.stdin)
-total = 0
-count = 0
-for pr in prs:
-    try:
-        created = datetime.fromisoformat(pr['createdAt'].replace('Z', '+00:00'))
-        merged = datetime.fromisoformat(pr['mergedAt'].replace('Z', '+00:00'))
-        total += (merged - created).days
-        count += 1
-    except: pass
-print(total // count if count > 0 else 14)
-" 2>/dev/null || echo 14)
-  fi
-fi
-
-if [ "$AVG_MERGE_DAYS" -le 3 ] 2>/dev/null; then
-  resp_val=100
-elif [ "$AVG_MERGE_DAYS" -le 7 ] 2>/dev/null; then
-  resp_val=70
-elif [ "$AVG_MERGE_DAYS" -le 14 ] 2>/dev/null; then
-  resp_val=30
+# ─── 2. Size estimate from issue body length (0-100, smaller = better) ───
+BODY_LEN=$(gh api "repos/${REPO}/issues/${ISSUE}" --jq '.body | length' 2>/dev/null || echo 500)
+if [ "$BODY_LEN" -lt 200 ]; then
+  S_SIZE=90
+elif [ "$BODY_LEN" -lt 1000 ]; then
+  S_SIZE=70
+elif [ "$BODY_LEN" -lt 3000 ]; then
+  S_SIZE=50
 else
-  resp_val=0
+  S_SIZE=30
 fi
-resp_weighted=$(( resp_val * 15 / 100 ))
 
-# --- Factor 4: trust_score (weight: 25) ---
-trust_val=30  # default: new repo
-TRUST_FILE="${WORKSPACE_DIR}/memory/trust-repos.md"
+# ─── 3. Repo responsiveness (0-100) ───
+AVG_COMMENTS=$(gh api "repos/${REPO}/issues?state=closed&per_page=5&sort=updated" --jq '[.[].comments] | add / length' 2>/dev/null || echo 0)
+if [ "$(echo "$AVG_COMMENTS > 3" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+  S_RESPONSIVE=85
+elif [ "$(echo "$AVG_COMMENTS > 1" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+  S_RESPONSIVE=65
+elif [ "$(echo "$AVG_COMMENTS > 0" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+  S_RESPONSIVE=40
+else
+  S_RESPONSIVE=20
+fi
+
+# ─── 4. Trust score (0-100) ───
+TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
+S_TRUST=50
 if [ -f "$TRUST_FILE" ]; then
-  # Check if repo is in Tier 1 (proven — merged before)
-  if grep -qi "Tier 1" "$TRUST_FILE" 2>/dev/null && grep -qi "$REPO" <(sed -n '/Tier 1/,/Tier 2/p' "$TRUST_FILE" 2>/dev/null); then
-    trust_val=100
-  # Check if repo is in Tier 2 (engaged — positive interaction)
-  elif grep -qi "Tier 2" "$TRUST_FILE" 2>/dev/null && grep -qi "$REPO" <(sed -n '/Tier 2/,/Tier 3/p' "$TRUST_FILE" 2>/dev/null); then
-    trust_val=70
-  # Check if repo is in Deprioritized/blocklist
-  elif grep -qi "Deprioritized\|Blocklist" "$TRUST_FILE" 2>/dev/null && grep -qi "$REPO" <(sed -n '/Deprioritized\|Blocklist/,$p' "$TRUST_FILE" 2>/dev/null); then
-    trust_val=0
+  TRUST_LINE=$(awk '/^## Active/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  if [ -n "$TRUST_LINE" ]; then
+    TRUST_VAL=$(echo "$TRUST_LINE" | grep -oE '\| *[0-9]+(\.[0-9]+)? *\|' | head -1 | grep -oE '[0-9]+' | head -1)
+    S_TRUST=$(( ${TRUST_VAL:-7} * 10 ))
+    [ "$S_TRUST" -gt 100 ] && S_TRUST=100
   fi
-fi
-trust_weighted=$(( trust_val * 25 / 100 ))
-
-# --- Factor 5: freshness (weight: 10) ---
-fresh_val=50  # default
-if [ -n "$ISSUE" ]; then
-  CREATED_AT=$(gh api "repos/${REPO}/issues/${ISSUE}" --jq '.created_at' 2>/dev/null || echo "")
-  if [ -n "$CREATED_AT" ]; then
-    DAYS_OLD=$(python3 -c "
-from datetime import datetime, timezone
-created = datetime.fromisoformat('${CREATED_AT}'.replace('Z', '+00:00'))
-now = datetime.now(timezone.utc)
-print((now - created).days)
-" 2>/dev/null || echo 7)
-    if [ "$DAYS_OLD" -le 1 ] 2>/dev/null; then
-      fresh_val=100
-    elif [ "$DAYS_OLD" -le 3 ] 2>/dev/null; then
-      fresh_val=80
-    elif [ "$DAYS_OLD" -le 7 ] 2>/dev/null; then
-      fresh_val=50
-    elif [ "$DAYS_OLD" -le 14 ] 2>/dev/null; then
-      fresh_val=20
-    else
-      fresh_val=0
-    fi
-  fi
-fi
-fresh_weighted=$(( fresh_val * 10 / 100 ))
-
-# --- Factor 6: contributor_fit (weight: 10) ---
-fit_val=30  # default: no labels
-if [ -n "$ISSUE" ]; then
-  LABELS=$(gh api "repos/${REPO}/issues/${ISSUE}" --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
-  if echo "$LABELS" | grep -qi "help-wanted"; then
-    fit_val=100
-  elif echo "$LABELS" | grep -qi "good-first-issue"; then
-    fit_val=80
-  elif echo "$LABELS" | grep -qi "bug\|defect\|regression"; then
-    fit_val=50
-  fi
-fi
-fit_weighted=$(( fit_val * 10 / 100 ))
-
-# --- Factor 7: competition_score (weight: 5) ---
-comp_val=100  # default: no competition
-if [ -n "$ISSUE" ]; then
-  COMPETING=$(gh api "repos/${REPO}/issues/${ISSUE}/timeline" --paginate \
-    --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length' 2>/dev/null || echo 0)
-  if [ "$COMPETING" -ge 2 ] 2>/dev/null; then
-    comp_val=0
-  elif [ "$COMPETING" -eq 1 ] 2>/dev/null; then
-    comp_val=30
-  fi
-fi
-comp_weighted=$(( comp_val * 5 / 100 ))
-
-# --- Compute total P(merge) ---
-TOTAL=$(( task_type_weighted + size_weighted + resp_weighted + trust_weighted + fresh_weighted + fit_weighted + comp_weighted ))
-
-# Recommendation
-if [ "$TOTAL" -ge 60 ]; then
-  RECOMMENDATION="proceed_priority"
-elif [ "$TOTAL" -ge 30 ]; then
-  RECOMMENDATION="proceed"
-else
-  RECOMMENDATION="skip"
+  DEPRI=$(awk '/^## Deprioritized/,/^## /' "$TRUST_FILE" | grep -i "${OWNER}/${REPO_NAME}" || true)
+  [ -n "$DEPRI" ] && S_TRUST=5
 fi
 
-# Output JSON
-cat <<EOF
+# ─── 5. Freshness score (0-100) ───
+CREATED_AT=$(gh api "repos/${REPO}/issues/${ISSUE}" --jq '.created_at' 2>/dev/null || echo "")
+S_FRESH=50
+if [ -n "$CREATED_AT" ]; then
+  CREATED_TS=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$CREATED_AT" +%s 2>/dev/null || date -d "$CREATED_AT" +%s 2>/dev/null || echo 0)
+  NOW_TS=$(date +%s)
+  AGE_DAYS=$(( (NOW_TS - CREATED_TS) / 86400 ))
+  if [ "$AGE_DAYS" -lt 3 ]; then S_FRESH=95
+  elif [ "$AGE_DAYS" -lt 7 ]; then S_FRESH=80
+  elif [ "$AGE_DAYS" -lt 14 ]; then S_FRESH=60
+  elif [ "$AGE_DAYS" -lt 30 ]; then S_FRESH=40
+  else S_FRESH=15; fi
+fi
+
+# ─── 6. Contributor fit (0-100) ───
+PREV_PRS=$(gh search prs --author BillionClaw --repo "$REPO" --merged --json number --jq 'length' 2>/dev/null || echo 0)
+if [ "$PREV_PRS" -gt 2 ]; then S_FIT=95
+elif [ "$PREV_PRS" -gt 0 ]; then S_FIT=80
+else S_FIT=50; fi
+
+# ─── 7. Competition (0-100) ───
+OPEN_PRS=$(gh api "repos/${REPO}/issues/${ISSUE}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length' 2>/dev/null || echo 0)
+if [ "$OPEN_PRS" -eq 0 ]; then S_COMP=95
+elif [ "$OPEN_PRS" -eq 1 ]; then S_COMP=40
+else S_COMP=10; fi
+
+# ─── Calculate weighted score ───
+SCORE=$(python3 -c "
+t=$S_TYPE; sz=$S_SIZE; r=$S_RESPONSIVE; tr=$S_TRUST; f=$S_FRESH; ft=$S_FIT; c=$S_COMP
+wt=$W_TYPE; wsz=$W_SIZE; wr=$W_RESPONSIVE; wtr=$W_TRUST; wf=$W_FRESH; wft=$W_FIT; wc=$W_COMP
+score = (t*wt + sz*wsz + r*wr + tr*wtr + f*wf + ft*wft + c*wc) / 100
+print(round(score))
+" 2>/dev/null || echo 50)
+
+cat <<ENDJSON
 {
-  "score": ${TOTAL},
-  "recommendation": "${RECOMMENDATION}",
-  "threshold": 30,
-  "breakdown": {
-    "task_type": {"raw": ${task_type}, "weighted": ${task_type_weighted}, "weight": 15, "input": "${TYPE}"},
-    "size": {"raw": ${size_val}, "weighted": ${size_weighted}, "weight": 20, "input": "${SIZE}"},
-    "repo_responsiveness": {"raw": ${resp_val}, "weighted": ${resp_weighted}, "weight": 15, "avg_merge_days": ${AVG_MERGE_DAYS}},
-    "trust": {"raw": ${trust_val}, "weighted": ${trust_weighted}, "weight": 25},
-    "freshness": {"raw": ${fresh_val}, "weighted": ${fresh_weighted}, "weight": 10},
-    "contributor_fit": {"raw": ${fit_val}, "weighted": ${fit_weighted}, "weight": 10},
-    "competition": {"raw": ${comp_val}, "weighted": ${comp_weighted}, "weight": 5}
-  }
+  "score": $SCORE,
+  "repo": "$REPO",
+  "issue": $ISSUE,
+  "type": "$TYPE",
+  "components": {
+    "task_type": {"score": $S_TYPE, "weight": $W_TYPE},
+    "size": {"score": $S_SIZE, "weight": $W_SIZE},
+    "responsiveness": {"score": $S_RESPONSIVE, "weight": $W_RESPONSIVE},
+    "trust": {"score": $S_TRUST, "weight": $W_TRUST},
+    "freshness": {"score": $S_FRESH, "weight": $W_FRESH},
+    "contributor_fit": {"score": $S_FIT, "weight": $W_FIT},
+    "competition": {"score": $S_COMP, "weight": $W_COMP}
+  },
+  "recommendation": $(python3 -c "s=$SCORE; print('\"strong_yes\"' if s>=75 else '\"yes\"' if s>=55 else '\"maybe\"' if s>=35 else '\"skip\"')" 2>/dev/null || echo '"unknown"')
 }
-EOF
+ENDJSON
+exit 0
