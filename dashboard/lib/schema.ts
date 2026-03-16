@@ -29,6 +29,7 @@ export const pullRequests = sqliteTable("pull_requests", {
   prType: text("pr_type", {
     enum: ["bug_fix", "docs", "typo", "dep_update", "test", "dead_code", "feature", "refactor", "other"],
   }),
+  mergeProbability: integer("merge_probability"),
   metadata: text("metadata", { mode: "json" }),
 });
 

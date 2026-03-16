@@ -13,6 +13,7 @@ import { PRTypeBreakdown } from "@/components/overview/pr-type-breakdown";
 import { PRSizeHistogram } from "@/components/overview/pr-size-histogram";
 import { AutonomyHealthPanel } from "@/components/overview/autonomy-health-panel";
 import { PostMergeHealthPanel } from "@/components/overview/post-merge-health-panel";
+import { MergeProbabilityPanel } from "@/components/overview/merge-probability-panel";
 import { VelocityTimeline } from "@/components/overview/velocity-timeline";
 import { ResponseTimePanel } from "@/components/overview/response-time-panel";
 import { AlertsBanner } from "@/components/overview/alerts-banner";
@@ -166,6 +167,11 @@ export default function OverviewPage() {
         <div className="grid gap-5 lg:grid-cols-2">
           <AutonomyHealthPanel />
           <PostMergeHealthPanel />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <MergeProbabilityPanel />
+          <div /> {/* Placeholder for direction analysis panel (V10 Phase 2) */}
         </div>
 
         <ActionItemsPanel />

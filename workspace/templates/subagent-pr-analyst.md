@@ -5,7 +5,7 @@ Deep analysis of the entire BillionClaw PR portfolio — historical patterns, fa
 merge predictions, trust scoring, strategy recommendations. This is the "intelligence" layer
 that learns from past outcomes and feeds strategy back to the main agent.
 
-Runs once daily, spawned by the main agent. Uses 1 of the 5 impl/followup slots temporarily.
+Runs once daily, spawned by the main agent. Uses 1 of the 8 impl/followup slots temporarily.
 
 ## Spawn Config
 ```
@@ -149,6 +149,46 @@ Last updated: {date}
 |------|--------|------------|----------|
 | owner/repo | hostile: "no bot PRs please" | 2026-03-17 | PR #123 comment |
 ```
+
+### Step 7b: P(merge) Model Calibration
+
+Compute actual merge rates by each P(merge) factor to validate and improve the model weights:
+
+```
+P(merge) formula:
+  + 25 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
+  + 20 * size_score              # <30 LOC=1.0, 30-100=0.7, 100-200=0.3, >200=0
+  + 15 * repo_responsiveness     # merge<3d=1.0, 3-7d=0.7, 7-14d=0.3, >14d=0
+  + 15 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
+  + 10 * freshness               # <1d=1.0, 1-3d=0.8, 3-7d=0.5, 7-14d=0.2, >14d=0
+  + 10 * contributor_fit         # help-wanted=1.0, good-first-issue=0.8, bug=0.5, none=0.3
+  + 5  * competition_score       # no other PRs=1.0, 1 competing=0.3, 2+=0
+```
+
+For each factor, compute actual merge rate from our data:
+- **Task type**: What % of docs PRs merged vs bug fix PRs?
+- **Size**: What % of <30 LOC PRs merged vs 100+ LOC?
+- **Responsiveness**: What % merged at fast-review repos vs slow?
+- **Trust**: What % merged at repos we've contributed to before vs new?
+
+Write calibration data to `memory/pr-strategy.md` under "## P(merge) Calibration":
+```markdown
+## P(merge) Calibration
+Last calibrated: {date}
+Data points: {n} PRs
+
+| Factor | Expected Weight | Actual Correlation | Recommended Adjustment |
+|--------|----------------|-------------------|----------------------|
+| task_type | 25% | {actual}% | {up/down/keep} |
+| size | 20% | {actual}% | {up/down/keep} |
+| repo_responsiveness | 15% | {actual}% | {up/down/keep} |
+| trust | 15% | {actual}% | {up/down/keep} |
+| freshness | 10% | {actual}% | {up/down/keep} |
+| contributor_fit | 10% | {actual}% | {up/down/keep} |
+| competition | 5% | {actual}% | {up/down/keep} |
+```
+
+With only 3 merges from 63 PRs, calibration data is sparse. As more PRs merge, this becomes increasingly valuable — the model self-improves over time.
 
 ### Step 8: Strategy Recommendations
 

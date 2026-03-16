@@ -230,9 +230,33 @@ Score each issue 1-25:
 
 Minimum score 5 to attempt.
 
+## P(merge) — Merge Probability Score (0-100)
+
+After computing the quality score above, also compute a weighted merge probability estimate.
+This is used for prioritization — higher P(merge) issues get spawned first.
+
+```
+P(merge) =
+  + 25 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
+  + 20 * size_score              # estimated: <30 LOC=1.0, 30-100=0.7, 100-200=0.3, >200=0
+  + 15 * repo_responsiveness     # merge<3d=1.0, 3-7d=0.7, 7-14d=0.3, >14d=0
+  + 15 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
+  + 10 * freshness               # <1d=1.0, 1-3d=0.8, 3-7d=0.5, 7-14d=0.2, >14d=0
+  + 10 * contributor_fit         # help-wanted=1.0, good-first-issue=0.8, bug=0.5, none=0.3
+  + 5  * competition_score       # no other PRs=1.0, 1 competing=0.3, 2+=0
+```
+
+**Size estimation**: Estimate from issue complexity — docs/typo fixes are almost always <30 LOC.
+Bug fixes: use the complexity assessment from Step 3 (Simple=<30, Medium=30-100, Complex=100-200).
+
+**Threshold**: P(merge) >= 30 to attempt. Below 30 is not worth the API cost.
+Issues with P(merge) >= 60 get priority spawning (pass to HEARTBEAT as `priority: high`).
+
+Include P(merge) in the output alongside the quality score.
+
 ## Decision
-- **Attempt**: Score >= 5, in healthy repo (merge time < 14d, review rate > 50%), created recently (< 2 weeks), clear scope, can be fully resolved
-- **Skip**: Score < 5, unhealthy repo, stale (> 30 days), too complex, unclear scope
+- **Attempt**: Score >= 5 AND P(merge) >= 30, in healthy repo (merge time < 14d, review rate > 50%), created recently (< 2 weeks), clear scope, can be fully resolved
+- **Skip**: Score < 5 OR P(merge) < 30, unhealthy repo, stale (> 30 days), too complex, unclear scope
 - **Defer**: Medium issues that need more context — revisit only if < 2 weeks old
 
 ## Output
@@ -242,6 +266,8 @@ Write triage assessment to memory with:
 - Repo health metrics: merge velocity, review rate, open PR count, stars
 - Issue age and recency assessment
 - Completeness assessment: can this be fully resolved? (yes/no/uncertain)
-- **Merge-optimized quality score** with breakdown
+- **Merge-optimized quality score** (1-25) with breakdown
+- **P(merge) score** (0-100) with factor breakdown
 - Recommended action (attempt/skip/defer)
+- Priority level: `high` if P(merge) >= 60, `normal` otherwise
 - Reasoning for the decision

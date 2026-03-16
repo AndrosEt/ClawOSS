@@ -26,6 +26,23 @@ function QualityDot({ score }: { score: number }) {
   );
 }
 
+function PMergeBadge({ score }: { score: number }) {
+  const color =
+    score >= 70
+      ? "text-emerald-400 border-emerald-500/25"
+      : score >= 40
+        ? "text-amber-400 border-amber-500/25"
+        : "text-red-400 border-red-500/25";
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 px-1 py-0 rounded border text-[9px] font-mono tabular-nums ${color}`}
+      title={`P(merge): ${score}`}
+    >
+      P{score}
+    </span>
+  );
+}
+
 export function RecentPRsList({ prs, limit = 5 }: RecentPRsListProps) {
   const displayed = prs.slice(0, limit);
 
@@ -80,6 +97,9 @@ export function RecentPRsList({ prs, limit = 5 }: RecentPRsListProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {pr.mergeProbability != null && (
+                    <PMergeBadge score={pr.mergeProbability} />
+                  )}
                   <Badge variant="outline" className={`text-[10px] font-mono ${statusColors[pr.status] || ""}`}>
                     {pr.status}
                   </Badge>

@@ -122,6 +122,7 @@ async function initSchema(): Promise<void> {
   // Migrations: add columns that may not exist on older DBs
   const migrations = [
     `ALTER TABLE pull_requests ADD COLUMN pr_type TEXT`,
+    `ALTER TABLE pull_requests ADD COLUMN merge_probability INTEGER`,
   ];
   for (const m of migrations) {
     try { await client.execute(m); } catch { /* column already exists */ }

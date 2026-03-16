@@ -138,6 +138,7 @@ export async function GET() {
         repo: pullRequests.repo,
         status: pullRequests.status,
         qualityScore: pullRequests.qualityScore,
+        mergeProbability: pullRequests.mergeProbability,
         createdAt: pullRequests.createdAt,
       })
       .from(pullRequests)

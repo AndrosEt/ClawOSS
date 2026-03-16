@@ -6,12 +6,37 @@ import { pullRequests, prReviews } from "@/lib/schema";
 import { eq, sql, gte } from "drizzle-orm";
 
 /**
+ * Hard blocklist — repos where submitting PRs risks bans or reputation damage.
+ * These override ALL other logic (including approved PRs).
+ * Source: collab_space/v9-closed-pr-failure-analysis.md
+ */
+const HARD_BLOCKLIST: { repo: string; reason: string }[] = [
+  { repo: "run-llama/llama_index", reason: "Maintainer threatened to BAN BillionClaw (PR #21031). 47K-star repo in LLM niche — ban visible to ecosystem." },
+  { repo: "JosefNemec/Playnite", reason: "Maintainer called PR 'vibe coded slop' — AI hostile." },
+  { repo: "micro-editor/micro", reason: "Maintainer commented 'AI slop' — hostile to AI contributions." },
+  { repo: "qdrant/qdrant", reason: "AI disclosure policy violation flagged by maintainer." },
+];
+
+/**
+ * Org-level blocklist — entire GitHub orgs to avoid.
+ * Matched by repo prefix (e.g., "apache/" matches "apache/arrow", "apache/mahout", etc.)
+ */
+const BLOCKED_ORGS = ["apache/"];
+
+function isBlocklisted(repo: string): boolean {
+  if (HARD_BLOCKLIST.some((b) => b.repo === repo)) return true;
+  if (BLOCKED_ORGS.some((org) => repo.startsWith(org))) return true;
+  return false;
+}
+
+/**
  * GET /api/agent/health-check
  *
  * Lightweight health check endpoint designed for the ClawOSS agent
  * to call before each heartbeat cycle. Returns a simple JSON with:
  * - Current stats
- * - Blocked repos (avoid list)
+ * - Blocked repos (avoid list + hard blocklist)
+ * - Approved PRs ready to merge (excluding blocklisted repos)
  * - Top action items (what to fix in this cycle)
  *
  * The agent can use this to self-correct without human intervention.
@@ -67,6 +92,23 @@ export async function GET() {
       .where(eq(pullRequests.status, "closed"));
     const closed = closedResult[0]?.count || 0;
 
+    // Average merge probability (V10 scoring)
+    let avgMergeProbability: number | null = null;
+    try {
+      const mpResult = await db
+        .select({
+          avg: sql<number>`round(avg(${pullRequests.mergeProbability}))`,
+          count: sql<number>`count(${pullRequests.mergeProbability})`,
+        })
+        .from(pullRequests)
+        .where(sql`${pullRequests.mergeProbability} IS NOT NULL`);
+      if (mpResult[0]?.count > 0) {
+        avgMergeProbability = mpResult[0].avg;
+      }
+    } catch {
+      // column might not exist yet
+    }
+
     // Approved PRs ready to merge (highest priority action)
     let approvedPRs: { repo: string; number: number; title: string; htmlUrl: string | null }[] = [];
     try {
@@ -91,16 +133,34 @@ export async function GET() {
           .from(pullRequests)
           .where(eq(pullRequests.status, "open"));
 
-        approvedPRs = openApproved.filter((pr) => approvedPrIds.includes(pr.id)).map((pr) => ({
-          repo: pr.repo,
-          number: pr.number,
-          title: pr.title,
-          htmlUrl: pr.htmlUrl,
-        }));
+        approvedPRs = openApproved
+          .filter((pr) => approvedPrIds.includes(pr.id))
+          .filter((pr) => !isBlocklisted(pr.repo)) // Never tell agent to merge at blocklisted repos
+          .map((pr) => ({
+            repo: pr.repo,
+            number: pr.number,
+            title: pr.title,
+            htmlUrl: pr.htmlUrl,
+          }));
       }
     } catch {
       // non-critical
     }
+
+    // Merge hard blocklist into avoidRepos (deduplicated)
+    const blockedRepoNames = HARD_BLOCKLIST.map((b) => b.repo);
+    const allAvoidRepos = [...new Set([...avoidRepos, ...blockedRepoNames])];
+
+    // Build blockedRepos with reasons for the agent
+    const blockedRepos = HARD_BLOCKLIST.map((b) => ({
+      repo: b.repo,
+      reason: b.reason,
+    }));
+
+    // Also check if any open PRs are at blocklisted repos (agent should NOT follow up)
+    const blockedOpenPRs = repoStats
+      .filter((r) => (r.open ?? 0) > 0 && isBlocklisted(r.repo))
+      .map((r) => r.repo);
 
     // Quick directives
     const directives: string[] = [];
@@ -113,8 +173,12 @@ export async function GET() {
       directives.push("MERGE RATE CRITICAL: Only " + ((merged / total) * 100).toFixed(1) + "%. Target trusted repos, keep PRs under 50 lines, reference real issues.");
     }
 
-    if (avoidRepos.length > 5) {
-      directives.push("TOO MANY DEAD REPOS: " + avoidRepos.length + " repos with 0 merges. Focus on responsive repos only.");
+    if (blockedOpenPRs.length > 0) {
+      directives.push("BLOCKLISTED REPOS WITH OPEN PRs: " + blockedOpenPRs.join(", ") + ". Do NOT follow up, comment, or interact. Let these PRs expire silently. Any interaction risks account ban.");
+    }
+
+    if (allAvoidRepos.length > 5) {
+      directives.push("TOO MANY DEAD REPOS: " + allAvoidRepos.length + " repos with 0 merges or blocklisted. Focus on responsive repos only.");
     }
 
     if (reposWithOpenPRs.length > 10) {
@@ -135,9 +199,11 @@ export async function GET() {
         todayPRs,
         mergeRate: total > 0 ? Math.round((merged / total) * 1000) / 10 : 0,
         reworkRate: total > 0 ? Math.round((closed / total) * 1000) / 10 : 0,
+        avgMergeProbability,
       },
       approvedPRs,
-      avoidRepos,
+      avoidRepos: allAvoidRepos,
+      blockedRepos,
       reposWithOpenPRs,
       directives,
       timestamp: now.toISOString(),

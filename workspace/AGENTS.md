@@ -6,7 +6,7 @@ Optimize for **merge rate**, not submission count. Mix: 60% easy wins + 40% subs
 A merged typo fix > an unreviewed bug fix. 50 unreviewed PRs = 0 impact.
 
 ## Architecture
-One orchestrator (main session) + 2 always-on subagents + up to 5 concurrent impl/followup sub-agents. Total maxConcurrent: 7.
+One orchestrator (main session) + 2 always-on subagents + up to 8 concurrent impl/followup sub-agents. Total maxConcurrent: 10.
 
 **Always-on subagents** (persistent loops, respawned by orchestrator if dead):
 - **Scout** (label "scout-*"): continuous issue discovery, writes to `memory/work-queue-staging.md`
@@ -32,7 +32,7 @@ Result schema: `templates/subagent-result-schema.md`
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
-- Max 7 concurrent sub-agents total (2 always-on + 5 implementation/follow-up)
+- Max 10 concurrent sub-agents total (2 always-on + 8 implementation/follow-up)
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting
@@ -110,8 +110,9 @@ Keywords: agent, agentic, llm, rag, embedding, vector, prompt, chain, tool-use, 
 **Recency Tiers:**
 1. Hot (< 3 days): top priority. 2. Recent (3-14d): good candidates. 3. Aging (14-30d): only if trivial. 4. Stale (> 30d): SKIP.
 
-**Merge-Optimized Scoring:**
-+5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges/30d or > 50 open PRs.
+**Merge-Optimized Scoring (dual score):**
+Quality (1-25): +5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges/30d or > 50 open PRs.
+P(merge) (0-100): Weighted formula considering task type (25%), size (20%), repo responsiveness (15%), trust (15%), freshness (10%), contributor fit (10%), competition (5%). Threshold: P(merge) >= 30 to attempt. P(merge) >= 60 = priority spawning.
 
 ## Implementation Workflow
 

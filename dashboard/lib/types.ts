@@ -47,6 +47,7 @@ export interface PullRequest {
   filesChanged: number;
   reviewCount: number;
   prType?: string | null;
+  mergeProbability?: number | null;
   reviews?: PRReview[];
   qualityBreakdown?: QualityBreakdown | null;
 }
@@ -77,6 +78,7 @@ export interface PullRequestSummary {
   repo: string;
   status: "open" | "merged" | "closed";
   qualityScore: number | null;
+  mergeProbability?: number | null;
   createdAt: Date;
 }
 

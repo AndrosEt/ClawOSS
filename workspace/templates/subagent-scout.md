@@ -75,29 +75,46 @@ gh api "/search/issues?q=is:issue+is:open+label:defect+stars:>200+created:>$THRE
 gh api "/search/issues?q=is:issue+is:open+label:regression+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
-### Step 2: Analyze Codebase Direction (CRITICAL — new in V9)
+### Step 2: Analyze Codebase Direction (CRITICAL — V10 enhanced)
 
-For each promising repo (score >= 8 before direction analysis), analyze WHERE the codebase is heading:
+For each promising repo (score >= 8 before direction analysis), perform deep direction analysis:
 
 ```bash
-# Read recent commits (last 2 weeks) — what are maintainers actively working on?
-gh api "repos/{owner}/{repo}/commits?since=$TWO_WEEKS_AGO&per_page=20" --jq '.[].commit.message' | head -30
+# 1. What are maintainers working on RIGHT NOW?
+gh api "repos/{owner}/{repo}/commits?per_page=20" --jq '.[].commit.message' | head -30
+# → Extract themes: which modules/areas are being actively changed?
 
-# Read recent merged PRs — what changes are being accepted?
-gh pr list --repo {owner}/{repo} --state merged --limit 10 --json title,mergedAt,labels --jq '.[] | {title, mergedAt, labels: [.labels[].name]}'
+# 2. What issues are maintainers engaging with?
+gh api "repos/{owner}/{repo}/issues?state=open&sort=comments&direction=desc&per_page=10" --jq '.[] | {number, title, comments}'
+# → High-comment issues = maintainer priority areas
 
-# Check open discussions/issues from maintainers — what do they want help with?
-gh api "repos/{owner}/{repo}/issues?state=open&creator={maintainer}&per_page=5" --jq '.[].title'
+# 3. What PRs are maintainers reviewing?
+gh api "repos/{owner}/{repo}/pulls?state=open&sort=updated&direction=desc&per_page=10" --jq '.[] | {number, title, user: .user.login}'
+# → Shows what external contributions get attention
+
+# 4. Is there a CHANGELOG or roadmap?
+gh api "repos/{owner}/{repo}/contents/CHANGELOG.md" --jq '.content' | base64 -d | head -50 2>/dev/null || echo "no changelog"
+# → Recent releases show direction
+
+# 5. What labels are actively used for priorities?
+gh api "repos/{owner}/{repo}/labels?per_page=50" --jq '.[] | select(.name | test("priority|p0|critical|next|planned"; "i")) | .name'
+# → Priority labels = maintainer focus areas
+
+# 6. Recent release? (post-release = highest merge window)
+gh api "repos/{owner}/{repo}/releases?per_page=1" --jq '.[0] | {tag: .tag_name, date: .published_at}'
 ```
 
-**Direction analysis questions:**
-- Is the repo actively developing new features? (our bug fix might conflict with in-flight work)
-- Are maintainers focusing on a specific area? (issues in that area get faster review)
-- Has the repo recently tagged a release? (post-release bug fixes merge fastest)
-- Are there recurring themes in recent commits? (align our contributions with these themes)
+**Direction analysis decision logic — only greenlight issues that:**
+- Are in modules/areas with recent commit activity (not frozen code)
+- Align with issues maintainers are engaging with (not ignored areas)
+- Don't conflict with active PRs from other contributors
+- Have labels suggesting maintainer wants help (bug, help-wanted, good-first-issue)
+- Ideally in a post-release window (recent release = bug fix window)
 
 **Only greenlight issues that ALIGN with where the codebase is heading.**
 An issue about a deprecated module or a feature the maintainers are actively replacing = SKIP.
+
+Write a "direction summary" for each analyzed repo to `memory/repos/{owner}_{repo}.md` so implementation subagents have context.
 
 ### Step 3: Check Repo Health
 
@@ -127,7 +144,7 @@ Before scoring, discard issues that won't pass triage:
 
 ### Step 4: Score and Rank
 
-Score each candidate 1-25:
+**Quality Score (1-25):**
 - **+8** trusted repo (from attachments)
 - **+5** docs/typo fix, **+3** test addition, **+1** bug fix
 - **+5** avg merge < 3d, **+3** avg merge < 7d
@@ -138,11 +155,25 @@ Score each candidate 1-25:
 - **-5** avg merge > 14d, **-3** 0 external merges
 Minimum score 5 to enter staging.
 
+**P(merge) Score (0-100) — compute for all candidates passing quality score:**
+```
+P(merge) =
+  + 25 * task_type_score        # docs/typo=1.0, test=0.75, bug=0.5, feature=0
+  + 20 * size_score              # estimated: <30 LOC=1.0, 30-100=0.7, 100-200=0.3, >200=0
+  + 15 * repo_responsiveness     # merge<3d=1.0, 3-7d=0.7, 7-14d=0.3, >14d=0
+  + 15 * trust_score             # merged before=1.0, positive engagement=0.7, new=0.3, hostile=0
+  + 10 * freshness               # <1d=1.0, 1-3d=0.8, 3-7d=0.5, 7-14d=0.2, >14d=0
+  + 10 * contributor_fit         # help-wanted=1.0, good-first-issue=0.8, bug=0.5, none=0.3
+  + 5  * competition_score       # no other PRs=1.0, 1 competing=0.3, 2+=0
+```
+**Threshold**: P(merge) >= 30 to enter staging. Sort staging by P(merge) descending.
+Mark candidates with P(merge) >= 60 as `priority: high`.
+
 ### Step 5: Write to Staging Queue
 
-Append scored candidates to `memory/work-queue-staging.md`:
+Append scored candidates to `memory/work-queue-staging.md` (sorted by P(merge) descending):
 ```markdown
-- [{score}] {owner}/{repo}#{number}: {title} | type:{bug/docs/typo/test} | created:{date} | direction_aligned:{yes/no}
+- [{score}] P({p_merge}) {owner}/{repo}#{number}: {title} | type:{bug/docs/typo/test} | created:{date} | direction_aligned:{yes/no} | priority:{high/normal}
 ```
 
 Also write per-repo reports to `memory/repos/{owner}_{repo}.md` (health data, scored issues).
