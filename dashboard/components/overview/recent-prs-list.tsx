@@ -30,7 +30,7 @@ export function RecentPRsList({ prs, limit = 5 }: RecentPRsListProps) {
   const displayed = prs.slice(0, limit);
 
   return (
-    <Card className="card-glow">
+    <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium flex items-center justify-between">
           <span>Recent PRs</span>

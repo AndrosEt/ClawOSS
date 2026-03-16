@@ -134,8 +134,8 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                   !entry.success
                     ? "bg-red-500/5 border-l-2 border-red-500"
                     : isSlow
-                    ? "bg-yellow-500/5 border-l-2 border-yellow-500"
-                    : "border-l-2 border-green-500/40"
+                    ? "bg-amber-500/5 border-l-2 border-amber-500"
+                    : "border-l-2 border-emerald-500/40"
                 }`}
               >
                 <span className="text-muted-foreground/60 w-16 shrink-0">
@@ -146,13 +146,13 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                     !entry.success
                       ? "text-red-400"
                       : isSlow
-                      ? "text-yellow-400"
-                      : "text-green-400"
+                      ? "text-amber-400"
+                      : "text-emerald-400"
                   }`}
                 >
                   {!entry.success ? "X" : isSlow ? "!" : "."}
                 </span>
-                <span className="text-yellow-400 w-36 shrink-0 truncate">
+                <span className="text-amber-400 w-36 shrink-0 truncate">
                   {entry.toolName}
                 </span>
                 <span className="text-muted-foreground/50 w-12 shrink-0 text-right">
@@ -163,7 +163,7 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                     : "--"}
                 </span>
                 {entry.isSubagent && (
-                  <span className="text-yellow-400/60 text-[9px]">SUB</span>
+                  <span className="text-amber-400/60 text-[9px]">SUB</span>
                 )}
                 <span className="text-muted-foreground/30 truncate flex-1 text-right">
                   {entry.sessionId.length > 12
@@ -178,7 +178,7 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                       <span className="text-[9px] text-muted-foreground">
                         params:
                       </span>
-                      <pre className="text-[10px] text-blue-400/70 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+                      <pre className="text-[10px] text-foreground/50 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
                         {entry.params}
                       </pre>
                     </div>
@@ -191,7 +191,7 @@ export function ToolCallLog({ messages }: ToolCallLogProps) {
                       <pre
                         className={`text-[10px] whitespace-pre-wrap break-all max-h-32 overflow-y-auto ${
                           entry.success
-                            ? "text-purple-400/70"
+                            ? "text-foreground/40"
                             : "text-red-400/70"
                         }`}
                       >

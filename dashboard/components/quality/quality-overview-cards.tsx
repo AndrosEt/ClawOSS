@@ -64,12 +64,12 @@ export function QualityOverviewCards({
                 className={`text-[11px] font-mono mt-0.5 ${
                   card.invertColor
                     ? card.change < 0
-                      ? "text-green-400"
+                      ? "text-emerald-400"
                       : card.change > 0
                         ? "text-red-400"
                         : "text-muted-foreground/50"
                     : card.change > 0
-                      ? "text-green-400"
+                      ? "text-emerald-400"
                       : card.change < 0
                         ? "text-red-400"
                         : "text-muted-foreground/50"

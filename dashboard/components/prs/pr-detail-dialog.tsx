@@ -73,9 +73,9 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
                 <p className="text-[10px] text-muted-foreground/60 font-mono uppercase">Files</p>
                 <p className="font-bold text-lg tracking-tight">{pr.filesChanged}</p>
               </div>
-              <div className="p-3 rounded-md bg-green-500/5">
-                <p className="text-[10px] text-green-400/60 font-mono uppercase">Additions</p>
-                <p className="font-bold text-lg tracking-tight text-green-400">+{pr.additions}</p>
+              <div className="p-3 rounded-md bg-emerald-500/5">
+                <p className="text-[10px] text-emerald-400/60 font-mono uppercase">Additions</p>
+                <p className="font-bold text-lg tracking-tight text-emerald-400">+{pr.additions}</p>
               </div>
               <div className="p-3 rounded-md bg-red-500/5">
                 <p className="text-[10px] text-red-400/60 font-mono uppercase">Deletions</p>
@@ -105,7 +105,7 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
                           </span>
                           <span className={`font-mono font-bold ${
                             gate.value != null
-                              ? gate.value >= 80 ? "text-green-400" : gate.value >= 60 ? "text-yellow-400" : "text-red-400"
+                              ? gate.value >= 80 ? "text-emerald-400" : gate.value >= 60 ? "text-amber-400" : "text-red-400"
                               : "text-muted-foreground/40"
                           }`}>
                             {gate.value != null ? gate.value.toFixed(0) : "--"}
@@ -115,7 +115,7 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
                           <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all duration-500 ${
-                                gate.value >= 80 ? "bg-green-500" : gate.value >= 60 ? "bg-yellow-500" : "bg-red-500"
+                                gate.value >= 80 ? "bg-emerald-500" : gate.value >= 60 ? "bg-amber-500" : "bg-red-500"
                               }`}
                               style={{ width: `${gate.value}%` }}
                             />
@@ -126,7 +126,7 @@ export function PRDetailDialog({ pr, open, onClose }: PRDetailDialogProps) {
                     <div className="flex justify-between border-t pt-3 mt-3 font-semibold">
                       <span>Overall Score</span>
                       <span className={`font-mono text-lg ${
-                        pr.qualityBreakdown.overallScore >= 80 ? "text-green-400" : pr.qualityBreakdown.overallScore >= 60 ? "text-yellow-400" : "text-red-400"
+                        pr.qualityBreakdown.overallScore >= 80 ? "text-emerald-400" : pr.qualityBreakdown.overallScore >= 60 ? "text-amber-400" : "text-red-400"
                       }`}>
                         {pr.qualityBreakdown.overallScore.toFixed(1)}
                       </span>

@@ -1,7 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatDuration } from "@/lib/utils";
 import type { AgentStatus } from "@/lib/types";
 
@@ -11,34 +10,39 @@ interface AgentStatusCardProps {
 
 export function AgentStatusCard({ status }: AgentStatusCardProps) {
   return (
-    <Card className="card-glow animate-fade-up">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${status.isOnline ? "bg-green-500 glow-dot glow-dot-green" : "bg-red-500"}`} />
-          Agent Status
-        </CardTitle>
-        <Badge
-          variant={status.isOnline ? "default" : "destructive"}
-          className={status.isOnline ? "badge-glow-green" : "badge-glow-red"}
-        >
-          {status.isOnline ? "Online" : "Offline"}
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4 text-sm">
+    <Card className="accent-top corner-brackets">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <span className="relative flex h-2.5 w-2.5">
+              {status.isOnline && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
+              )}
+              <span className={`relative h-2.5 w-2.5 rounded-full ${status.isOnline ? "bg-emerald-500" : "bg-red-500"}`} />
+            </span>
+            <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Agent</span>
+            <span className={`font-medium ${status.isOnline ? "text-emerald-400/80" : "text-red-400/80"}`}>
+              {status.isOnline ? "online" : "offline"}
+            </span>
+          </div>
+          {status.isOnline && (
+            <span className="text-[9px] font-mono text-emerald-500/40 uppercase tracking-widest">active</span>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-4 font-mono">
           <div>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono">Uptime</p>
-            <p className="font-bold text-lg tracking-tight mt-0.5">{formatDuration(status.uptimeSeconds)}</p>
+            <div className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Uptime</div>
+            <div className="text-lg font-bold mt-0.5 tracking-tight tabular-nums">{formatDuration(status.uptimeSeconds)}</div>
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono">HB Streak</p>
-            <p className="font-bold text-lg tracking-tight mt-0.5">{status.heartbeatStreak.toLocaleString()}</p>
+            <div className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">HB Streak</div>
+            <div className="text-lg font-bold mt-0.5 tracking-tight tabular-nums">{status.heartbeatStreak.toLocaleString()}</div>
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono">Current Task</p>
-            <p className="font-medium truncate mt-0.5">
-              {status.currentTask || <span className="text-muted-foreground italic">Idle</span>}
-            </p>
+            <div className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Current Task</div>
+            <div className="text-xs mt-1 truncate">
+              {status.currentTask || <span className="text-muted-foreground/40 italic">idle</span>}
+            </div>
           </div>
         </div>
       </CardContent>

@@ -10,16 +10,16 @@ import {
 
 const stateConfig = {
   connected: {
-    color: "bg-green-500",
+    color: "bg-emerald-500",
     ping: true,
     label: "Connected",
-    textColor: "text-green-500",
+    textColor: "text-emerald-500",
   },
   degraded: {
-    color: "bg-yellow-500",
+    color: "bg-amber-500",
     ping: true,
     label: "Degraded",
-    textColor: "text-yellow-500",
+    textColor: "text-amber-500",
   },
   disconnected: {
     color: "bg-red-500",
@@ -28,10 +28,10 @@ const stateConfig = {
     textColor: "text-red-500",
   },
   unknown: {
-    color: "bg-gray-500",
+    color: "bg-foreground/30",
     ping: false,
     label: "Unknown",
-    textColor: "text-gray-500",
+    textColor: "text-foreground/50",
   },
 };
 
@@ -42,7 +42,7 @@ export function ConnectionStatusIndicator() {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span className="relative flex h-2.5 w-2.5">
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-gray-500 animate-pulse" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-foreground/30 animate-pulse" />
         </span>
         <span>Checking...</span>
       </div>
@@ -63,9 +63,7 @@ export function ConnectionStatusIndicator() {
             />
           )}
           <span
-            className={`relative inline-flex h-2.5 w-2.5 rounded-full ${config.color} ${
-              config.ping ? `glow-dot glow-dot-${state === "connected" ? "green" : "yellow"}` : ""
-            }`}
+            className={`relative inline-flex h-2.5 w-2.5 rounded-full ${config.color}`}
           />
         </span>
         <span className={`font-medium text-xs ${config.textColor}`}>
@@ -93,7 +91,7 @@ export function ConnectionStatusIndicator() {
             </p>
           </div>
           {!data.hasAnyData && (
-            <p className="text-yellow-400 font-medium pt-1">
+            <p className="text-amber-400 font-medium pt-1">
               No telemetry data yet. Waiting for agent to send data.
             </p>
           )}

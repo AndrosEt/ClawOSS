@@ -11,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { PRFilterState, PullRequest } from "@/lib/types";
+import { ScrambleText } from "@/components/ascii/scramble-text";
+import { CharSand } from "@/components/ascii/char-sand";
 
 export default function PRsPage() {
   const [filters, setFilters] = useState<PRFilterState>({
@@ -51,8 +53,13 @@ export default function PRsPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="Pull Requests" />
+      <Header title={<ScrambleText text="Pull Requests" speed={30} scrambleFrames={10} />} />
       <div className="flex-1 space-y-6 p-6">
+        {/* Art banner */}
+        <div className="relative overflow-hidden rounded-sm" style={{ height: 40 }}>
+          <CharSand cols={100} rows={4} speed={90} spawnRate={0.06} />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background pointer-events-none" />
+        </div>
         <PRFilters
           filters={filters}
           onFilterChange={(f) => {

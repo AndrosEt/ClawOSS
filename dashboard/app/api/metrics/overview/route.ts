@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
-import { heartbeats, pullRequests, metricsTokens, agentLogs } from "@/lib/schema";
+import { heartbeats, pullRequests, metricsTokens, agentLogs, conversationMessages } from "@/lib/schema";
 import { desc, gte, sql, eq } from "drizzle-orm";
 
 export async function GET() {
@@ -50,7 +50,7 @@ export async function GET() {
     const mergedPRs = mergedPRsResult[0]?.count || 0;
     const mergeRate = totalPRs > 0 ? Math.round((mergedPRs / totalPRs) * 1000) / 10 : 0;
 
-    // Today's token usage and cost
+    // Today's token usage and cost from metrics_tokens table
     const todayMetrics = await db
       .select({
         totalInput: sql<number>`COALESCE(SUM(input_tokens), 0)`,
@@ -60,9 +60,28 @@ export async function GET() {
       .from(metricsTokens)
       .where(gte(metricsTokens.timestamp, todayStart));
 
-    const tokensUsedToday =
+    let tokensUsedToday =
       (todayMetrics[0]?.totalInput || 0) + (todayMetrics[0]?.totalOutput || 0);
-    const costToday = todayMetrics[0]?.totalCost || 0;
+    let costToday = todayMetrics[0]?.totalCost || 0;
+
+    // Fallback: estimate from conversation messages if metrics_tokens is empty
+    if (tokensUsedToday === 0) {
+      const convTokens = await db
+        .select({
+          totalTokens: sql<number>`COALESCE(SUM(token_count), 0)`,
+          estimatedFromLength: sql<number>`COALESCE(SUM(CASE WHEN token_count IS NULL OR token_count = 0 THEN LENGTH(content) / 4 ELSE 0 END), 0)`,
+        })
+        .from(conversationMessages)
+        .where(gte(conversationMessages.timestamp, todayStart));
+
+      const fromCounts = convTokens[0]?.totalTokens || 0;
+      const fromLength = convTokens[0]?.estimatedFromLength || 0;
+      tokensUsedToday = fromCounts > 0 ? fromCounts : fromLength;
+      // Estimate cost using Kimi K2.5 average ($1.8/M tokens)
+      if (tokensUsedToday > 0 && costToday === 0) {
+        costToday = tokensUsedToday * (1.8 / 1_000_000);
+      }
+    }
 
     // Recent activity from logs
     const recentLogs = await db

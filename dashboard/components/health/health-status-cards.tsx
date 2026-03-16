@@ -36,7 +36,7 @@ const trendIcons: Record<string, string> = {
 const trendColors: Record<string, string> = {
   increasing: "text-red-400",
   stable: "text-muted-foreground",
-  decreasing: "text-green-400",
+  decreasing: "text-emerald-400",
 };
 
 export function HealthStatusCards({
@@ -46,10 +46,10 @@ export function HealthStatusCards({
 }: HealthStatusCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card className="card-glow hover-lift animate-fade-up animate-fade-up-1">
+      <Card className="">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-green-500 glow-dot glow-dot-green" />
+            <span className="h-2 w-2 rounded-full bg-emerald-500 " />
             Heartbeat
           </CardTitle>
         </CardHeader>
@@ -68,15 +68,15 @@ export function HealthStatusCards({
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted-foreground/60 font-mono uppercase">Streak</span>
-            <span className="font-mono text-[12px] text-green-400">{heartbeat.streak.toLocaleString()}</span>
+            <span className="font-mono text-[12px] text-emerald-400">{heartbeat.streak.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="card-glow hover-lift animate-fade-up animate-fade-up-2">
+      <Card className="">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            <span className="h-2 w-2 rounded-full bg-foreground/30" />
             Uptime
           </CardTitle>
         </CardHeader>
@@ -96,10 +96,10 @@ export function HealthStatusCards({
         </CardContent>
       </Card>
 
-      <Card className={`card-glow hover-lift animate-fade-up animate-fade-up-3 ${errorRate.perHour > 0 ? "border-red-500/20" : ""}`}>
+      <Card className={` ${errorRate.perHour > 0 ? "border-red-500/20" : ""}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${errorRate.perHour > 0 ? "bg-red-500" : "bg-green-500"}`} />
+            <span className={`h-2 w-2 rounded-full ${errorRate.perHour > 0 ? "bg-red-500" : "bg-emerald-500"}`} />
             Error Rate
           </CardTitle>
         </CardHeader>
@@ -121,7 +121,7 @@ export function HealthStatusCards({
             <span className="font-mono text-[12px]">
               {errorRate.lastError
                 ? formatRelativeTime(errorRate.lastError)
-                : <span className="text-green-400">None</span>}
+                : <span className="text-emerald-400">None</span>}
             </span>
           </div>
         </CardContent>

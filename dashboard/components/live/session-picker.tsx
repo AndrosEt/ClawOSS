@@ -169,13 +169,13 @@ function SessionButton({
     >
       <div className="flex items-center gap-2 w-full">
         {label.isSubagent ? (
-          <span className="text-[9px] text-yellow-400">{"~>"}</span>
+          <span className="text-[9px] text-amber-400">{"~>"}</span>
         ) : (
-          <span className="text-[9px] text-blue-400">{"#"}</span>
+          <span className="text-[9px] text-foreground/70">{"#"}</span>
         )}
         <span
           className={`font-mono truncate flex-1 text-left ${
-            label.isSubagent ? "text-yellow-400" : "text-blue-400"
+            label.isSubagent ? "text-amber-400" : "text-foreground/70"
           }`}
         >
           {label.name}
@@ -183,7 +183,7 @@ function SessionButton({
         {session.isActive && (
           <Badge
             variant="default"
-            className="text-[9px] h-3.5 px-1 bg-green-500"
+            className="text-[9px] h-3.5 px-1 bg-emerald-500"
           >
             LIVE
           </Badge>

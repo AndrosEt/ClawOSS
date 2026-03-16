@@ -17,38 +17,38 @@ const roleConfig: Record<
 > = {
   assistant: {
     label: "Agent",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/10 border-blue-500/20",
+    color: "text-emerald-400",
+    bgColor: "bg-emerald-500/10 border-emerald-500/20",
     icon: ">>",
   },
   user: {
     label: "Task",
-    color: "text-green-400",
-    bgColor: "bg-green-500/10 border-green-500/20",
+    color: "text-foreground/70",
+    bgColor: "bg-foreground/5 border-foreground/10",
     icon: "$",
   },
   tool_call: {
     label: "Tool",
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-500/10 border-yellow-500/20",
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/10 border-amber-500/20",
     icon: "->",
   },
   tool_result: {
     label: "Result",
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/10 border-purple-500/20",
+    color: "text-foreground/50",
+    bgColor: "bg-foreground/5 border-foreground/10",
     icon: "<-",
   },
   system: {
     label: "System",
-    color: "text-gray-400",
-    bgColor: "bg-gray-500/10 border-gray-500/20",
+    color: "text-foreground/40",
+    bgColor: "bg-foreground/3 border-foreground/8",
     icon: "#",
   },
   thinking: {
     label: "Think",
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/10 border-orange-500/20",
+    color: "text-amber-400/70",
+    bgColor: "bg-amber-500/8 border-amber-500/15",
     icon: "~",
   },
 };
@@ -74,7 +74,7 @@ function LogContent({ content }: { content: string }) {
       {isTruncatable && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-[10px] text-blue-400 hover:text-blue-300 mt-1 font-mono"
+          className="text-[10px] text-emerald-400/70 hover:text-emerald-400 mt-1 font-mono"
         >
           {expanded
             ? "[ collapse ]"
@@ -144,7 +144,7 @@ export function PRBuildLogs({ repo, issueNumber }: PRBuildLogsProps) {
               {isSubagent && (
                 <Badge
                   variant="outline"
-                  className="text-[8px] h-3.5 px-1 text-yellow-400 border-yellow-400/30"
+                  className="text-[8px] h-3.5 px-1 text-amber-400 border-amber-400/30"
                 >
                   SUB-AGENT
                 </Badge>

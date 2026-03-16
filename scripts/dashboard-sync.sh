@@ -135,6 +135,73 @@ while true; do
 
   log "heartbeat: status=$ST sessions=$SESSIONS active=$LOCKS bytes=$BYTES"
 
+  # --- Token metrics: extract usage data from JSONL and POST to /api/ingest/metrics ---
+  for f in "$DIR"/*.jsonl; do
+    [ ! -f "$f" ] && continue
+    bn=$(basename "$f")
+    echo "$bn" | grep -q '\.reset\.' && continue
+    [ "$bn" = "sessions.json" ] && continue
+
+    SID=$(basename "$f" .jsonl)
+    TOKEN_OFFSET_FILE="$OFFSET_DIR/${SID}.token-offset"
+
+    TOTAL_LINES=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
+    [ -z "$TOTAL_LINES" ] && continue
+
+    TOKEN_PREV=0
+    [ -f "$TOKEN_OFFSET_FILE" ] && TOKEN_PREV=$(cat "$TOKEN_OFFSET_FILE" 2>/dev/null | tr -d ' ')
+    [ -z "$TOKEN_PREV" ] && TOKEN_PREV=0
+
+    [ "$TOTAL_LINES" -le "$TOKEN_PREV" ] && { echo "$TOTAL_LINES" > "$TOKEN_OFFSET_FILE"; continue; }
+
+    NEW_COUNT=$((TOTAL_LINES - TOKEN_PREV))
+    [ "$NEW_COUNT" -gt 200 ] && NEW_COUNT=200 && TOKEN_PREV=$((TOTAL_LINES - 200))
+
+    METRICS_PAYLOAD=$(tail -n "$NEW_COUNT" "$f" 2>/dev/null | python3 -c "
+import json, sys
+metrics = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        e = json.loads(line)
+    except:
+        continue
+    if e.get('type') != 'message':
+        continue
+    m = e.get('message', {})
+    usage = m.get('usage', e.get('usage', {}))
+    if not usage:
+        continue
+    # OpenClaw JSONL format uses 'input'/'output' (short names)
+    # Also support 'input_tokens'/'inputTokens' for other formats
+    inp = usage.get('input', 0) or usage.get('input_tokens', 0) or usage.get('inputTokens', 0) or 0
+    out = usage.get('output', 0) or usage.get('output_tokens', 0) or usage.get('outputTokens', 0) or 0
+    if inp == 0 and out == 0:
+        continue
+    model = m.get('model', e.get('model', ''))
+    metrics.append({
+        'inputTokens': inp,
+        'outputTokens': out,
+        'model': model or 'kimi-coding/k2p5',
+        'channel': '${SID}'
+    })
+if metrics:
+    print(json.dumps({'metrics': metrics}))
+" 2>/dev/null)
+
+    if [ -n "$METRICS_PAYLOAD" ]; then
+      RESULT=$(curl -s -m 8 -X POST "$URL/api/ingest/metrics" \
+        -H "Authorization: Bearer $KEY" \
+        -H "Content-Type: application/json" \
+        -d "$METRICS_PAYLOAD" 2>/dev/null)
+      log "token-metrics: session=$SID result=$RESULT"
+    fi
+
+    echo "$TOTAL_LINES" > "$TOKEN_OFFSET_FILE"
+  done
+
   # --- Conversation sync: tail new lines from each session file ---
   for f in "$DIR"/*.jsonl; do
     [ ! -f "$f" ] && continue

@@ -1,7 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitPullRequest, Percent, Coins, Zap } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatTokens, formatCost, formatPercentage } from "@/lib/utils";
 
 interface MetricCardsProps {
@@ -11,12 +10,21 @@ interface MetricCardsProps {
   costToday: number;
 }
 
-const iconColors: Record<string, string> = {
-  "Total PRs": "text-blue-400",
-  "Merge Rate": "text-green-400",
-  "Tokens 24h": "text-yellow-400",
-  "Cost Today": "text-emerald-400",
-};
+function MiniBar({ value, max, segments = 12 }: { value: number; max: number; segments?: number }) {
+  const filled = Math.round((value / Math.max(max, 1)) * segments);
+  return (
+    <div className="flex gap-[2px] mt-2" aria-hidden="true">
+      {Array.from({ length: segments }).map((_, i) => (
+        <div
+          key={i}
+          className={`h-[3px] flex-1 rounded-[1px] transition-all ${
+            i < filled ? "bg-emerald-500/50" : "bg-foreground/5"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function MetricCards({
   totalPRs,
@@ -26,46 +34,42 @@ export function MetricCards({
 }: MetricCardsProps) {
   const cards = [
     {
-      title: "Total PRs",
+      label: "PRs",
       value: totalPRs.toString(),
-      icon: GitPullRequest,
-      sub: totalPRs > 0 ? `across repos` : null,
+      sub: totalPRs > 0 ? "across repos" : null,
+      bar: { value: totalPRs, max: 20 },
     },
     {
-      title: "Merge Rate",
+      label: "Merge Rate",
       value: formatPercentage(mergeRate),
-      icon: Percent,
       sub: mergeRate >= 10 ? "healthy" : mergeRate > 0 ? "warming up" : null,
+      bar: { value: mergeRate, max: 100 },
     },
     {
-      title: "Tokens 24h",
+      label: "Tokens/24h",
       value: formatTokens(tokensUsedToday),
-      icon: Zap,
       sub: tokensUsedToday > 0 ? "burned today" : null,
+      bar: { value: Math.min(tokensUsedToday / 1000, 500), max: 500 },
     },
     {
-      title: "Cost Today",
+      label: "Cost/24h",
       value: formatCost(costToday),
-      icon: Coins,
-      sub: costToday > 0 ? "Kimi K2.5 pricing" : null,
+      sub: costToday > 0 ? "kimi k2.5" : null,
+      bar: { value: costToday, max: 5 },
     },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card, i) => (
-        <Card key={card.title} className={`card-glow hover-lift animate-fade-up animate-fade-up-${i + 1}`}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
-            <div className={`p-1.5 rounded-md bg-muted/50 ${iconColors[card.title] || "text-muted-foreground"}`}>
-              <card.icon className="h-3.5 w-3.5" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight">{card.value}</div>
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {cards.map((card) => (
+        <Card key={card.label} className="metric-card">
+          <CardContent className="p-3">
+            <div className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider">{card.label}</div>
+            <div className="text-2xl font-mono font-bold tracking-tighter mt-1 tabular-nums">{card.value}</div>
             {card.sub && (
-              <p className="text-[11px] text-muted-foreground/60 mt-0.5 font-mono">{card.sub}</p>
+              <div className="text-[10px] font-mono text-muted-foreground/40 mt-0.5">{card.sub}</div>
             )}
+            <MiniBar value={card.bar.value} max={card.bar.max} />
           </CardContent>
         </Card>
       ))}

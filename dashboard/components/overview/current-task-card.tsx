@@ -17,16 +17,16 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  analyzing: "text-blue-400 border-blue-400/30",
-  coding: "text-green-400 border-green-400/30",
-  testing: "text-yellow-400 border-yellow-400/30",
-  reviewing: "text-purple-400 border-purple-400/30",
-  submitting: "text-cyan-400 border-cyan-400/30",
+  analyzing: "text-foreground/60 border-foreground/15",
+  coding: "text-emerald-400 border-emerald-400/30",
+  testing: "text-amber-400 border-amber-400/30",
+  reviewing: "text-foreground/60 border-foreground/15",
+  submitting: "text-emerald-400 border-emerald-400/30",
 };
 
 export function CurrentTaskCard({ task }: CurrentTaskCardProps) {
   return (
-    <Card className="card-glow">
+    <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">Current Task</CardTitle>
       </CardHeader>

@@ -12,8 +12,8 @@ interface PRStatsBarProps {
 
 const statColors: Record<string, string> = {
   Total: "",
-  Open: "text-blue-400",
-  Merged: "text-green-400",
+  Open: "text-foreground/70",
+  Merged: "text-emerald-400",
   Closed: "text-red-400",
   "Avg Review": "text-muted-foreground",
 };

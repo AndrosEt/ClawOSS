@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrambleText } from "@/components/ascii/scramble-text";
+import { LifeField } from "@/components/ascii/life-field";
 
 export default function QualityPage() {
   const [range, setRange] = useState("30d");
@@ -39,8 +41,13 @@ export default function QualityPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="Quality Metrics" />
+      <Header title={<ScrambleText text="Quality Metrics" speed={30} scrambleFrames={10} />} />
       <div className="flex-1 space-y-6 p-6">
+        {/* Art banner -- Game of Life strip */}
+        <div className="relative overflow-hidden rounded-sm" style={{ height: 44 }}>
+          <LifeField cols={80} rows={4} speed={300} density={0.15} palette="cyan" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50 pointer-events-none" />
+        </div>
         <div className="flex justify-end">
           <Select value={range} onValueChange={(v) => v && setRange(v)}>
             <SelectTrigger className="w-[120px]">

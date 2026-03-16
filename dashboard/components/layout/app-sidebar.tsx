@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { ConnectionStatusIndicator } from "./connection-status-indicator";
+import { AsciiWalker } from "@/components/ascii/ascii-walker";
 
 const navItems = [
   { title: "Overview", href: "/", icon: LayoutDashboard },
@@ -41,9 +42,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground/30 mr-0.5">{">_"}</span>
-          <span className="text-lg font-bold claw-title tracking-tight">ClawOSS</span>
-          <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/40 border-muted-foreground/15 font-mono mt-0.5">
+          <span className="text-sm font-mono font-bold tracking-tight ascii-gradient">ClawOSS</span>
+          <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/30 border-muted-foreground/10 font-mono">
             v7
           </Badge>
         </div>
@@ -65,7 +65,7 @@ export function AppSidebar() {
                     isActive={pathname === item.href}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <span className="font-mono text-[12px]">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -73,13 +73,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t p-4">
-        <div className="space-y-1">
-          <p className="text-[10px] text-muted-foreground/40 font-mono">
-            ClawOSS Monitoring
-          </p>
-          <p className="text-[9px] text-muted-foreground/25 font-mono">
-            Kimi K2.5 | Autonomous OSS
+      <SidebarFooter className="border-t p-4 space-y-2">
+        <div className="overflow-hidden rounded-sm">
+          <AsciiWalker width={28} speed={200} />
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="h-1 w-1 rounded-full bg-emerald-500/40" />
+            <p className="text-[9px] text-muted-foreground/30 font-mono tracking-wide">
+              monitoring v7
+            </p>
+          </div>
+          <p className="text-[8px] text-muted-foreground/15 font-mono">
+            autonomous oss contributor
           </p>
         </div>
       </SidebarFooter>

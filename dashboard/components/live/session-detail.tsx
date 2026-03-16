@@ -69,7 +69,7 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <span>Session</span>
           {session?.isActive && (
-            <Badge variant="default" className="text-[9px] h-3.5 px-1 bg-green-500">
+            <Badge variant="default" className="text-[9px] h-3.5 px-1 bg-emerald-500">
               LIVE
             </Badge>
           )}
@@ -102,12 +102,12 @@ export function SessionDetail({ session, messages }: SessionDetailProps) {
             <div className="border-t pt-2 space-y-1 text-xs">
               <div className="text-muted-foreground font-medium mb-1">Breakdown</div>
               <div className="grid grid-cols-2 gap-1">
-                <span className="text-blue-400">Agent: {stats.roles.assistant}</span>
-                <span className="text-yellow-400">Tools: {stats.roles.tool_call}</span>
-                <span className="text-purple-400">Results: {stats.roles.tool_result}</span>
-                <span className="text-gray-400">System: {stats.roles.system}</span>
-                <span className="text-orange-400">Think: {stats.roles.thinking}</span>
-                <span className="text-green-400">Prompt: {stats.roles.user}</span>
+                <span className="text-emerald-400">Agent: {stats.roles.assistant}</span>
+                <span className="text-amber-400">Tools: {stats.roles.tool_call}</span>
+                <span className="text-foreground/50">Results: {stats.roles.tool_result}</span>
+                <span className="text-foreground/40">System: {stats.roles.system}</span>
+                <span className="text-amber-400/70">Think: {stats.roles.thinking}</span>
+                <span className="text-foreground/70">Prompt: {stats.roles.user}</span>
               </div>
             </div>
 

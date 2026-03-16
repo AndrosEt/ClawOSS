@@ -11,13 +11,13 @@ interface ActivityTimelineProps {
 }
 
 const typeColors: Record<string, string> = {
-  pr_created: "bg-blue-500",
-  pr_merged: "bg-green-500",
+  pr_created: "bg-foreground/40",
+  pr_merged: "bg-emerald-500",
   pr_closed: "bg-red-500",
-  review_received: "bg-purple-500",
-  heartbeat: "bg-gray-500",
-  error: "bg-red-600",
-  task_started: "bg-yellow-500",
+  review_received: "bg-foreground/30",
+  heartbeat: "bg-foreground/20",
+  error: "bg-red-500",
+  task_started: "bg-amber-500",
 };
 
 const typeLabels: Record<string, string> = {
@@ -37,7 +37,7 @@ export function ActivityTimeline({
   const displayed = items.slice(0, maxItems);
 
   return (
-    <Card className="card-glow">
+    <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium flex items-center justify-between">
           <span>Recent Activity</span>
@@ -64,7 +64,7 @@ export function ActivityTimeline({
                 {/* Timeline line + dot */}
                 <div className="flex flex-col items-center mt-0.5">
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ring-2 ring-background ${typeColors[item.type] || "bg-gray-400"}`}
+                    className={`h-2.5 w-2.5 rounded-full ring-2 ring-background ${typeColors[item.type] || "bg-foreground/30"}`}
                   />
                   {i < displayed.length - 1 && (
                     <div className="w-px flex-1 bg-border mt-1 min-h-[16px]" />

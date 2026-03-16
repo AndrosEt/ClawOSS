@@ -27,6 +27,8 @@ import { SessionTabs } from "@/components/live/session-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrambleText } from "@/components/ascii/scramble-text";
+import { GlyphMorph } from "@/components/ascii/glyph-morph";
 
 type ViewMode = "combined" | "orchestrator" | "subagents";
 type MainTab = "feed" | "tools" | "errors" | "costs";
@@ -145,7 +147,11 @@ export default function LivePage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <Header title="Live Feed" />
+      <Header title={<ScrambleText text="Live Feed" speed={30} scrambleFrames={10} />} />
+      {/* Decode wave banner */}
+      <div className="border-b overflow-hidden" style={{ height: 28 }}>
+        <GlyphMorph width={140} rows={2} speed={40} />
+      </div>
       <ErrorAlertBanner
         errorsLastHour={errorsLastHour}
         lastHeartbeat={lastHeartbeat}

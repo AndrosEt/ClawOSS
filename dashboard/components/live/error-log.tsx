@@ -37,15 +37,15 @@ function classifyError(content: string): string {
 }
 
 const ERROR_TYPE_COLORS: Record<string, string> = {
-  "403-filter": "text-orange-400 border-orange-400/30",
-  timeout: "text-yellow-400 border-yellow-400/30",
-  ENOENT: "text-blue-400 border-blue-400/30",
-  "rate-limit": "text-purple-400 border-purple-400/30",
+  "403-filter": "text-amber-400 border-amber-400/30",
+  timeout: "text-amber-400 border-amber-400/30",
+  ENOENT: "text-foreground/50 border-foreground/20",
+  "rate-limit": "text-amber-400/70 border-amber-400/20",
   "server-500": "text-red-400 border-red-400/30",
   "conn-refused": "text-red-400 border-red-400/30",
-  "parse-error": "text-cyan-400 border-cyan-400/30",
-  permission: "text-pink-400 border-pink-400/30",
-  other: "text-gray-400 border-gray-400/30",
+  "parse-error": "text-foreground/50 border-foreground/20",
+  permission: "text-red-400/70 border-red-400/20",
+  other: "text-foreground/40 border-foreground/15",
 };
 
 export function ErrorLog({ messages }: ErrorLogProps) {
@@ -157,7 +157,7 @@ export function ErrorLog({ messages }: ErrorLogProps) {
                   {err.errorType}
                 </Badge>
                 {err.toolName && (
-                  <span className="text-yellow-400/70 w-28 shrink-0 truncate">
+                  <span className="text-amber-400/70 w-28 shrink-0 truncate">
                     {err.toolName}
                   </span>
                 )}
@@ -165,7 +165,7 @@ export function ErrorLog({ messages }: ErrorLogProps) {
                   {err.content.slice(0, 100)}
                 </span>
                 {err.isSubagent && (
-                  <span className="text-yellow-400/60 text-[9px] shrink-0">
+                  <span className="text-amber-400/60 text-[9px] shrink-0">
                     SUB
                   </span>
                 )}

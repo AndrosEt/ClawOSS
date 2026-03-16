@@ -19,6 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrambleText } from "@/components/ascii/scramble-text";
+import { DnaHelix } from "@/components/ascii/dna-helix";
+import { BreathingText } from "@/components/ascii/breathing-text";
 
 export default function HealthPage() {
   const [tokenRange, setTokenRange] = useState("week");
@@ -45,8 +48,12 @@ export default function HealthPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="Agent Health" />
+      <Header title={<ScrambleText text="Agent Health" speed={30} scrambleFrames={10} />} />
       <div className="flex-1 space-y-6 p-6">
+        {/* Art banner -- DNA helix centered */}
+        <div className="flex justify-center">
+          <DnaHelix height={6} speed={130} className="!text-emerald-400/15" />
+        </div>
         {health && (
           <HealthStatusCards
             heartbeat={health.heartbeat}

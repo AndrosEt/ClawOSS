@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { formatTokens } from "@/lib/utils";
 import { DEFAULT_COST_MODEL } from "@/lib/cost-models";
 import type { ConversationMessage } from "@/lib/types";
@@ -21,6 +21,9 @@ export function LiveStatsBar({
   lastHeartbeat,
   errorsLastHour = 0,
 }: LiveStatsBarProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const stats = useMemo(() => {
     const totalMessages = messages.length;
     const assistantMsgs = messages.filter((m) => m.role === "assistant").length;
@@ -113,8 +116,9 @@ export function LiveStatsBar({
     };
   }, [messages]);
 
-  // Compute staleness
+  // Compute staleness — only after mount to avoid hydration mismatch from Date.now()
   const stalenessLabel = useMemo(() => {
+    if (!mounted) return null;
     if (!lastHeartbeat) return null;
     const hbTime = new Date(lastHeartbeat).getTime();
     if (isNaN(hbTime)) return null;
@@ -125,13 +129,14 @@ export function LiveStatsBar({
     const diffHrs = Math.floor(diffMin / 60);
     if (diffHrs < 24) return `${diffHrs}h ${diffMin % 60}m ago`;
     return `${Math.floor(diffHrs / 24)}d ago`;
-  }, [lastHeartbeat]);
+  }, [lastHeartbeat, mounted]);
 
   const isStale = useMemo(() => {
+    if (!mounted) return false;
     if (!lastHeartbeat) return true;
     const diffMs = Date.now() - new Date(lastHeartbeat).getTime();
     return diffMs > 15 * 60 * 1000; // 15 min
-  }, [lastHeartbeat]);
+  }, [lastHeartbeat, mounted]);
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b pipeline-bar text-xs font-mono overflow-x-auto">
@@ -140,19 +145,19 @@ export function LiveStatsBar({
         <span
           className={`h-2 w-2 rounded-full ${
             isConnected
-              ? "bg-green-500 animate-pulse"
+              ? "bg-emerald-500 animate-pulse"
               : isStale
               ? "bg-red-500"
-              : "bg-yellow-500"
+              : "bg-amber-500"
           }`}
         />
         <span
           className={
             isConnected
-              ? "text-green-400"
+              ? "text-emerald-400"
               : isStale
               ? "text-red-400"
-              : "text-yellow-400"
+              : "text-amber-400"
           }
         >
           {isConnected ? "LIVE" : isStale ? "STALE" : "IDLE"}
@@ -239,8 +244,8 @@ export function LiveStatsBar({
 
       {/* PII sanitization */}
       {stats.sanitizedCount > 0 && (
-        <span className="text-green-400">
-          <span className="text-green-400/60">pii:</span>{" "}
+        <span className="text-emerald-400">
+          <span className="text-emerald-400/60">pii:</span>{" "}
           {stats.sanitizedCount} filtered
         </span>
       )}

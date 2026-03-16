@@ -14,11 +14,11 @@ interface MessageFiltersProps {
 
 const FILTERS: { value: RoleFilter; label: string; color: string }[] = [
   { value: "all", label: "All", color: "text-foreground" },
-  { value: "assistant", label: "Agent", color: "text-blue-400" },
-  { value: "tool_call", label: "Tools", color: "text-yellow-400" },
-  { value: "tool_result", label: "Results", color: "text-purple-400" },
-  { value: "system", label: "System", color: "text-gray-400" },
-  { value: "thinking", label: "Think", color: "text-orange-400" },
+  { value: "assistant", label: "Agent", color: "text-emerald-400" },
+  { value: "tool_call", label: "Tools", color: "text-amber-400" },
+  { value: "tool_result", label: "Results", color: "text-foreground/50" },
+  { value: "system", label: "System", color: "text-foreground/40" },
+  { value: "thinking", label: "Think", color: "text-amber-400/70" },
 ];
 
 export function MessageFilters({

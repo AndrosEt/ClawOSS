@@ -92,7 +92,7 @@ export function ToolAnalytics({ messages }: ToolAnalyticsProps) {
           return (
             <div key={tool.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-yellow-400 truncate max-w-[120px]">
+                <span className="font-mono text-amber-400 truncate max-w-[120px]">
                   {tool.name}
                 </span>
                 <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ export function ToolAnalytics({ messages }: ToolAnalyticsProps) {
               </div>
               <div className="h-1 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-yellow-500/60 rounded-full transition-all"
+                  className="h-full bg-amber-500/60 rounded-full transition-all"
                   style={{ width: `${Math.max(pct, 2)}%` }}
                 />
               </div>

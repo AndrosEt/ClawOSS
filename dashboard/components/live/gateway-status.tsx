@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { ConversationSession } from "@/lib/types";
 
@@ -35,10 +36,14 @@ export function GatewayStatus({
   errorsLastHour,
   sessions,
 }: GatewayStatusProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const isOnline = connectionState === "connected";
   const isDegraded = connectionState === "degraded";
   const lastHbDate = lastHeartbeat ? new Date(lastHeartbeat) : null;
-  const staleness = lastHbDate
+  // Only compute time-dependent values after mount to avoid hydration mismatch
+  const staleness = mounted && lastHbDate
     ? Math.floor((Date.now() - lastHbDate.getTime()) / 1000)
     : null;
 
@@ -49,7 +54,7 @@ export function GatewayStatus({
   const nextHbEstimate = lastHbDate
     ? new Date(lastHbDate.getTime() + 10 * 60 * 1000)
     : null;
-  const nextHbIn = nextHbEstimate
+  const nextHbIn = mounted && nextHbEstimate
     ? Math.max(0, Math.floor((nextHbEstimate.getTime() - Date.now()) / 1000))
     : null;
 
@@ -60,9 +65,9 @@ export function GatewayStatus({
         <div
           className={`w-2 h-2 rounded-full ${
             isOnline
-              ? "bg-green-400 animate-pulse"
+              ? "bg-emerald-400 animate-pulse"
               : isDegraded
-              ? "bg-yellow-400 animate-pulse"
+              ? "bg-amber-400 animate-pulse"
               : "bg-red-400"
           }`}
         />
@@ -73,9 +78,9 @@ export function GatewayStatus({
           variant="outline"
           className={`text-[9px] h-4 px-1.5 ${
             isOnline
-              ? "text-green-400 border-green-400/30"
+              ? "text-emerald-400 border-emerald-400/30"
               : isDegraded
-              ? "text-yellow-400 border-yellow-400/30"
+              ? "text-amber-400 border-amber-400/30"
               : "text-red-400 border-red-400/30"
           }`}
         >
@@ -95,11 +100,11 @@ export function GatewayStatus({
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Model</span>
-          <span className="text-cyan-400">kimi-coding/k2p5</span>
+          <span className="text-foreground/60">kimi-coding/k2p5</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Auth</span>
-          <span className="text-green-400">token</span>
+          <span className="text-emerald-400">token</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">HB interval</span>
@@ -107,13 +112,13 @@ export function GatewayStatus({
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">HBs/hr</span>
-          <span className={heartbeatsLastHour > 0 ? "text-green-400" : "text-red-400"}>
+          <span className={heartbeatsLastHour > 0 ? "text-emerald-400" : "text-red-400"}>
             {heartbeatsLastHour}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Errors/hr</span>
-          <span className={errorsLastHour > 0 ? "text-red-400" : "text-green-400"}>
+          <span className={errorsLastHour > 0 ? "text-red-400" : "text-emerald-400"}>
             {errorsLastHour}
           </span>
         </div>
@@ -132,8 +137,8 @@ export function GatewayStatus({
               staleness != null && staleness > 900
                 ? "text-red-400"
                 : staleness != null && staleness > 300
-                ? "text-yellow-400"
-                : "text-green-400"
+                ? "text-amber-400"
+                : "text-emerald-400"
             }
           >
             {staleness != null
@@ -170,7 +175,7 @@ export function GatewayStatus({
         {sessions.slice(0, 8).map((s) => {
           const isActive = s.isActive;
           const isSub = s.isSubagent;
-          const age = Math.floor(
+          const age = mounted ? Math.floor(
             (Date.now() -
               new Date(
                 typeof s.firstMessage === "string"
@@ -178,7 +183,7 @@ export function GatewayStatus({
                   : s.firstMessage
               ).getTime()) /
               60000
-          );
+          ) : 0;
           return (
             <div
               key={s.sessionId}
@@ -187,13 +192,13 @@ export function GatewayStatus({
               <div
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                   isActive
-                    ? "bg-green-400 animate-pulse"
+                    ? "bg-emerald-400 animate-pulse"
                     : "bg-muted-foreground/30"
                 }`}
               />
               <span
                 className={`truncate flex-1 ${
-                  isSub ? "text-yellow-400" : "text-blue-400"
+                  isSub ? "text-amber-400" : "text-foreground/70"
                 }`}
               >
                 {isSub
@@ -203,7 +208,7 @@ export function GatewayStatus({
               {isSub && (
                 <Badge
                   variant="outline"
-                  className="text-[7px] h-3 px-0.5 text-yellow-400 border-yellow-400/30"
+                  className="text-[7px] h-3 px-0.5 text-amber-400 border-amber-400/30"
                 >
                   SUB
                 </Badge>

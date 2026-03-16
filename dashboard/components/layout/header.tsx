@@ -12,21 +12,21 @@ import { ThemeToggle } from "./theme-toggle";
 import { ConnectionStatusIndicator } from "./connection-status-indicator";
 
 interface HeaderProps {
-  title: string;
+  title: React.ReactNode;
 }
 
 export function Header({ title }: HeaderProps) {
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
+    <header className="flex h-11 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
-      <h1 className="text-sm font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-xs font-mono font-semibold tracking-tight uppercase text-foreground/70">{title}</h1>
       <div className="ml-auto flex items-center gap-3">
         <Tooltip>
           <TooltipTrigger>
             <Badge
               variant="outline"
-              className="text-[9px] h-4 px-1.5 text-muted-foreground/50 border-muted-foreground/20 cursor-default font-mono"
+              className="text-[9px] h-4 px-1.5 text-muted-foreground/40 border-muted-foreground/15 cursor-default font-mono"
             >
               pii:off
             </Badge>

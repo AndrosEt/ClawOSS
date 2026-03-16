@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/utils";
@@ -11,23 +12,26 @@ interface AgentStatePanelProps {
 }
 
 const skillColors: Record<string, string> = {
-  "oss-discover": "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  "oss-triage": "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-  "oss-implement": "bg-green-500/20 text-green-300 border-green-500/30",
-  "oss-followup": "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-  "repo-analyzer": "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  "systematic-debugging": "bg-red-500/20 text-red-300 border-red-500/30",
-  "test-driven-development": "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  "oss-discover": "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+  "oss-triage": "bg-foreground/8 text-foreground/60 border-foreground/12",
+  "oss-implement": "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+  "oss-followup": "bg-amber-500/15 text-amber-300 border-amber-500/25",
+  "repo-analyzer": "bg-foreground/8 text-foreground/60 border-foreground/12",
+  "systematic-debugging": "bg-red-500/15 text-red-300 border-red-500/25",
+  "test-driven-development": "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
 };
 
 function getSkillBadgeClass(skill: string): string {
   return (
     skillColors[skill] ||
-    "bg-gray-500/20 text-gray-300 border-gray-500/30"
+    "bg-foreground/8 text-foreground/50 border-foreground/12"
   );
 }
 
 export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   if (isLoading) {
     return (
       <Card>
@@ -90,27 +94,27 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
 
   const repos = (state.activeRepos || []) as string[];
 
-  // Staleness check
-  const stateAge = state.timestamp
+  // Staleness check — only after mount to avoid hydration mismatch
+  const stateAge = mounted && state.timestamp
     ? Date.now() - new Date(state.timestamp).getTime()
     : Infinity;
-  const isStale = stateAge > 30 * 60 * 1000; // 30 min
+  const isStale = mounted ? stateAge > 30 * 60 * 1000 : false; // 30 min
 
   return (
     <div className="space-y-3">
       {/* Current Activity */}
-      <Card className={isStale ? "border-yellow-500/30" : ""}>
+      <Card className={isStale ? "border-amber-500/20" : ""}>
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm font-medium flex items-center justify-between">
             <span className="flex items-center gap-2">
               Current Activity
               {!isStale && state.currentSkill && (
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               )}
             </span>
             <span
               className={`text-[10px] font-normal ${
-                isStale ? "text-yellow-400" : "text-muted-foreground"
+                isStale ? "text-amber-400" : "text-muted-foreground"
               }`}
             >
               {isStale && "stale -- "}
@@ -133,7 +137,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           {state.currentRepo && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Repo</span>
-              <span className="font-mono text-blue-400 truncate max-w-[140px] text-[11px]">
+              <span className="font-mono text-foreground/70 truncate max-w-[140px] text-[11px]">
                 {state.currentRepo}
               </span>
             </div>
@@ -141,7 +145,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           {state.currentIssue && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Issue</span>
-              <span className="font-mono text-green-400 text-[11px]">
+              <span className="font-mono text-emerald-400/70 text-[11px]">
                 {state.currentIssue}
               </span>
             </div>
@@ -204,13 +208,13 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
           ) : (
             workQueue.slice(0, 8).map((item, i) => {
               const priorityColors: Record<string, string> = {
-                HIGH: "bg-red-500/20 text-red-300 border-red-500/30",
-                "1": "bg-red-500/20 text-red-300 border-red-500/30",
-                "2": "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                HIGH: "bg-red-500/15 text-red-300 border-red-500/25",
+                "1": "bg-red-500/15 text-red-300 border-red-500/25",
+                "2": "bg-amber-500/15 text-amber-300 border-amber-500/25",
                 MEDIUM:
-                  "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-                "3": "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-                LOW: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                  "bg-amber-500/15 text-amber-300 border-amber-500/25",
+                "3": "bg-amber-500/15 text-amber-300 border-amber-500/25",
+                LOW: "bg-foreground/6 text-foreground/40 border-foreground/10",
               };
               const pColor =
                 priorityColors[item.priority] || priorityColors.MEDIUM;
@@ -230,21 +234,21 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
                   </Badge>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <span className="text-blue-400 font-mono text-[10px]">
+                      <span className="text-foreground/70 font-mono text-[10px]">
                         {item.repo?.includes("/")
                           ? item.repo.split("/")[1]
                           : item.repo}
                       </span>
-                      <span className="text-green-400 font-mono text-[10px]">
+                      <span className="text-emerald-400/70 font-mono text-[10px]">
                         #{item.issue}
                       </span>
                       {item.solvabilityScore != null && (
                         <span
                           className={`text-[9px] ml-auto ${
                             (item.solvabilityScore ?? 0) >= 7
-                              ? "text-green-400"
+                              ? "text-emerald-400"
                               : (item.solvabilityScore ?? 0) >= 5
-                              ? "text-yellow-400"
+                              ? "text-amber-400"
                               : "text-red-400"
                           }`}
                         >
@@ -321,7 +325,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-green-400">
+                    <div className="text-sm font-bold text-emerald-400">
                       {pipeline.statsToday.merged}
                     </div>
                     <div className="text-[9px] text-muted-foreground">
@@ -337,7 +341,7 @@ export function AgentStatePanel({ state, isLoading }: AgentStatePanelProps) {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-yellow-400">
+                    <div className="text-sm font-bold text-amber-400">
                       {pipeline.statsToday.abandoned}
                     </div>
                     <div className="text-[9px] text-muted-foreground">

@@ -25,8 +25,8 @@ const levelVariant: Record<string, "default" | "secondary" | "destructive" | "ou
 
 const levelColors: Record<string, string> = {
   debug: "text-muted-foreground",
-  info: "text-blue-400",
-  warn: "text-yellow-400",
+  info: "text-foreground/70",
+  warn: "text-amber-400",
   error: "text-red-400",
 };
 

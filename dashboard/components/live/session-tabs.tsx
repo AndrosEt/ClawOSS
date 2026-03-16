@@ -40,10 +40,10 @@ export function SessionTabs({
           className="text-[10px] h-6 px-2.5 shrink-0 gap-1.5"
           onClick={() => onSelectSession(session.sessionId)}
         >
-          <span className="text-blue-400">#</span>
+          <span className="text-foreground/70">#</span>
           <span>Main: Orchestrator</span>
           {session.isActive && (
-            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
           )}
         </Button>
       ))}
@@ -77,10 +77,10 @@ export function SessionTabs({
             onClick={() => onSelectSession(session.sessionId)}
             title={rawLabel}
           >
-            <span className="text-yellow-400">{"~>"}</span>
+            <span className="text-amber-400">{"~>"}</span>
             <span>{shortLabel}</span>
             {session.isActive && (
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             )}
             <Badge
               variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ErrorAlertBannerProps {
@@ -15,7 +15,12 @@ export function ErrorAlertBanner({
   connectionState,
 }: ErrorAlertBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
+
+  // Don't render during SSR to avoid hydration mismatch from Date.now() differences
+  if (!mounted) return null;
   if (dismissed) return null;
 
   const alerts: { message: string; severity: "error" | "warning" }[] = [];
@@ -68,7 +73,7 @@ export function ErrorAlertBanner({
       className={`flex items-center gap-3 px-4 py-2 text-xs font-mono border-b ${
         hasError
           ? "bg-red-500/10 border-red-500/20 text-red-300"
-          : "bg-yellow-500/10 border-yellow-500/20 text-yellow-300"
+          : "bg-amber-500/10 border-amber-500/20 text-amber-300"
       }`}
     >
       <span className="font-bold shrink-0">
@@ -81,7 +86,7 @@ export function ErrorAlertBanner({
             className={
               alert.severity === "error"
                 ? "text-red-300"
-                : "text-yellow-300"
+                : "text-amber-300"
             }
           >
             {alert.message}

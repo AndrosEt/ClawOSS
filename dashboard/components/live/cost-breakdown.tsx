@@ -150,11 +150,11 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
         </div>
         <div>
           <div className="text-muted-foreground text-[9px]">Input Tok</div>
-          <div className="text-blue-400">{totalInput.toLocaleString()}</div>
+          <div className="text-foreground/70">{totalInput.toLocaleString()}</div>
         </div>
         <div>
           <div className="text-muted-foreground text-[9px]">Output Tok</div>
-          <div className="text-purple-400">{totalOutput.toLocaleString()}</div>
+          <div className="text-foreground/50">{totalOutput.toLocaleString()}</div>
         </div>
       </div>
 
@@ -176,14 +176,14 @@ export function CostBreakdown({ messages }: CostBreakdownProps) {
               <div className="w-24 shrink-0 truncate">
                 <span
                   className={
-                    sc.isSubagent ? "text-yellow-400" : "text-blue-400"
+                    sc.isSubagent ? "text-amber-400" : "text-foreground/70"
                   }
                 >
                   {sc.displayName}
                 </span>
               </div>
               {sc.repo && (
-                <span className="text-cyan-400/60 text-[9px] w-28 truncate shrink-0">
+                <span className="text-foreground/40 text-[9px] w-28 truncate shrink-0">
                   {sc.repo}
                   {sc.issue || ""}
                 </span>

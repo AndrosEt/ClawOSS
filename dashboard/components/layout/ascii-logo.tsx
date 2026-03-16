@@ -3,7 +3,7 @@
 export function AsciiLogo({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
-      <pre className="text-[8px] leading-[1.1] font-mono select-none ascii-gradient">
+      <pre className="text-[8px] leading-[1.1] font-mono select-none text-muted-foreground/40">
         {`  /\\_/\\
  ( o.o )
   > ^ <`}
@@ -12,36 +12,23 @@ export function AsciiLogo({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className="font-mono select-none relative">
-      <pre className="text-[9px] leading-[1.15] ascii-gradient whitespace-pre">
-        {`    ██████╗██╗      █████╗ ██╗    ██╗
-   ██╔════╝██║     ██╔══██╗██║    ██║
-   ██║     ██║     ███████║██║ █╗ ██║
-   ██║     ██║     ██╔══██║██║███╗██║
-   ╚██████╗███████╗██║  ██║╚███╔███╔╝
-    ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
-          ╔═══╗╔═══╗╔═══╗
-          ║ O ║║ S ║║ S ║
-          ╚═══╝╚═══╝╚═══╝`}
-      </pre>
-      {/* Subtle glow behind the logo */}
-      <div
-        className="absolute inset-0 blur-2xl opacity-[0.07] pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at center, #a855f7 0%, transparent 70%)",
-        }}
-      />
-    </div>
+    <pre className="text-[8px] leading-[1.15] font-mono select-none text-muted-foreground/30 whitespace-pre">
+      {`██████╗██╗      █████╗ ██╗    ██╗
+██╔════╝██║     ██╔══██╗██║    ██║
+██║     ██║     ███████║██║ █╗ ██║
+██║     ██║     ██╔══██║██║███╗██║
+╚██████╗███████╗██║  ██║╚███╔███╔╝
+ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝`}
+    </pre>
   );
 }
 
 export function AsciiDivider() {
   return (
     <div className="relative overflow-hidden h-3 flex items-center">
-      <div className="text-[10px] text-muted-foreground/20 font-mono select-none text-center w-full">
+      <div className="text-[10px] text-muted-foreground/15 font-mono select-none text-center w-full">
         {"- ".repeat(60)}
       </div>
-      {/* Fade edges */}
       <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background to-transparent" />
       <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent" />
     </div>
@@ -50,9 +37,9 @@ export function AsciiDivider() {
 
 export function AsciiBorder({ children, title }: { children: React.ReactNode; title?: string }) {
   return (
-    <div className="relative border border-muted-foreground/15 rounded-md font-mono">
+    <div className="relative border border-muted-foreground/10 rounded-md font-mono">
       {title && (
-        <div className="absolute -top-2.5 left-3 px-1.5 bg-background text-[10px] text-muted-foreground/50">
+        <div className="absolute -top-2.5 left-3 px-1.5 bg-background text-[10px] text-muted-foreground/40">
           {`[ ${title} ]`}
         </div>
       )}

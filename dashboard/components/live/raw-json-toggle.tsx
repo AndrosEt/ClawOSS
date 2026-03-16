@@ -35,7 +35,7 @@ export function RawJsonToggle({ message }: RawJsonToggleProps) {
           [close]
         </button>
       </div>
-      <pre className="text-[10px] text-green-400/80 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto max-h-48 overflow-y-auto">
+      <pre className="text-[10px] text-emerald-400/80 whitespace-pre-wrap break-all leading-relaxed overflow-x-auto max-h-48 overflow-y-auto">
         {JSON.stringify(
           {
             id: message.id,

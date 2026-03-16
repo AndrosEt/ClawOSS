@@ -19,45 +19,45 @@ const roleConfig: Record<
 > = {
   assistant: {
     label: "Agent",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/10 border-blue-500/20",
+    color: "text-emerald-400",
+    bgColor: "bg-emerald-500/10 border-emerald-500/20",
     icon: ">>",
-    accent: "msg-accent-blue",
+    accent: "msg-accent-green",
   },
   user: {
     label: "Prompt",
-    color: "text-green-400",
-    bgColor: "bg-green-500/10 border-green-500/20",
+    color: "text-foreground/70",
+    bgColor: "bg-foreground/5 border-foreground/10",
     icon: "$",
-    accent: "msg-accent-green",
+    accent: "msg-accent",
   },
   tool_call: {
     label: "Tool",
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-500/10 border-yellow-500/20",
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/10 border-amber-500/20",
     icon: "->",
     accent: "msg-accent-yellow",
   },
   tool_result: {
     label: "Result",
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/10 border-purple-500/20",
+    color: "text-foreground/50",
+    bgColor: "bg-foreground/5 border-foreground/10",
     icon: "<-",
-    accent: "msg-accent-purple",
+    accent: "msg-accent",
   },
   system: {
     label: "System",
-    color: "text-gray-400",
-    bgColor: "bg-gray-500/10 border-gray-500/20",
+    color: "text-foreground/40",
+    bgColor: "bg-foreground/3 border-foreground/8",
     icon: "#",
     accent: "msg-accent",
   },
   thinking: {
     label: "Think",
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/10 border-orange-500/20",
+    color: "text-amber-400/70",
+    bgColor: "bg-amber-500/8 border-amber-500/15",
     icon: "~",
-    accent: "msg-accent-orange",
+    accent: "msg-accent-yellow",
   },
 };
 
@@ -90,7 +90,7 @@ function MessageContent({
       {isTruncatable && !forceExpanded && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-[10px] text-blue-400 hover:text-blue-300 mt-1 font-mono"
+          className="text-[10px] text-emerald-400/70 hover:text-emerald-400 mt-1 font-mono"
         >
           {expanded
             ? "[ collapse ]"
@@ -167,7 +167,7 @@ export function ConversationFeed({
             Messages will appear here as the agent works
           </p>
           <div className="animate-pulse mt-4">
-            <span className="text-green-400">$</span>{" "}
+            <span className="text-emerald-400">$</span>{" "}
             <span className="text-muted-foreground">_</span>
           </div>
         </div>
@@ -186,10 +186,10 @@ export function ConversationFeed({
       {/* Top bar: pause indicator + expand/collapse toggle */}
       <div className="sticky top-0 z-10 flex items-center gap-2">
         {isPaused && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded px-2 py-0.5 text-[10px] text-yellow-400 text-center flex-1">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5 text-[10px] text-amber-400 text-center flex-1">
             Auto-scroll paused (hover)
             {newMsgCount > 0 && (
-              <span className="ml-2 new-msg-badge inline-block bg-blue-500/20 border border-blue-500/40 rounded px-1.5 text-blue-400">
+              <span className="ml-2 new-msg-badge inline-block bg-emerald-500/20 border border-emerald-500/40 rounded px-1.5 text-emerald-400">
                 +{newMsgCount} new
               </span>
             )}
@@ -248,7 +248,7 @@ export function ConversationFeed({
               isError
                 ? "bg-red-500/10 border-red-500/30 msg-accent-red"
                 : isSlow && msg.role === "tool_call"
-                ? "bg-yellow-500/5 border-yellow-500/20"
+                ? "bg-amber-500/5 border-amber-500/20"
                 : config.bgColor
             }`}
           >
@@ -258,7 +258,7 @@ export function ConversationFeed({
                   isError
                     ? "text-red-400"
                     : isSlow && msg.role === "tool_call"
-                    ? "text-yellow-400"
+                    ? "text-amber-400"
                     : config.color
                 }`}
               >
@@ -278,7 +278,7 @@ export function ConversationFeed({
                     msg.durationMs > 10000
                       ? "text-red-400"
                       : msg.durationMs > 5000
-                      ? "text-yellow-400"
+                      ? "text-amber-400"
                       : "text-muted-foreground"
                   }`}
                 >
@@ -295,13 +295,13 @@ export function ConversationFeed({
               {!!(msg.metadata as Record<string, unknown>)?.isSubagent && (
                 <Badge
                   variant="outline"
-                  className="text-[8px] h-3 px-1 text-yellow-400 border-yellow-400/30"
+                  className="text-[8px] h-3 px-1 text-amber-400 border-amber-400/30"
                 >
                   SUB
                 </Badge>
               )}
               {!!(msg.metadata as Record<string, unknown>)?.label && (
-                <span className="text-[9px] text-yellow-400/80 font-mono">
+                <span className="text-[9px] text-amber-400/80 font-mono">
                   {String((msg.metadata as Record<string, unknown>).label)}
                 </span>
               )}
@@ -317,7 +317,7 @@ export function ConversationFeed({
                       : ""
                   }`}
                 >
-                  <span className="text-[9px] text-cyan-400 font-mono">
+                  <span className="text-[9px] text-foreground/60 font-mono">
                     {String((msg.metadata as Record<string, unknown>).repo)}
                     {(msg.metadata as Record<string, unknown>).issue
                       ? String(
@@ -342,7 +342,7 @@ export function ConversationFeed({
               {hasSanitized && (
                 <Badge
                   variant="outline"
-                  className="text-[7px] h-3 px-1 text-green-400/60 border-green-400/20"
+                  className="text-[7px] h-3 px-1 text-emerald-400/60 border-emerald-400/20"
                   title="Content was sanitized by PII filter to prevent 403 errors"
                 >
                   PII

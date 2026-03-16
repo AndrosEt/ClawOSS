@@ -83,37 +83,38 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.88 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.88 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(0.88 0 0);
+  --primary: oklch(0.88 0 0);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.16 0 0);
+  --secondary-foreground: oklch(0.88 0 0);
+  --muted: oklch(0.16 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+  --accent: oklch(0.16 0 0);
+  --accent-foreground: oklch(0.88 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 6%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.45 0 0);
+  --chart-1: oklch(0.7 0.08 160);
+  --chart-2: oklch(0.65 0.1 200);
+  --chart-3: oklch(0.6 0.08 250);
+  --chart-4: oklch(0.55 0.06 300);
+  --chart-5: oklch(0.5 0.04 350);
+  --radius: 0.375rem;
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(0.88 0 0);
+  --sidebar-primary: oklch(0.65 0.1 160);
+  --sidebar-primary-foreground: oklch(0.88 0 0);
+  --sidebar-accent: oklch(0.14 0 0);
+  --sidebar-accent-foreground: oklch(0.88 0 0);
+  --sidebar-border: oklch(1 0 0 / 4%);
+  --sidebar-ring: oklch(0.45 0 0);
 }
 
 @layer base {
@@ -129,27 +130,104 @@
 }
 
 /* =========================================================
-   ClawOSS Visual System
+   ClawOSS Visual System — Hacker Tool Aesthetic
    ========================================================= */
 
-/* ASCII art gradient text effect */
-.ascii-gradient {
-  background: linear-gradient(135deg, #f97316 0%, #ef4444 25%, #a855f7 50%, #3b82f6 75%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* ----- Background texture ----- */
+/* Dot-grid with crosshair lines */
+.dark body {
+  background-image:
+    radial-gradient(oklch(1 0 0 / 3%) 1px, transparent 1px),
+    linear-gradient(oklch(1 0 0 / 1.5%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 1.5%) 1px, transparent 1px);
+  background-size: 24px 24px, 120px 120px, 120px 120px;
 }
 
-/* Gradient title for ClawOSS branding */
-.claw-title {
-  background: linear-gradient(90deg, #f97316, #ef4444, #a855f7);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
+/* ----- System chrome ----- */
+/* System header bar */
+.system-header {
+  border: 1px solid oklch(0 0 0 / 5%);
+  background: oklch(0.97 0 0);
+}
+.dark .system-header {
+  border: 1px solid oklch(1 0 0 / 4%);
+  background: oklch(0.11 0 0);
+  box-shadow:
+    0 1px 0 oklch(0.6 0.08 160 / 4%),
+    inset 0 1px 0 oklch(1 0 0 / 2%);
 }
 
-/* Subtle scanline overlay for terminal aesthetic */
+/* Corner brackets -- CSS-only decorative corners */
+.corner-brackets {
+  position: relative;
+}
+.corner-brackets::before,
+.corner-brackets::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+}
+.corner-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid oklch(0.6 0.1 160 / 30%);
+  border-left: 1px solid oklch(0.6 0.1 160 / 30%);
+}
+.corner-brackets::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid oklch(0.6 0.1 160 / 30%);
+  border-right: 1px solid oklch(0.6 0.1 160 / 30%);
+}
+
+/* Accent line -- thin emerald top border */
+.accent-top {
+  border-top: 1px solid oklch(0.6 0.1 160 / 20%);
+}
+
+/* ----- Noise + texture ----- */
+.noise-overlay {
+  position: relative;
+}
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* Vignette */
+.dark main {
+  box-shadow: inset 0 0 160px oklch(0 0 0 / 20%);
+}
+
+/* ----- Sidebar ----- */
+.dark [data-active="true"] {
+  box-shadow: inset 2px 0 0 oklch(0.6 0.1 160 / 50%);
+}
+
+/* ----- Terminal card ----- */
+.terminal-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  overflow: hidden;
+}
+.dark .terminal-card {
+  background: oklch(0.08 0 0);
+  border-color: oklch(1 0 0 / 4%);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 3%),
+    0 0 0 1px oklch(0 0 0 / 40%);
+}
+
+/* Scanline overlay for terminal */
 .scanlines {
   position: relative;
 }
@@ -161,8 +239,8 @@
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
+    rgba(0, 0, 0, 0.02) 2px,
+    rgba(0, 0, 0, 0.02) 4px
   );
   pointer-events: none;
   border-radius: inherit;
@@ -172,160 +250,55 @@
     0deg,
     transparent,
     transparent 2px,
-    rgba(255, 255, 255, 0.015) 2px,
-    rgba(255, 255, 255, 0.015) 4px
+    rgba(255, 255, 255, 0.008) 2px,
+    rgba(255, 255, 255, 0.008) 4px
   );
 }
 
-/* Terminal cursor blink */
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+/* ----- Metric card ----- */
+.metric-card {
+  transition: border-color 0.15s ease;
 }
-.cursor-blink {
-  animation: cursor-blink 1s step-end infinite;
+.dark .metric-card {
+  background: oklch(0.11 0 0);
 }
-
-/* ---- Animated glow ring for status indicators ---- */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 4px 1px currentColor; }
-  50% { box-shadow: 0 0 10px 3px currentColor; }
-}
-.glow-dot {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-.glow-dot-green { color: #22c55e; }
-.glow-dot-yellow { color: #eab308; }
-.glow-dot-red { color: #ef4444; }
-
-/* ---- Gradient borders for cards ---- */
-.card-glow {
-  position: relative;
-  overflow: hidden;
-}
-.card-glow::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.card-glow:hover::before {
-  opacity: 1;
+.metric-card:hover {
+  border-color: oklch(0.6 0.1 160 / 15%);
 }
 
-/* ---- Quality score ring ---- */
+/* ----- Quality score ring ----- */
 .quality-ring {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 600;
   font-family: var(--font-mono);
-  border: 2px solid;
-  transition: all 0.2s ease;
+  border: 1.5px solid;
 }
-.quality-ring.q-high { border-color: #22c55e; color: #22c55e; }
-.quality-ring.q-mid { border-color: #eab308; color: #eab308; }
-.quality-ring.q-low { border-color: #ef4444; color: #ef4444; }
-.quality-ring:hover { transform: scale(1.1); }
+.quality-ring.q-high { border-color: oklch(0.6 0.15 160); color: oklch(0.6 0.15 160); }
+.quality-ring.q-mid { border-color: oklch(0.7 0.15 85); color: oklch(0.7 0.15 85); }
+.quality-ring.q-low { border-color: oklch(0.55 0.2 25); color: oklch(0.55 0.2 25); }
 
-/* ---- Status badge glow ---- */
-.badge-glow-green {
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
-}
-.badge-glow-red {
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
-}
-.badge-glow-yellow {
-  box-shadow: 0 0 6px rgba(234, 179, 8, 0.3);
-}
-
-/* ---- Smooth scroll behavior with custom scrollbar ---- */
-.smooth-scroll {
-  scroll-behavior: smooth;
-}
-.smooth-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.smooth-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.smooth-scroll::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0 0 / 40%);
-  border-radius: 3px;
-}
-.dark .smooth-scroll::-webkit-scrollbar-thumb {
-  background: oklch(0.5 0 0 / 30%);
-}
-.smooth-scroll::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0 0 / 60%);
-}
-
-/* ---- Fade-in animation for staggered cards ---- */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fade-up 0.35s ease-out both;
-}
-.animate-fade-up-1 { animation-delay: 0.04s; }
-.animate-fade-up-2 { animation-delay: 0.08s; }
-.animate-fade-up-3 { animation-delay: 0.12s; }
-.animate-fade-up-4 { animation-delay: 0.16s; }
-
-/* ---- Subtle hover lift for interactive cards ---- */
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-.dark .hover-lift:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-/* ---- Table row hover effect ---- */
-.table-row-hover {
-  transition: background-color 0.15s ease;
-}
-.table-row-hover:hover {
-  background-color: oklch(0.97 0 0);
-}
-.dark .table-row-hover:hover {
-  background-color: oklch(0.22 0 0);
-}
-
-/* ---- Pipeline status bar ---- */
+/* ----- Pipeline status bar ----- */
 .pipeline-bar {
-  border: 1px solid oklch(1 0 0 / 5%);
-  background: oklch(0.16 0 0);
-}
-:root .pipeline-bar {
+  border: 1px solid oklch(0 0 0 / 4%);
   background: oklch(0.97 0 0);
-  border: 1px solid oklch(0 0 0 / 5%);
+}
+.dark .pipeline-bar {
+  border: 1px solid oklch(1 0 0 / 3%);
+  background: oklch(0.09 0 0);
 }
 
-/* ---- Progress bar gradient ---- */
+/* ----- Progress bar gradient ----- */
 .progress-gradient {
-  background: linear-gradient(90deg, #f97316, #ef4444, #a855f7);
+  background: linear-gradient(90deg, oklch(0.6 0.12 160), oklch(0.55 0.1 180));
 }
 
-/* ---- Session tab active underline ---- */
+/* ----- Session tab active underline ----- */
 .tab-active-line {
   position: relative;
 }
@@ -336,89 +309,106 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #f97316, #a855f7);
+  background: oklch(0.6 0.12 160);
   border-radius: 1px;
 }
 
-/* ---- Inline sparkline bar ---- */
+/* ----- Spark bar ----- */
 .spark-bar {
   display: inline-block;
   width: 3px;
   border-radius: 1px;
   vertical-align: bottom;
   background: currentColor;
-  opacity: 0.5;
+  opacity: 0.4;
   transition: height 0.3s ease;
 }
 
-/* ---- Message bubble subtle left accent ---- */
+/* ----- Message accent ----- */
 .msg-accent {
   border-left: 2px solid transparent;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 .msg-accent:hover {
-  border-left-color: oklch(0.5 0.1 264);
+  border-left-color: oklch(0.6 0.1 160 / 40%);
 }
-.msg-accent-blue { border-left-color: oklch(0.65 0.17 255 / 40%); }
-.msg-accent-green { border-left-color: oklch(0.65 0.17 150 / 40%); }
-.msg-accent-yellow { border-left-color: oklch(0.75 0.15 85 / 40%); }
-.msg-accent-purple { border-left-color: oklch(0.6 0.2 295 / 40%); }
-.msg-accent-red { border-left-color: oklch(0.6 0.2 25 / 40%); }
-.msg-accent-orange { border-left-color: oklch(0.7 0.15 55 / 40%); }
+.msg-accent-blue { border-left-color: oklch(0.6 0 0 / 30%); }
+.msg-accent-green { border-left-color: oklch(0.6 0.12 160 / 40%); }
+.msg-accent-yellow { border-left-color: oklch(0.7 0.12 85 / 40%); }
+.msg-accent-purple { border-left-color: oklch(0.6 0 0 / 30%); }
+.msg-accent-red { border-left-color: oklch(0.55 0.15 25 / 40%); }
+.msg-accent-orange { border-left-color: oklch(0.7 0.12 85 / 40%); }
 
-/* ---- Click-to-copy feedback ---- */
+/* ----- Custom scrollbar ----- */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+.smooth-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.smooth-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.smooth-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0 / 30%);
+  border-radius: 3px;
+}
+.dark .smooth-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 20%);
+}
+
+/* ----- Table row hover ----- */
+.table-row-hover {
+  transition: background-color 0.1s ease;
+}
+.table-row-hover:hover {
+  background-color: oklch(0.97 0 0);
+}
+.dark .table-row-hover:hover {
+  background-color: oklch(0.16 0 0);
+}
+
+/* ----- Click-to-copy flash ----- */
 @keyframes copy-flash {
-  0% { background-color: oklch(0.7 0.15 150 / 20%); }
+  0% { background-color: oklch(0.6 0.12 160 / 15%); }
   100% { background-color: transparent; }
 }
 .copy-flash {
-  animation: copy-flash 0.6s ease-out;
+  animation: copy-flash 0.5s ease-out;
 }
 
-/* ---- Floating action button (jump to bottom, etc.) ---- */
+/* ----- Floating action button ----- */
 .fab-float {
   position: sticky;
   bottom: 1rem;
   z-index: 10;
   align-self: center;
   backdrop-filter: blur(8px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.fab-float:hover {
-  transform: translateY(-2px);
 }
 
-/* ---- Sortable table header ---- */
+/* ----- Sortable header ----- */
 .sortable-header {
   cursor: pointer;
   user-select: none;
-  transition: color 0.15s ease;
+  transition: color 0.1s ease;
 }
 .sortable-header:hover {
   color: var(--foreground);
 }
 .sort-indicator {
   display: inline-block;
-  margin-left: 4px;
-  font-size: 0.6rem;
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
+  margin-left: 3px;
+  font-size: 0.55rem;
+  opacity: 0.3;
+  transition: opacity 0.1s ease;
 }
 .sortable-header:hover .sort-indicator,
 .sort-indicator.active {
   opacity: 1;
 }
 
-/* ---- New message badge ---- */
-@keyframes badge-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-.new-msg-badge {
-  animation: badge-bounce 0.3s ease;
-}
-
-/* ---- Tooltip for absolute timestamps ---- */
+/* ----- Timestamp tooltip ----- */
 .ts-tooltip {
   position: relative;
   cursor: default;
@@ -434,37 +424,72 @@
   font-size: 0.6rem;
   font-family: var(--font-mono);
   white-space: nowrap;
-  background: oklch(0.2 0 0 / 90%);
-  color: oklch(0.9 0 0);
+  background: oklch(0.15 0 0 / 95%);
+  color: oklch(0.85 0 0);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
   z-index: 50;
 }
-.dark .ts-tooltip::after {
-  background: oklch(0.3 0 0 / 95%);
-}
 .ts-tooltip:hover::after {
   opacity: 1;
 }
 
-/* ---- GitHub link icon ---- */
+/* ----- GitHub link icon ----- */
 .gh-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: inherit;
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color 0.1s ease;
 }
 .gh-link:hover {
-  color: oklch(0.7 0.15 255);
+  color: oklch(0.7 0 0);
 }
 .gh-link-icon {
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.1s ease;
 }
 .gh-link:hover .gh-link-icon,
 .group:hover .gh-link-icon {
-  opacity: 0.6;
+  opacity: 0.5;
+}
+
+/* ----- Art frame ----- */
+.art-frame {
+  border: 1px solid oklch(1 0 0 / 6%);
+  padding: 4px;
+  position: relative;
+}
+.dark .art-frame {
+  background: oklch(0.07 0 0);
+  box-shadow:
+    inset 0 0 30px oklch(0.6 0.1 160 / 3%),
+    0 0 0 1px oklch(0 0 0 / 30%);
+}
+.art-frame::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  border: 1px solid oklch(1 0 0 / 3%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ----- Brand ----- */
+.claw-title {
+  color: var(--foreground);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+.ascii-gradient {
+  background: linear-gradient(135deg, oklch(0.65 0.1 160) 0%, oklch(0.55 0.08 200) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

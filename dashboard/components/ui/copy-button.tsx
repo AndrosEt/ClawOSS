@@ -34,7 +34,7 @@ export function CopyButton({ value, children, className = "", title }: CopyButto
       {children}
       <span
         className={`text-[8px] font-mono transition-opacity ${
-          copied ? "opacity-100 text-green-400" : "opacity-0"
+          copied ? "opacity-100 text-emerald-400" : "opacity-0"
         }`}
       >
         {copied ? "copied" : ""}
