@@ -88,7 +88,7 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
   b. Skip if repo has 3 PRs today.
   c. Prefer different repos across concurrent sub-agents.
   d. **CONTRIBUTION TYPE CHECK**: Must be bug fix, docs fix, typo fix, or test addition.
-  f. **TITLE KEYWORD HARD REJECT**: Skip if title matches whole word (`\b{keyword}\b`, case-insensitive): `add`, `extend`, `enable`, `improve`, `document`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`. "Unsupported" does NOT match "support".
+  f. **TITLE KEYWORD HARD REJECT**: Skip if title matches whole word (`\b{keyword}\b`, case-insensitive): `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`. "Unsupported" does NOT match "support".
   g. **REPO HEALTH GATE**: Run `bash scripts/repo-health-check.sh {owner}/{repo}`. Exit 0 = pass, exit 1 = skip. Use cached results from memory/repos/ if < 7 days old.
   Go to step 4, then step 5. After spawning, LOOP BACK to pick more until 5 active or queue empty.
 - **Queue < 5 items**: Run oss-discover skill with merge-optimized scope. Consider spawning scout (templates/subagent-scout.md). Target 20-30 candidates, score >= 5 to enter queue.

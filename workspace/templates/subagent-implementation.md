@@ -21,38 +21,50 @@ or refactor — ABANDON IMMEDIATELY and report
 Status: failure, Reason: 'not actionable — issue is a feature request/enhancement'.
 
 Read the attached repo-conventions.md and issue-details.md.
-Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
 
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
    Clone repo INTO this directory. All work happens here.
 
-2. CONFIRM ACTIONABLE: Verify this is a real bug, docs issue, typo, or test gap.
-   If it's a large feature request or refactor, ABANDON.
+2. CLASSIFY & CONFIRM: Read the issue. Determine the contribution type:
+   - **bug-fix**: broken behavior, error, crash, regression
+   - **docs-fix**: incorrect/outdated documentation
+   - **typo-fix**: typo in code, docs, comments, or error messages
+   - **test-addition**: missing test coverage for existing code
+   If it's a feature request, enhancement, or refactor — ABANDON.
 
-3. DEEP COMPREHENSION (do NOT skip this):
-   a. Read the repo's architecture: directory structure, key modules, how components connect.
-   b. Trace the bug through the FULL execution path — start from the entry point,
-      follow every function call to where the error occurs. Do NOT just look at the
-      file mentioned in the stack trace.
-   c. Understand WHY the bug exists, not just WHERE it manifests. Is it a logic error?
-      Edge case? Race condition? Incorrect assumption? Missing validation?
-   d. Search for similar patterns elsewhere in the codebase (grep/search). Could the
-      same root cause affect other code paths?
-   e. Plan a COMPLETE fix that addresses the root cause. If the fix needs to touch
-      multiple files across the codebase, that's fine — do it right.
-   f. If the bug is too complex to fully resolve, ABANDON rather than submit a partial fix.
+3. ROUTE BY TYPE — follow the workflow for YOUR contribution type:
 
-4. REPRODUCE: Run existing tests. Find or write a FAILING test for the bug.
-   The test should target the root cause, not just the surface symptom.
-   Record the failure output as evidence. The failing test proves the bug exists.
+### BUG FIX WORKFLOW (reproduce-first):
+   3a. DEEP COMPREHENSION (do NOT skip):
+       - Read the repo's architecture: directory structure, key modules, how components connect.
+       - Trace the bug through the FULL execution path — start from the entry point,
+         follow every function call to where the error occurs.
+       - Understand WHY the bug exists, not just WHERE it manifests.
+       - Search for similar patterns elsewhere in the codebase.
+       - Plan a COMPLETE fix that addresses the root cause.
+       - If too complex to fully resolve, ABANDON rather than submit a partial fix.
+   3b. REPRODUCE: Run existing tests. Write a FAILING test for the bug.
+       Record failure output as evidence. Cannot reproduce after 10 min? Abandon.
+   3c. IMPLEMENT: Fix the ROOT CAUSE, not just the symptom.
+       If the fix spans multiple files, that's fine — do it right.
 
-5. IMPLEMENT: Write a COMPREHENSIVE fix that addresses the root cause.
-   Fix the bug COMPLETELY — no partial fixes. The PR must fully resolve the issue.
-   If the proper fix spans multiple files, that's expected — a correct 3-file fix
-   beats a hacky 1-file workaround.
+### DOCS/TYPO FIX WORKFLOW (read-and-fix):
+   3a. READ relevant source code to understand ACTUAL behavior.
+   3b. VERIFY the current text is incorrect by checking code behavior.
+   3c. FIX the documentation/typo. Keep changes minimal and accurate.
+   3d. CROSS-CHECK: does the corrected text match actual code behavior?
+
+### TEST ADDITION WORKFLOW:
+   3a. UNDERSTAND the code path being tested — read the relevant module.
+   3b. RUN existing tests to establish baseline.
+   3c. WRITE new test(s) targeting the identified code path.
+       Follow repo's test conventions (file naming, framework, patterns).
+   3d. VERIFY tests pass with current code.
+
+### ALL TYPES:
    No refactoring. No scope creep. No 'while I'm here' improvements.
-   But DO fix the reported bug thoroughly and completely.
+   The PR must fully resolve the issue — no partial fixes.
 
 6. VERIFY — FULL CI MATRIX (a PR that breaks CI is WORSE than no PR):
    a. Read `.github/workflows/` FIRST to understand the full CI matrix:

@@ -65,7 +65,7 @@ Keywords: agent, agentic, llm, rag, embedding, vector, prompt, chain, tool-use, 
 ## Implementation Workflow
 
 ### Bug Fixes (Reproduce-First)
-1. **Confirm** -- verify it's a bug, not a feature request. If not a bug, ABANDON.
+1. **Confirm** -- verify it's a valid contribution (bug, docs, typo, or test). If feature/refactor/enhancement, ABANDON.
 2. **Comprehend** -- read architecture, trace execution path, understand root cause.
 3. **Reproduce** -- write FAILING test demonstrating the bug.
 4. **Implement** -- comprehensive fix addressing root cause.
