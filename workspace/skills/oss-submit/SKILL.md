@@ -31,16 +31,17 @@ Before pushing anything, ask one final time:
 
 ## Process
 1. Push branch to fork (or origin if write access)
-2. Create PR using `gh pr create`:
+2. **Verify target branch:** `gh api repos/{owner}/{repo} --jq '.default_branch'` — create PR against THIS branch, not hardcoded 'main' or 'master'. Wrong target = instant close.
+3. Create PR using `gh pr create --base $DEFAULT_BRANCH`:
    - Title: `{type}(scope): description` following Conventional Commits — type must match contribution
    - Body: use repo's PR template if available; must include:
      - **Bug fixes**: bug description, ROOT CAUSE ANALYSIS, reproduction steps, before/after test evidence
      - **Docs/typo fixes**: what was incorrect, what's now correct, how verified against code
      - **Test additions**: what's now tested, why it matters, test output
    - References: "Fixes #<issue-number>" in body
-3. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
-4. Log submission to memory: repo, issue, PR number, timestamp, contribution type
-5. Report to dashboard via dashboard-reporter skill
+4. Add AI disclosure notice to PR body (identify as @BillionClaw / ClawOSS)
+5. Log submission to memory: repo, issue, PR number, timestamp, contribution type
+6. Report to dashboard via dashboard-reporter skill
 
 ## Post-Submission
 - Monitor CI status on next heartbeat

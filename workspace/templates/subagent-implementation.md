@@ -91,6 +91,12 @@ Follow the DEEP COMPREHENSION + REPRODUCE-FIRST workflow (oss-implement skill):
    - 3+ failures = abandon.
 
 8. SUBMIT: Commit, push, create PR with evidence.
+   **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
+   ```bash
+   DEFAULT_BRANCH=$(gh api repos/{owner}/{repo} --jq '.default_branch')
+   ```
+   Create the PR against $DEFAULT_BRANCH — NOT hardcoded 'main' or 'master'.
+   A PR targeting the wrong branch will be closed immediately.
    PR title should clearly describe the fix. PR body must include:
    - For bugs: Root Cause Analysis, fix explanation, before/after test evidence
    - For docs/typos: What was incorrect, what's now correct, how you verified
