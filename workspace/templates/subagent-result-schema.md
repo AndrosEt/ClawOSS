@@ -137,7 +137,7 @@ tracking, pattern detection, and dashboard aggregation.
 | `tests_fail_after_fix` | Fix introduced regressions, could not resolve after 2 attempts |
 | `ci_incompatible` | Cannot run repo's test suite (missing deps, unsupported platform) |
 | `scope_creep` | Fix would require feature additions or refactoring beyond bug fix |
-| `content_filter_blocked` | OpenRouter content filter blocked file reads (PII in files) |
+| `content_filter_blocked` | Content filter blocked file reads (PII in files) |
 | `clone_failed` | Could not clone or access the repository |
 | `self_review_fail` | Fix failed 3+ self-review checks |
 | `already_fixed_upstream` | Bug was fixed in a newer commit or PR before we could submit |

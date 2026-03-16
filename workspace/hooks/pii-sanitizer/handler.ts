@@ -2,9 +2,8 @@
  * PII Sanitizer Hook — tool_result_persist + before_message_write
  *
  * Strips @ symbols and PII from ALL messages before they enter the session
- * transcript. Prevents OpenRouter's content filter from triggering 403 errors
- * on email-like patterns found in source code, package metadata, and
- * sub-agent announce results.
+ * transcript. Prevents content filter errors on email-like patterns found
+ * in source code, package metadata, and sub-agent announce results.
  *
  * Handles TWO events:
  * - tool_result_persist: sanitizes tool results (file reads, exec output)
@@ -37,7 +36,7 @@ interface HookContext {
 
 function sanitize(text: string): string {
   // Replace ALL @ symbols with fullwidth ＠ (U+FF20)
-  // This is the #1 fix: OpenRouter's content filter matches word@word.word as email
+  // This is the #1 fix: content filters match word@word.word as email
   // This catches: real emails, @pytest.fixture, @Override, @Component, @mock.patch
   // The model understands ＠ as @ — visually identical, semantically equivalent
   // The agent's OWN writes use real @ (sanitizer runs on persist + message_write)
