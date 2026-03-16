@@ -221,9 +221,7 @@ if [ -n "$CONTRIBUTING" ]; then
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
 fi
 
-# (Anti-AI scanning removed per user directive — we earn merges on quality)
-
-# ─── 9. Niche fit (agentic AI) ───
+# ─── 8. Niche fit (agentic AI) ───
 REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
 
 NICHE_FIT=false
@@ -283,9 +281,7 @@ cat <<ENDJSON
     "archived": ${ARCHIVED},
     "has_ci": $([ "$HAS_CI" -gt 0 ] && echo true || echo false),
     "has_contributing": ${HAS_CONTRIBUTING},
-    "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false),
-    "anti_ai_policy": ${ANTI_AI},
-    "blacklist": ${ANTI_AI}
+    "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false)
   }
 }
 ENDJSON
