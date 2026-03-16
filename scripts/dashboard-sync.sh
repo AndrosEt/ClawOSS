@@ -167,7 +167,7 @@ for line in sys.stdin:
         continue
     try:
         e = json.loads(line)
-    except:
+    except (json.JSONDecodeError, ValueError):
         continue
     if e.get('type') != 'message':
         continue
@@ -231,7 +231,7 @@ import json, sys, os
 # Load session metadata map
 try:
     session_map = json.load(open(os.environ['_SESSION_MAP']))
-except:
+except (json.JSONDecodeError, FileNotFoundError, KeyError):
     session_map = {}
 
 sid = os.environ['_SID']
@@ -312,7 +312,7 @@ for line in sys.stdin:
         continue
     try:
         e = json.loads(line)
-    except:
+    except (json.JSONDecodeError, ValueError):
         continue
     if e.get('type') != 'message':
         continue

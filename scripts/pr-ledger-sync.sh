@@ -77,12 +77,12 @@ ledger_path = os.environ['_LEDGER']
 
 try:
     gh_prs = json.loads(gh_raw)
-except:
+except (json.JSONDecodeError, ValueError):
     gh_prs = []
 
 try:
     result_prs = json.loads(result_raw)
-except:
+except (json.JSONDecodeError, ValueError):
     result_prs = []
 
 # Build map keyed by PR URL (authoritative)
