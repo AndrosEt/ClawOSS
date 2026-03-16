@@ -84,7 +84,7 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
 
 - **active >= 5**: skip to step 6.
 - **active < 5 AND queue has items**: pick next task (urgent first, score >= 5). Apply gates:
-  a. **DEDUP GATE** (pass ALL 3): skip if in pr-ledger.md, skip if open PR for repo, skip if in subagent-result-*.md.
+  a. **DEDUP GATE** (pass ALL 4): skip if in pr-ledger.md, skip if open PR for repo, skip if in subagent-result-*.md, **skip if status is `spawned` in work-queue.md** (sub-agent already working on it).
   b. Skip if repo has 3 PRs today.
   c. Prefer different repos across concurrent sub-agents.
   d. **CONTRIBUTION TYPE CHECK**: Must be bug fix, docs fix, typo fix, or test addition.
@@ -118,6 +118,7 @@ Use web_search for upstream bugs, CVEs, external context. Use image tool for scr
 ## 5. Spawn Implementation Sub-Agent
 Read `templates/subagent-implementation.md`. Substitute variables: `{repo}`, `{issue}`, `{title}`. Spawn via sessions_spawn using the template's config.
 Pass memory files for repo conventions and issue details as attachments (sub-agents cannot access memory tools). Include web_search summaries from triage. Fresh context, no main-session implementation.
+**IMMEDIATELY after spawning**, mark the issue as `status: spawned` in work-queue.md. This prevents duplicate spawns across heartbeat cycles.
 
 ### Sub-Agent Discipline
 - Result files: `memory/subagent-result-<repo>-<issue>.md` (impl) or `memory/subagent-result-followup-<repo>-<pr>.md` (follow-up)
@@ -134,7 +135,7 @@ Pass memory files for repo conventions and issue details as attachments (sub-age
 List `memory/subagent-result-*.md` (excluding followup-*). Parse YAML frontmatter per `templates/subagent-result-schema.md`.
 - **success with valid pr_url**: Update pipeline-state.md, remove from work-queue.md, add to pr-followup-state.md (status: `pending_review`, round 0). pr-ledger.md is auto-synced by pr-ledger-sync.sh.
 - **success but no pr_url**: Log "incomplete", re-queue once, then mark failed.
-- **failure/abandoned**: Log failure_reason (must use taxonomy category) in work-queue.md and failure-log.md (`| date | repo | #issue | category | details |`). If `repo_health_fail`: cache for 7 days.
+- **failure/abandoned**: Clear `spawned` status. Log failure_reason (must use taxonomy category) in work-queue.md and failure-log.md (`| date | repo | #issue | category | details |`). If `repo_health_fail`: cache for 7 days.
 - **already_fixed**: Remove from work-queue.md.
 - No valid YAML: fall back to text search for "Status:" and "PR URL:".
 - Delete result file after processing.
