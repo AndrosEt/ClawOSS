@@ -85,7 +85,14 @@ Scoring:
 
 Set `niche_fit: true/false` in the output. Niche repos get priority in the work queue.
 
-### 7. Bot-Friendly Signals (does the repo welcome contributions?)
+### 7. Anti-AI/Anti-Bot Policy Detection (MANDATORY)
+Some repos explicitly reject AI-generated PRs. The `scripts/repo-health-check.sh` checks this
+automatically by scanning CONTRIBUTING.md, README, and recent maintainer comments for anti-AI
+patterns like "no ai", "no bot", "ai generated not accept", "do not submit ai", etc.
+
+**If anti-AI policy detected: SKIP PERMANENTLY and add to `memory/repo-blacklist.md`.**
+
+### 8. Bot-Friendly Signals (does the repo welcome contributions?)
 Check for presence of:
 - `CONTRIBUTING.md` — **+1 score** (they've documented how to contribute)
 - `.github/ISSUE_TEMPLATE/` or issue templates — **+1 score** (organized)
@@ -101,8 +108,10 @@ A repo **MUST pass ALL** of these to be eligible:
 4. Review rate > 50%
 5. Open PR count < 50
 6. Contributors >= 5
+7. No anti-AI/anti-bot policy
 
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
+**If anti-AI policy detected: add to `memory/repo-blacklist.md` for permanent skip.**
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
 
 ### Repo Health Score (1-16)

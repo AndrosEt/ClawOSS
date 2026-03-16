@@ -281,7 +281,8 @@ cat <<ENDJSON
     "archived": ${ARCHIVED},
     "has_ci": $([ "$HAS_CI" -gt 0 ] && echo true || echo false),
     "has_contributing": ${HAS_CONTRIBUTING},
-    "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false)
+    "has_gfi_labels": $([ "$GFI_COUNT" -gt 0 ] && echo true || echo false),
+    "anti_ai_policy": false
   }
 }
 ENDJSON
