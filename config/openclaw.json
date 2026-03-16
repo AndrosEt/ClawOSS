@@ -65,7 +65,7 @@
   },
   "messages": {
     "queue": {
-      "mode": "collect",
+      "mode": "steer",
       "debounceMs": 500,
       "cap": 10
     }
