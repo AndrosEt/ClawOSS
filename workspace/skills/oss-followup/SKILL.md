@@ -200,7 +200,7 @@ If spawning a follow-up would exceed the 5-slot limit, defer implementation work
 After processing all PRs, update memory/pr-followup-state.md:
 - New PRs: add row with round 0, status pending_review
 - Follow-up spawned: increment round, update last_checked, update status
-- Stale closed: set status closed_stale
+- Stale bumped: set status bumped_stale
 - Approved: set status approved
 - No activity: update last_checked only
 
@@ -208,7 +208,7 @@ After processing all PRs, update memory/pr-followup-state.md:
 
 Return to orchestrator:
 - Count of PRs needing follow-up sub-agents
-- Count of PRs closed (stale)
+- Count of PRs bumped (stale)
 - Count of PRs approved
 - Count of PRs skipped (max rounds / no activity)
 - List of sub-agents to spawn (PR number, repo, classification, round)

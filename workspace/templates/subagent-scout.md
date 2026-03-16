@@ -10,7 +10,7 @@ to staging queue for the main agent to pick up.
 label: "scout-tier0"
 mode: "session"
 thread: true
-runTimeoutSeconds: 0
+runTimeoutSeconds: 3600
 attachments: [trust-repos.md, pr-ledger.md]
 ```
 

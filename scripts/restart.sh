@@ -274,6 +274,14 @@ rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null || true
 rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.lock 2>/dev/null || true
 echo "[OK] Sessions cleaned"
 
+# ── 7b. Reset orphaned spawned_pending entries ────────────────────────
+# All subagents die on restart. Any repo with spawned_pending in state files
+# would be permanently blocked by the IMPL SPAWN GUARD since there's no
+# session left to detect as stalled. Reset them so repos can be re-picked.
+sed -i '' 's/spawned_pending/failed_restart/g' "$WORKSPACE_DIR/memory/impl-spawn-state.md" 2>/dev/null || true
+sed -i '' 's/spawned_pending/failed_restart/g' "$WORKSPACE_DIR/memory/pr-followup-state.md" 2>/dev/null || true
+echo "[OK] Reset orphaned spawned_pending entries"
+
 # ── 8. Reset wake state (V9: no rate-limit fields) ───────────────────
 cat > "$WORKSPACE_DIR/memory/wake-state.md" << 'WAKEEOF'
 consecutive_wakes: 0
