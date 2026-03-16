@@ -21,64 +21,7 @@ Follow-up sub-agents (responding to PR reviewers) get PRIORITY over implementati
 - ALWAYS spawn follow-up sub-agents BEFORE new implementations
 - Follow-ups and implementations share the same 5-slot pool
 
-## Rules (always in effect -- AGENTS.md is NOT loaded in lightContext mode)
-
-### Safety (non-negotiable)
-- NEVER push to main/master or default branches directly
-- NEVER force-push to any branch
-- NEVER commit secrets, credentials, API keys, or .env files
-- NEVER modify CI/CD in contributed repos without explicit approval
-- GitHub token scope: `public_repo` (least privilege)
-
-### PR Limits
-- Max 200 lines changed, max 5 files per PR
-- Max 2-3 PRs/repo/day, 30-min gap between same-repo PRs
-- Max 10 PRs/day total, max 5 active PRs at any time
-- Max 3 follow-up rounds per PR -- after 3, politely disengage
-- No trivial PRs (whitespace-only, comment-only unless meaningful)
-- Branch naming: `clawoss/{type}/<description>` (type = fix, docs, test, typo)
-
-### Quality (non-negotiable)
-- **Repo health gate is mandatory** -- run `scripts/repo-health-check.sh` before any work
-- **Goal is MERGED PRs** -- 50 unreviewed PRs = 0 impact
-- **Mix: 60% easy wins + 40% substantive bug fixes** at responsive repos
-- **Every PR must FULLY resolve its scope** -- no partial fixes
-- Read CONTRIBUTING.md before first PR to any repo
-- Understand repo architecture BEFORE writing code
-- Bug fix PRs must include a test proving the bug existed and is now fixed
-- PR descriptions must include ROOT CAUSE ANALYSIS
-- Commit messages: Conventional Commits -- `{type}(scope): description`
-- Code style must match target repo conventions
-- No AI-slop, no scope creep, no over-engineering
-- If tests fail after 2 fix attempts, abandon task
-- If self-review fails 3+ checks, abandon task
-- If issue is a feature request during implementation, ABANDON immediately
-- If bug is too complex to fully resolve, ABANDON
-
-### Content Filter Safety (OpenRouter)
-- OpenRouter blocks PII patterns (emails, phones) in file contents
-- For package.json: use `jq '{name, version, scripts, dependencies}'` (skip author)
-- Skip lock files (contain maintainer emails)
-- Source code, test files, config, docs are safe to read
-- If 403 error: skip that file, try alternatives. Skip entire task after 3 consecutive 403s.
-
-### Context Management
-- Check context with session_status before spawning
-- If context > 60%: flush to memory, compact before spawning
-- If context > 50%: compact before next cycle
-- NEVER start new work if context > 70% -- compact first
-
-### Available Tools
-- **web_search**: Research issues, find related fixes, check upstream discussions
-- **web_fetch**: Read documentation URLs, changelogs, linked resources
-- **image**: Analyze screenshots (GLM-5 has vision)
-- **apply_patch**: Multi-file structured patches
-- **loop-detection**: Auto-guards against tool-call loops (enabled globally)
-
-### Failure Handling
-- All failures MUST use a standard `failure_reason` category from `templates/subagent-result-schema.md`
-- Track failures in `memory/failure-log.md` -- 3+ same-category/day triggers adaptation
-- Never get stuck in retry loops -- fail fast and move forward
+## Rules -- see AGENTS.md (loaded with this file during heartbeat)
 
 ## 0a. Context Health
 Call session_status.
@@ -112,7 +55,7 @@ Classify each open PR:
 - **approved**: Log success. No sub-agent needed.
 - **ci_failing** (our fault): Treat like changes_requested.
 - **stale** (no activity >7 days): Close with polite comment. Status: `closed_stale`.
-- **close_withdraw** (repo blacklisted/anti-AI policy): Close with polite withdrawal message. No sub-agent needed.
+- **close_withdraw** (maintainer rejected contribution): Close with polite withdrawal message. No sub-agent needed.
 - **merged**: Status: `merged`. Log success.
 
 ### 2c. Write Follow-up Context File
@@ -141,7 +84,6 @@ Read work-queue.md, wake-state.md prs_today_by_repo, and pr-ledger.md.
 
 - **active >= 5**: skip to step 6.
 - **active < 5 AND queue has items**: pick next task (urgent first, score >= 5). Apply gates:
-  a0. **BLACKLIST GATE**: Skip if repo in `memory/repo-blacklist.md`. Remove from queue.
   a. **DEDUP GATE** (pass ALL 3): skip if in pr-ledger.md, skip if open PR for repo, skip if in subagent-result-*.md.
   b. Skip if repo has 3 PRs today.
   c. Prefer different repos across concurrent sub-agents.

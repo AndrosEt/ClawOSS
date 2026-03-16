@@ -93,13 +93,6 @@ Check for presence of:
 - Active issue labeling (> 50% of recent issues have labels) — **+1 score**
 - `good-first-issue` or `help-wanted` labels in use — **+2 score** (actively seeking contributions)
 
-### 8. Anti-AI / Anti-Bot Policy Detection (MANDATORY HARD GATE)
-Scan for anti-AI/anti-bot policies. Automated in `scripts/repo-health-check.sh` (check 8).
-**Sources:** CONTRIBUTING.md, README.md (first 200 lines), recent maintainer comments.
-**Patterns:** "no ai", "no bot", "ban ai/bot", "prohibit ai/bot", "do not use ai/bot/llm/chatgpt",
-"ai-generated not accepted", "we do not accept ai/bot/automated contributions".
-**If detected:** SKIP immediately, add to `memory/repo-blacklist.md` permanently. No expiry.
-
 ### Health Gate Summary
 A repo **MUST pass ALL** of these to be eligible:
 1. Stars >= 200
@@ -108,7 +101,6 @@ A repo **MUST pass ALL** of these to be eligible:
 4. Review rate > 50%
 5. Open PR count < 50
 6. Contributors >= 5
-7. No anti-AI/anti-bot policy (check 8)
 
 **If ANY check fails: SKIP the repo entirely. Do not queue any issues from it.**
 Write "SKIP: repo health gate failed — {reason}" and cache the result.
