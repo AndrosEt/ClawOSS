@@ -10,9 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LogFilterState, LogEntry } from "@/lib/types";
-import { ScrambleText } from "@/components/ascii/scramble-text";
-import { MatrixRain } from "@/components/ascii/matrix-rain";
-
 export default function LogsPage() {
   const [filters, setFilters] = useState<LogFilterState>({
     level: "all",
@@ -30,18 +27,8 @@ export default function LogsPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title={<ScrambleText text="Logs" speed={30} scrambleFrames={10} />} />
+      <Header title="Logs" />
       <div className="flex-1 space-y-6 p-6">
-        {/* Art banner */}
-        <div className="relative overflow-hidden rounded-sm" style={{ height: 52 }}>
-          <MatrixRain cols={80} rows={5} speed={70} density={0.06} />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/40 pointer-events-none" />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="font-mono text-[9px] text-emerald-400/20 uppercase tracking-[0.4em]">
-              <ScrambleText text="stream" speed={40} scrambleFrames={12} />
-            </span>
-          </div>
-        </div>
         <LogFilters
           filters={filters}
           onFilterChange={(f) => {

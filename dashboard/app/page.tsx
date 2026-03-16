@@ -16,8 +16,6 @@ import { TerminalLoop } from "@/components/ascii/terminal-loop";
 import { ScrambleText } from "@/components/ascii/scramble-text";
 import { BreathingText } from "@/components/ascii/breathing-text";
 import { LifeField } from "@/components/ascii/life-field";
-import { CharSand } from "@/components/ascii/char-sand";
-import { GlyphMorph } from "@/components/ascii/glyph-morph";
 import { DnaHelix } from "@/components/ascii/dna-helix";
 import { MatrixRain } from "@/components/ascii/matrix-rain";
 import { useEffect, useState } from "react";
@@ -42,20 +40,20 @@ function InlineClock() {
 
 function EmptyState() {
   return (
-    <Card className="border-dashed relative overflow-hidden">
+    <Card className="border-dashed">
       <CardHeader>
         <CardTitle className="text-center text-sm font-mono">
-          <ScrambleText text="Waiting for Agent Data" speed={35} scrambleFrames={12} />
+          Waiting for Agent Data
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-center space-y-4 relative z-10">
+      <CardContent className="text-center space-y-4">
         <div className="flex justify-center">
           <div className="h-10 w-10 rounded-full border border-muted-foreground/20 flex items-center justify-center">
             <span className="h-2 w-2 rounded-full bg-muted-foreground/30 animate-pulse" />
           </div>
         </div>
         <p className="text-muted-foreground text-xs font-mono">
-          <ScrambleText text="Waiting for telemetry from the ClawOSS agent." speed={25} stagger={15} scrambleFrames={10} />
+          Waiting for telemetry from the ClawOSS agent.
         </p>
         <div className="text-muted-foreground max-w-sm mx-auto font-mono">
           <p className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground/50">To connect:</p>
@@ -65,9 +63,6 @@ function EmptyState() {
           </ol>
         </div>
       </CardContent>
-      <div className="absolute inset-0 flex items-end pointer-events-none">
-        <GlyphMorph width={80} rows={3} speed={50} className="w-full" />
-      </div>
     </Card>
   );
 }
@@ -98,10 +93,10 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="flex flex-col relative noise-overlay">
+    <div className="flex flex-col relative">
       <Header title="Overview" />
       <div className="flex-1 space-y-3 p-4 relative z-10">
-        {/* System header */}
+        {/* System identity bar */}
         <div className="system-header corner-brackets font-mono text-[11px] px-3 py-2 flex items-center justify-between flex-wrap gap-x-4 gap-y-1">
           <div className="flex items-center gap-3">
             <span className="text-foreground/80 font-bold tracking-tight">
@@ -138,9 +133,6 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Hero decode wave -- full-width art marquee */}
-        <GlyphMorph width={120} rows={3} speed={45} className="w-full" />
-
         {!hasData && <EmptyState />}
 
         {data?.agentStatus && <AgentStatusCard status={data.agentStatus} />}
@@ -151,12 +143,6 @@ export default function OverviewPage() {
           tokensUsedToday={data?.stats?.tokensUsedToday || 0}
           costToday={data?.stats?.costToday || 0}
         />
-
-        {/* Character sand divider */}
-        <div className="relative overflow-hidden rounded-sm" style={{ height: 48 }}>
-          <CharSand cols={100} rows={5} speed={70} spawnRate={0.08} />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background/60 pointer-events-none" />
-        </div>
 
         {/* Pipeline telemetry bar */}
         {connectionData && (
@@ -191,16 +177,16 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          {/* Sidebar: 1 col -- art-heavy */}
+          {/* Sidebar: curated art gallery */}
           <div className="space-y-3">
             <AgentStatePanel state={stateData?.state || null} isLoading={stateLoading} />
 
-            {/* Game of Life gallery piece */}
+            {/* Game of Life -- living art piece */}
             <div className="art-frame relative rounded-md overflow-hidden">
-              <LifeField cols={50} rows={14} speed={200} density={0.18} palette="gradient" />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <span className="font-mono text-[10px] text-foreground/25 uppercase tracking-[0.3em] bg-background/50 px-4 py-1.5 rounded-sm backdrop-blur-sm border border-border/20">
-                  <ScrambleText text="cellular automata" speed={30} scrambleFrames={10} stagger={18} />
+              <LifeField cols={50} rows={12} speed={200} density={0.18} palette="gradient" />
+              <div className="absolute inset-0 flex items-end justify-end pointer-events-none z-10 p-2">
+                <span className="font-mono text-[8px] text-foreground/15 uppercase tracking-[0.2em]">
+                  cellular automata
                 </span>
               </div>
             </div>
@@ -208,17 +194,19 @@ export default function OverviewPage() {
             {/* DNA + Matrix rain side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div className="art-frame relative rounded-md overflow-hidden flex justify-center py-1">
-                <DnaHelix height={10} speed={140} />
+                <DnaHelix height={8} speed={140} />
               </div>
               <div className="art-frame relative rounded-md overflow-hidden">
-                <MatrixRain cols={20} rows={10} speed={80} density={0.05} />
+                <MatrixRain cols={20} rows={8} speed={80} density={0.05} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer breathing wave */}
-        <BreathingText width={140} rows={3} speed={80} className="mx-auto max-w-full" />
+        {/* Footer breathing wave -- subtle, ambient */}
+        <div className="pt-2">
+          <BreathingText width={120} rows={2} speed={100} className="mx-auto max-w-full opacity-60" />
+        </div>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { ConnectionStatusIndicator } from "./connection-status-indicator";
 
 interface HeaderProps {
-  title: React.ReactNode;
+  title: string;
 }
 
 export function Header({ title }: HeaderProps) {

@@ -493,3 +493,24 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* ----- Etched divider -- CSS-only decorative line ----- */
+.etched-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(1 0 0 / 6%) 20%,
+    oklch(0.6 0.08 160 / 12%) 50%,
+    oklch(1 0 0 / 6%) 80%,
+    transparent 100%
+  );
+}
+
+/* ----- Card glow on hover ----- */
+.dark .card-glow:hover {
+  box-shadow:
+    0 0 0 1px oklch(0.6 0.08 160 / 8%),
+    0 0 20px -4px oklch(0.6 0.1 160 / 6%);
+  transition: box-shadow 0.3s ease;
+}
