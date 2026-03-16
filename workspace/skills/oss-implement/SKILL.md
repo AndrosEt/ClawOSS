@@ -83,11 +83,28 @@ For test additions: understand the code path being tested.
 - **No scope creep** — if you discover other bugs, file separate issues, do NOT fix them here
 - **But DO fix the reported bug completely** — a partial fix is worse than no fix
 
-### 4. VERIFY (mandatory)
-- Failing test MUST now pass
-- Full test suite — no regressions. Fix failures (max 2 tries) or abandon.
-- Record passing output as evidence
-- Verify the fix addresses the root cause, not just the symptom — would the test catch a recurrence?
+### 4. VERIFY — FULL CI MATRIX (a broken CI is WORSE than no PR)
+**4a. Read `.github/workflows/` FIRST** to understand the full CI matrix:
+- Which OS? (ubuntu, macos, windows, multiple?)
+- Which language versions? (Python 3.8-3.12, Node 16/18/20, etc.)
+- Which build configs? (debug/release, with/without optional deps)
+- What test suites beyond unit tests? (linting, type checking, formatting)
+
+**4b. Run ALL test suites**, not just `make test` or `pytest`:
+- Unit tests, linting, type checking, formatters (check mode), integration tests
+- Any custom test scripts in Makefile, package.json, etc.
+
+**4c. Cross-platform check** (C/C++, Rust, embedded, etc.):
+- Does the fix touch platform-specific code? Check ALL target platforms.
+- Does it use APIs that differ across OS/architectures?
+- Example: micropython builds for stm32, esp32, rp2, unix — a fix that works on unix but breaks stm32 is a BAD PR.
+
+**4d. Verify results:**
+- Failing test MUST now pass. Full test suite — no regressions.
+- Fix failures (max 2 tries) or abandon.
+- Record passing output as evidence.
+- Verify the fix addresses the root cause, not just the symptom.
+- **If you cannot run the full test suite, note which tests you skipped and why in the PR description.**
 
 ### 5. REVIEW (contribution-type-aware checks)
 Self-check diff with these questions:
