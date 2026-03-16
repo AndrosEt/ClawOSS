@@ -32,7 +32,8 @@ EXISTING_CRONS=$(openclaw cron list --json 2>/dev/null | jq -r '.jobs[] | select
 while IFS= read -r job; do
     name=$(echo "$job" | jq -r '.id')
     schedule=$(echo "$job" | jq -r '.schedule.expr')
-    payload=$(echo "$job" | jq -r '.payload')
+    # Extract message text from payload (agentTurn uses .message, systemEvent uses .text)
+    payload=$(echo "$job" | jq -r '.payload.message // .payload.text // empty')
 
     if echo "$EXISTING_CRONS" | grep -q "^${name}$"; then
         echo "  Exists: $name"
