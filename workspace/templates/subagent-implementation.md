@@ -115,6 +115,27 @@ Read the attached repo-conventions.md and issue-details.md.
    - 3+ failures = abandon.
 
 8. SUBMIT: Commit, push, create PR with evidence.
+
+   **BRANCH NAME CHECK (mandatory):** Verify your branch starts with `clawoss/`:
+   ```bash
+   BRANCH=$(git branch --show-current)
+   if [[ "$BRANCH" != clawoss/* ]]; then
+     git branch -m "clawoss/${BRANCH}"
+     BRANCH="clawoss/${BRANCH}"
+   fi
+   ```
+   Valid prefixes: `clawoss/fix/`, `clawoss/docs/`, `clawoss/test/`, `clawoss/typo/`.
+
+   **DE-DUPLICATION CHECK (mandatory):** Before creating the PR, check for existing open PRs:
+   ```bash
+   EXISTING=$(gh pr list --author @me --repo {repo} --state open --json number,title --jq 'length')
+   if [ "$EXISTING" -gt 0 ]; then
+     echo "ABORT: open PR already exists for this repo"
+     # Write result as failure with reason "duplicate_pr" and clean up
+   fi
+   ```
+   If an open PR already exists for this repo, ABANDON. Do NOT create duplicate PRs.
+
    **TARGET BRANCH CHECK (mandatory):** Before creating the PR, verify the target branch:
    ```bash
    DEFAULT_BRANCH=$(gh api repos/{owner}/{repo} --jq '.default_branch')

@@ -21,7 +21,12 @@ Before pushing anything, ask one final time:
 - For docs/typos: is the corrected text factually accurate? If NO → verify against code.
 - For tests: do the tests meaningfully exercise the target code path? If NO → improve them.
 - Does the PR reference a specific issue? If NO → ABANDON.
-- Is the branch named `clawoss/{fix,docs,test,typo}/...`? If NO → fix it.
+- Is the branch named `clawoss/{fix,docs,test,typo}/...`? If NO → rename it with `git branch -m "clawoss/..."`.
+
+## De-Duplication Check (mandatory before `gh pr create`)
+Run: `gh pr list --author @me --repo OWNER/REPO --state open --json number,title --jq 'length'`
+If result > 0: **ABANDON. Do NOT create duplicate PRs.** One open PR per repo at a time.
+This prevents the 5x-duplicate-PR incident (e.g., instructor #2155-#2159).
 
 ## Fork vs Direct Push
 1. Check if we have write access to the repo

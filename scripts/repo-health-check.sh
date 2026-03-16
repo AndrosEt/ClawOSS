@@ -143,9 +143,14 @@ for pr in data:
         c = datetime.fromisoformat(pr['created'].replace('Z','+00:00'))
         m = datetime.fromisoformat(pr['merged'].replace('Z','+00:00'))
         days.append((m - c).days)
-    except: pass
+    except (ValueError, KeyError): pass
 print(int(sum(days)/len(days)) if days else 0)
 " <<< "$MERGE_DATA" 2>/dev/null || echo "0")
+fi
+
+# Sanitize AVG_MERGE_DAYS: if empty or non-numeric, fail safe (treat as high merge time)
+if ! [[ "$AVG_MERGE_DAYS" =~ ^[0-9]+$ ]]; then
+  AVG_MERGE_DAYS=999
 fi
 
 # Tiered merge time limits: relaxed for large repos (5000+ stars)
@@ -154,16 +159,16 @@ if [ "$STARS" -ge 5000 ]; then
 else
   MERGE_LIMIT=14
 fi
-if [ "$AVG_MERGE_DAYS" -gt "$MERGE_LIMIT" ] 2>/dev/null; then
+if [ "$AVG_MERGE_DAYS" -gt "$MERGE_LIMIT" ]; then
   reasons+=("avg_merge_days=${AVG_MERGE_DAYS} (>${MERGE_LIMIT})")
   fail "avg merge time ${AVG_MERGE_DAYS} days (>${MERGE_LIMIT}d)" "repo_health_fail: avg merge time ${AVG_MERGE_DAYS}d exceeds ${MERGE_LIMIT}d limit"
 fi
 # Score bonus for fast merge
-if [ "$AVG_MERGE_DAYS" -le 3 ] 2>/dev/null; then
+if [ "$AVG_MERGE_DAYS" -le 3 ]; then
   score=$((score + 3))
-elif [ "$AVG_MERGE_DAYS" -le 7 ] 2>/dev/null; then
+elif [ "$AVG_MERGE_DAYS" -le 7 ]; then
   score=$((score + 2))
-elif [ "$AVG_MERGE_DAYS" -le 14 ] 2>/dev/null; then
+elif [ "$AVG_MERGE_DAYS" -le 14 ]; then
   score=$((score + 1))
 fi
 
