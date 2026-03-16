@@ -9,13 +9,13 @@ user-invocable: true
 Manage context window to maintain continuity across compaction cycles.
 
 ## When to Invoke
-- Context window exceeds ~80% estimated capacity
+- Context window exceeds ~70% estimated capacity
 - Before starting a new major task (clean up from previous)
 - When switching between repositories
 
 ## Process
 1. Monitor approximate context usage
-2. When approaching limits (>80%):
+2. When approaching limits (>70%):
    a. Flush all important state to memory files:
       - Current work-in-progress details
       - What has been tried and what failed

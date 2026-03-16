@@ -94,6 +94,15 @@ Action: Close PR with polite comment. Update state to `closed_stale`.
 gh pr close {number} --repo {owner}/{repo} --comment "Closing this PR as it hasn't received review activity in over a week. If the fix is still wanted, I'm happy to resubmit. Thank you for your time."
 ```
 
+### `close_withdraw`
+Criteria:
+- Repo is in `memory/repo-blacklist.md` (anti-AI policy, permanently blacklisted, etc.)
+
+Action: Close PR with polite withdrawal message. Update state to `close_withdraw`. No sub-agent needed.
+```bash
+gh pr close {number} --repo {owner}/{repo} --comment "We apologize for the unsolicited contribution. We've learned this project prefers not to receive AI-assisted PRs, and we fully respect that. Closing this PR. Thank you for your time."
+```
+
 ### `merged`
 Criteria:
 - PR state is merged (won't appear in `--state open`, but check explicitly if needed)
