@@ -1,6 +1,6 @@
 ---
 name: repo-analyzer
-description: "Analyze repo health and conventions BEFORE queuing any issue. MANDATORY health gate: stars >=500, last commit <2wk, merge time <14d, review rate >50%, open PRs <50. Use scripts/repo-health-check.sh for automation."
+description: "Analyze repo health and conventions BEFORE queuing any issue. MANDATORY health gate: stars >=200, last commit <2wk, merge time <14d, review rate >50%, open PRs <50. Use scripts/repo-health-check.sh for automation."
 user-invocable: true
 ---
 
@@ -59,7 +59,7 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count}'
 gh api repos/{owner}/{repo}/contributors --jq 'length'
 ```
-- **SKIP** if < 500 stars — low-impact repo, not worth our time (raised from 50)
+- **SKIP** if < 200 stars — low-impact repo, not worth our time (raised from 50)
 - **SKIP** if < 5 contributors — bus-factor risk, single maintainer may vanish
 
 ### 6. Niche Fit (golden niche = agentic AI repos)
@@ -81,7 +81,7 @@ Scoring:
 - **+3 score** if repo is in the golden niche (agentic AI)
 - **+3 score** if repo has 5000+ stars (very high-impact)
 - **+2 score** if repo has 1000+ stars (high-impact)
-- **+1 score** if repo has 500-1000 stars (medium impact)
+- **+1 score** if repo has 200-1000 stars (medium impact)
 
 Set `niche_fit: true/false` in the output. Niche repos get priority in the work queue.
 
@@ -102,7 +102,7 @@ Scan for anti-AI/anti-bot policies. Automated in `scripts/repo-health-check.sh` 
 
 ### Health Gate Summary
 A repo **MUST pass ALL** of these to be eligible:
-1. Stars >= 500
+1. Stars >= 200
 2. Last commit within 2 weeks
 3. Avg merge time < 14 days AND at least 1 merged PR in last 30 days
 4. Review rate > 50%

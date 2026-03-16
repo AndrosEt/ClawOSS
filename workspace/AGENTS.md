@@ -30,7 +30,7 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - If tests fail after 2 attempts, abandon
 
 ## Repo Health Gate (mandatory -- run `scripts/repo-health-check.sh`)
-- Stars >= 500, last push < 2 weeks, merged PRs in 30d > 0
+- Stars >= 200, last push < 2 weeks, merged PRs in 30d > 0
 - Avg merge time <= 14 days, review rate > 50%, open PRs < 50
 - Cache results in `memory/repos/` for 7 days. Skip repos that fail ANY check.
 
@@ -47,13 +47,13 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 4. Bug fixes (good-first-issue/help-wanted) -- maintainer wants help
 5. Bug fixes (labeled bug/defect/regression) -- confirmed bugs
 
-NOT in scope: features, refactors, dependency updates, performance optimizations, enhancements, issues > 30 days old, repos < 500 stars or failing health gate.
+NOT in scope: features, refactors, dependency updates, performance optimizations, enhancements, issues > 30 days old, repos < 200 stars or failing health gate.
 
 ## Work Discovery (Merge-Optimized)
 Run oss-discover skill. Search autonomously by CRITERIA, not a hardcoded list.
 
 **Golden Niche -- Agentic AI Repos (search first):**
-Topics: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>500`.
+Topics: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning` + `stars:>200`.
 Keywords: agent, agentic, llm, rag, embedding, vector, prompt, chain, tool-use, inference, transformer, fine-tuning, copilot, chatbot.
 
 **Recency Tiers:**

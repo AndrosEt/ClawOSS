@@ -1,12 +1,12 @@
 ---
 name: oss-discover
-description: "Discover FRESH issues in WELL-MAINTAINED repos (500+ stars). Merge-optimized: 60% easy wins (docs, typos, tests) + 40% bug fixes. Target agentic AI repos by CRITERIA (topic:llm/agent/rag + stars:>500). Verify repo health before queuing."
+description: "Discover FRESH issues in WELL-MAINTAINED repos (200+ stars). Merge-optimized: 60% easy wins (docs, typos, tests) + 40% bug fixes. Target agentic AI repos by CRITERIA (topic:llm/agent/rag + stars:>200). Verify repo health before queuing."
 user-invocable: true
 ---
 
 # OSS Issue Discovery (Merge-Optimized)
 
-Search GitHub for **fresh, actionable issues** in **well-maintained repos** (500+ stars)
+Search GitHub for **fresh, actionable issues** in **well-maintained repos** (200+ stars)
 that ClawOSS can fix AND that will actually get reviewed and merged.
 
 ## Philosophy
@@ -30,7 +30,7 @@ Issues older than 1 month are SKIPPED entirely.
 
 ## Process
 1. Run Priority Queries (Tier 0 first, then 1, then 2)
-2. Filter: stars >= 500, not in pr-ledger, created within time window
+2. Filter: stars >= 200, not in pr-ledger, created within time window
 3. **Repo health pre-filter** (BEFORE scoring): quick-check via `scripts/repo-health-check.sh` or `gh api`. SKIP repos that fail.
 4. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5.
 5. Return ranked top 10. Write full list to memory/today.md.
@@ -45,7 +45,7 @@ Search GitHub using topic tags and description keywords — do NOT rely on a fix
 - **Keywords in repo description**: agent, agentic, llm, large language model, rag,
   retrieval augmented, embedding, vector store, prompt, chain, tool-use, function-calling,
   ai-assistant, copilot, chatbot, inference, transformer, fine-tuning, mlops
-- **Combined with**: `stars:>500`, `label:bug` or `label:help-wanted`, `created:>$THREE_DAYS_AGO`
+- **Combined with**: `stars:>200`, `label:bug` or `label:help-wanted`, `created:>$THREE_DAYS_AGO`
 - Always verify repo health before queuing — new discoveries haven't been vetted yet
 
 ### Known High-Value Repos (supplement, not replace, criteria search)
@@ -65,23 +65,23 @@ NEVER fetch full issue body — may contain PII triggering content filters.
 **Criteria-based broad searches (primary discovery method — run ALL):**
 ```
 # Topic-based discovery — finds ANY repo tagged with these topics
-gh search issues "is:issue is:open label:bug topic:llm stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:agent stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:rag stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:ai stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:machine-learning stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:generative-ai stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:vector-database stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:llm stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:agent stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:rag stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:machine-learning stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:generative-ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug topic:vector-database stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 
 # Easy wins in AI repos (docs, typos — near-guaranteed merges)
-gh search issues "is:issue is:open label:documentation topic:llm stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:documentation topic:ai stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:typo stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:documentation topic:llm stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:documentation topic:ai stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:typo stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
 
 # Help-wanted in AI repos — maintainer actively seeking contributions
-gh search issues "is:issue is:open label:help-wanted topic:llm stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:good-first-issue topic:ai stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:good-first-issue topic:agent stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:help-wanted topic:llm stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:good-first-issue topic:ai stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:good-first-issue topic:agent stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 **Tier 0 candidates get +5 niche bonus in scoring.** Always process Tier 0 results before Tier 1.
 Always verify repo health before adding to queue.
@@ -90,8 +90,8 @@ Always verify repo health before adding to queue.
 
 #### 1a. Good-First-Issue + Help-Wanted (maintainer-requested — near-guaranteed merge)
 ```
-gh search issues "is:issue is:open label:good-first-issue label:bug stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:help-wanted label:bug stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:good-first-issue label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:help-wanted label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 gh search issues "is:issue is:open label:good-first-issue stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 gh search issues "is:issue is:open label:help-wanted stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
@@ -99,44 +99,44 @@ gh search issues "is:issue is:open label:help-wanted stars:>1000 created:>$TWO_W
 #### 1b. Documentation + Typo Issues (easy wins — highest merge rate)
 ```
 gh search issues "is:issue is:open label:documentation stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:typo stars:>500 created:>$TWO_WEEKS_AGO sort:reactions-+1-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:docs stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:typo stars:>200 created:>$TWO_WEEKS_AGO sort:reactions-+1-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:docs stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 
 #### 1c. Fresh Bug Reports (last 3 days — first responder advantage)
 ```
-gh search issues "is:issue is:open label:bug stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:defect stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:regression stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:crash stars:>500 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:defect stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:regression stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:crash stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 
 #### 1d. Community-Prioritized (high reactions = maintainer attention)
 ```
-gh search issues "is:issue is:open label:bug stars:>500 sort:reactions-+1-desc created:>$TWO_WEEKS_AGO" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug stars:>200 sort:reactions-+1-desc created:>$TWO_WEEKS_AGO" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 
 ### Tier 2 — General Searches (run if Tier 0+1 yield < 10 candidates)
 
 #### 2a. Recent bugs (last 2 weeks)
 ```
-gh search issues "is:issue is:open label:bug stars:>500 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "is:issue is:open label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 
 #### 2b. Error keyword search
 ```
-gh search issues "crash stars:>500 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "TypeError stars:>500 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "NullPointer stars:>500 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "exception stars:>500 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "regression stars:>500 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "crash stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "TypeError stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "NullPointer stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "exception stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh search issues "regression stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
 ```
 
 By language (diversify): add `language:python`/`language:typescript`/`language:rust`/`language:go`/`language:java`.
 
 ## Repo Health Pre-Filter (MANDATORY — before scoring)
 For each candidate issue, quick-check the repo:
-1. **Stars >= 500** — `repository.stargazers_count` from search result JSON. Skip if < 500.
+1. **Stars >= 200** — `repository.stargazers_count` from search result JSON. Skip if < 200.
 2. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
 4. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
 5. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 14 days old).
@@ -175,7 +175,8 @@ Score each candidate 1-25 based on:
 ### Niche Fit (golden niche = highest ROI)
 - **+5** Repo is in the agentic AI / LLM niche
 - **+3** Repo has 1000+ stars (high-impact)
-- **+1** Repo has 500-1000 stars
+- **+2** Repo has 500-1000 stars (solid mid-size)
+- **+1** Repo has 200-500 stars
 
 ### Repo Health (merge velocity)
 - **+5** Repo avg merge time < 3 days (fast reviewers)
@@ -217,7 +218,7 @@ Minimum score 5 to enter work queue.
 ## Filters
 - **Title keyword hard reject — applied first, before any other filter**
 - **Repo health pre-filter — applied second, before scoring**
-- Stars >= 500, recent commits (<2wk), not archived, max 3 issues per repo
+- Stars >= 200, recent commits (<2wk), not archived, max 3 issues per repo
 - Skip if in pr-ledger.md. At daily limit (10 PRs)? Triage-only.
 - **MUST be created within the last 30 days** — skip anything older
 

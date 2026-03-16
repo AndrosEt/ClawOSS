@@ -40,7 +40,7 @@ Run `scripts/repo-health-check.sh {owner}/{repo}` or quick-check via `gh api`
 (use cached results from `memory/repos/` if available and < 7 days old):
 
 ```bash
-# 1. Stars — SKIP if < 500
+# 1. Stars — SKIP if < 200
 gh api repos/{owner}/{repo} --jq '.stargazers_count'
 
 # 2. Last commit — SKIP if no commits in 2 weeks
@@ -57,7 +57,7 @@ gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'
 ```
 
 **HARD SKIP if ANY of these are true:**
-- Stars < 500
+- Stars < 200
 - No commits in last 2 weeks
 - 0 merged PRs in last 30 days
 - Avg merge time > 14 days
@@ -145,7 +145,8 @@ Score each issue 1-25:
   semantic-kernel, haystack, dspy, chromadb, qdrant, vllm, ollama, litellm, instructor,
   openai-python, or matches keywords: agent, llm, rag, embedding, vector, inference)
 - **+3** Repo has 1000+ stars (high-impact, visible contribution)
-- **+1** Repo has 500-1000 stars
+- **+2** Repo has 500-1000 stars (solid mid-size)
+- **+1** Repo has 200-500 stars
 
 ### Repo Health (merge velocity — from step 0d)
 - **+5** Repo avg merge time < 3 days (fast reviewers — highest merge chance)

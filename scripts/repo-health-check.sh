@@ -84,9 +84,9 @@ if [ "$ARCHIVED" = "true" ]; then
 fi
 
 # ─── 1. Stars ───
-if [ "$STARS" -lt 500 ]; then
-  reasons+=("stars=${STARS} (<500)")
-  fail "stars=${STARS} (<500)" "repo_health_fail: stars ${STARS} below 500 minimum"
+if [ "$STARS" -lt 200 ]; then
+  reasons+=("stars=${STARS} (<200)")
+  fail "stars=${STARS} (<200)" "repo_health_fail: stars ${STARS} below 200 minimum"
 fi
 if [ "$STARS" -ge 5000 ]; then
   score=$((score + 3))
@@ -221,34 +221,7 @@ if [ -n "$CONTRIBUTING" ]; then
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
 fi
 
-# ─── 8. Anti-AI / Anti-Bot Policy Detection (HARD GATE) ───
-ANTI_AI=false
-if [ -n "$CONTRIBUTING" ]; then
-  CONTRIB_TEXT=$(echo "$CONTRIBUTING" | base64 -d 2>/dev/null || echo "")
-  if echo "$CONTRIB_TEXT" | grep -qiE '(no\s+(ai|bot|automated|machine|llm)|ban.*(ai|bot|automated)|prohibit.*(ai|bot|automated)|do\s+not\s+use\s+(ai|bot|llm|chatgpt|copilot)|ai[- ]generated.*(code|pr|pull|contribution).*not\s+(accept|allow|welcome)|bot[- ]generated.*not\s+(accept|allow|welcome)|we\s+do\s+not\s+accept.*(ai|bot|automated|llm)|auto(mated|matic)\s+(pr|pull|contribution).*not\s+(accept|allow|welcome))'; then
-    ANTI_AI=true
-  fi
-fi
-if [ "$ANTI_AI" = false ]; then
-  README_CONTENT=$(gh api "repos/${REPO}/contents/README.md" --jq '.content' 2>/dev/null || echo "")
-  if [ -n "$README_CONTENT" ]; then
-    README_TEXT=$(echo "$README_CONTENT" | base64 -d 2>/dev/null | head -200 || echo "")
-    if echo "$README_TEXT" | grep -qiE '(no\s+(ai|bot|automated|machine|llm)|ban.*(ai|bot|automated)|prohibit.*(ai|bot|automated)|do\s+not\s+use\s+(ai|bot|llm|chatgpt|copilot)|ai[- ]generated.*(code|pr|pull|contribution).*not\s+(accept|allow|welcome)|bot[- ]generated.*not\s+(accept|allow|welcome)|we\s+do\s+not\s+accept.*(ai|bot|automated|llm))'; then
-      ANTI_AI=true
-    fi
-  fi
-fi
-if [ "$ANTI_AI" = false ]; then
-  MAINT_COMMENTS=$(gh api "repos/${REPO}/issues/comments?sort=created&direction=desc&per_page=30" \
-    --jq '[.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | .body] | join("\n")' 2>/dev/null || echo "")
-  if echo "$MAINT_COMMENTS" | grep -qiE '(no\s+(ai|bot|automated)|ban.*(ai|bot)|stop.*submit.*(ai|bot|automated)|reject.*(ai|bot|automated)|spam.*(ai|bot)|do\s+not\s+want\s+(ai|bot|llm))'; then
-    ANTI_AI=true
-  fi
-fi
-if [ "$ANTI_AI" = true ]; then
-  reasons+=("anti-AI/anti-bot policy detected")
-  fail "anti-AI/anti-bot policy detected" "repo_health_fail: anti-AI policy — repo explicitly bans AI/bot contributions"
-fi
+# (Anti-AI scanning removed per user directive — we earn merges on quality)
 
 # ─── 9. Niche fit (agentic AI) ───
 REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
