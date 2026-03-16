@@ -225,7 +225,11 @@ else
 fi
 
 # ── 7. Clean stale sessions ──────────────────────────────────────────
-rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null || true
+# NOTE: Do NOT delete .jsonl session files — they contain transcripts that the
+# heartbeat runner needs. Deleting them breaks the session->sessionId lookup in
+# sessions.json, causing the heartbeat to silently fail after restart.
+# Only delete .lock files (stale process locks).
+# rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null || true  # DISABLED — root cause of heartbeat-dies-after-restart bug
 rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.lock 2>/dev/null || true
 echo "[OK] Sessions cleaned"
 
@@ -281,7 +285,7 @@ else
     echo "[OK] Gateway started in background (PID $!)"
 fi
 
-sleep 5
+sleep 8  # 8s to allow gateway to fully initialize heartbeat timer + session registry
 
 # Verify gateway is running
 if openclaw gateway status 2>/dev/null | grep -qi "running\|reachable\|ok"; then

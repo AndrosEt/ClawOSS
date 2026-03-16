@@ -251,4 +251,4 @@ Output files (updated each cycle):
 - `memory/pr-strategy.md` — strategic recommendations + P(merge) calibration
 - `memory/repo-blocklist.md` — repos to avoid
 
-If a cycle found no new data (no new PRs since last analysis), reply ANNOUNCE_SKIP for that cycle.
+ALWAYS reply ANNOUNCE_SKIP at the end of every cycle. The orchestrator reads your output from memory files directly — announce delivery is not needed and causes "Channel is required" errors.

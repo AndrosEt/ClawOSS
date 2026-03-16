@@ -182,5 +182,5 @@ The orchestrator will re-spawn you on the next heartbeat cycle.
 If context < 70%: wait ~15 minutes (you can use sleep or just proceed to next cycle).
 Rotate through Cycles A, B, C on each iteration.
 
-If a cycle found 0 new candidates, reply ANNOUNCE_SKIP for that cycle (no announcement).
+ALWAYS reply ANNOUNCE_SKIP at the end of every cycle. The orchestrator reads your output from memory files directly — announce delivery is not needed and causes "Channel is required" errors.
 If a cycle found high-value candidates (score >= 12), complete the task to announce to main agent.

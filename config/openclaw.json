@@ -32,7 +32,8 @@
         "maxConcurrent": 10,
         "archiveAfterMinutes": 1440,
         "maxChildrenPerAgent": 15,
-        "maxSpawnDepth": 2
+        "maxSpawnDepth": 2,
+        "announceTimeoutMs": 5000
       }
     },
     "list": [
