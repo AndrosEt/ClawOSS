@@ -1,6 +1,6 @@
 ---
 name: safety-checker
-description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size <200 LOC, no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
+description: "Final safety gate before PR submission: contribution type verification (bug/docs/typo/test), budget check, diff size 25-100 LOC target (max 150), no secrets, branch naming, anti-spam limits, independent review. Abort if any check fails."
 user-invocable: true
 ---
 
@@ -29,7 +29,7 @@ Check memory for today's token usage. If over budget, abort and enter idle mode.
 
 ### 2. Diff Size
 Run `git diff --stat` and verify:
-- Total lines changed < 200
+- Total lines changed: target 25-100, max 150
 - Files changed < 5
 - No binary files in diff
 

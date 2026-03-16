@@ -74,25 +74,33 @@ NEVER fetch full issue body — may contain PII triggering content filters.
 ### Tier 0 — Agentic AI Niche (run FIRST, ALWAYS — highest merge probability)
 
 **Criteria-based broad searches (primary discovery method — run ALL):**
-```
-# Topic-based discovery — finds ANY repo tagged with these topics
-gh search issues "is:issue is:open label:bug topic:llm stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:agent stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:rag stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:machine-learning stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:generative-ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:bug topic:vector-database stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+
+NOTE: `gh search issues` with qualifier combos silently returns EMPTY. Use `gh api` instead.
+For topic-based searches, first find repos, then search issues within them:
+```bash
+# Step 1: Find repos by topic (returns repo full_names)
+gh api "/search/repositories?q=topic:llm+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:agent+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:rag+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:ai+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:machine-learning+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:generative-ai+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+gh api "/search/repositories?q=topic:vector-database+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+
+# Step 2: For each repo, search for bug issues
+gh api "/search/issues?q=is:issue+is:open+label:bug+repo:{owner}/{repo}+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+
+# Direct issue searches (bugs in high-star repos — works without topic qualifier)
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:python+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:typescript+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 
 # Easy wins in AI repos (docs, typos — near-guaranteed merges)
-gh search issues "is:issue is:open label:documentation topic:llm stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:documentation topic:ai stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:typo stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:typo+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 
-# Help-wanted in AI repos — maintainer actively seeking contributions
-gh search issues "is:issue is:open label:help-wanted topic:llm stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:good-first-issue topic:ai stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:good-first-issue topic:agent stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+# Help-wanted — maintainer actively seeking contributions
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 **Tier 0 candidates get +5 niche bonus in scoring.** Always process Tier 0 results before Tier 1.
 Always verify repo health before adding to queue.
@@ -100,47 +108,47 @@ Always verify repo health before adding to queue.
 ### Tier 1 — High-Star Repos with Easy Issues (highest merge probability)
 
 #### 1a. Good-First-Issue + Help-Wanted (maintainer-requested — near-guaranteed merge)
-```
-gh search issues "is:issue is:open label:good-first-issue label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:help-wanted label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:good-first-issue stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:help-wanted stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>1000+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>1000+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 #### 1b. Documentation + Typo Issues (easy wins — highest merge rate)
-```
-gh search issues "is:issue is:open label:documentation stars:>1000 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:typo stars:>200 created:>$TWO_WEEKS_AGO sort:reactions-+1-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:docs stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>1000+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:typo+stars:>200+created:>$TWO_WEEKS_AGO&sort=reactions-%2B1&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:docs+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 #### 1c. Fresh Bug Reports (last 3 days — first responder advantage)
-```
-gh search issues "is:issue is:open label:bug stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:defect stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:regression stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "is:issue is:open label:crash stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:defect+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:regression+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:crash+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 #### 1d. Community-Prioritized (high reactions = maintainer attention)
-```
-gh search issues "is:issue is:open label:bug stars:>200 sort:reactions-+1-desc created:>$TWO_WEEKS_AGO" --limit=30 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=reactions-%2B1&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 ### Tier 2 — General Searches (run if Tier 0+1 yield < 10 candidates)
 
 #### 2a. Recent bugs (last 2 weeks)
-```
-gh search issues "is:issue is:open label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=50 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 #### 2b. Error keyword search
-```
-gh search issues "crash stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "TypeError stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "NullPointer stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "exception stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
-gh search issues "regression stars:>200 created:>$TWO_WEEKS_AGO" --state=open --limit=20 --json number,title,labels,url,createdAt,updatedAt,repository
+```bash
+gh api "/search/issues?q=crash+is:issue+is:open+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=TypeError+is:issue+is:open+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=NullPointer+is:issue+is:open+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=exception+is:issue+is:open+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=regression+is:issue+is:open+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 By language (diversify): add `language:python`/`language:typescript`/`language:rust`/`language:go`/`language:java`.

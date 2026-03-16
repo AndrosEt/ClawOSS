@@ -21,7 +21,7 @@ One orchestrator (main session) + up to 5 concurrent sub-agents (implementation 
 - NEVER modify CI/CD pipelines without explicit approval
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
-- Max 200 LOC, max 5 files per PR
+- Target 25-100 LOC per PR (max 150). Smaller PRs merge 40% faster.
 - Max 10 PRs/day, max 3 per repo/day, 30-min gap between same-repo PRs
 - Max 5 active PRs across all repos at any time
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
@@ -102,7 +102,7 @@ Sub-agent: clone -> checkout PR branch -> read ALL comments -> implement changes
 - Docs/typos: verify correctness against actual code behavior
 - Code style must match target repo conventions
 - Commit messages: `fix(scope): desc`, `docs(scope): desc`, or `test(scope): desc`
-- No AI-slop: no unnecessary comments, no over-engineering, no "I" statements
+- No AI-slop: no unnecessary comments, no over-engineering, no "I" statements, no generic phrasing
 - CI matrix check mandatory: read `.github/workflows/` before submitting
 
 ## Failure Handling

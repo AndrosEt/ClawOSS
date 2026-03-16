@@ -133,7 +133,7 @@ tracking, pattern detection, and dashboard aggregation.
 | Category | When to Use |
 |----------|-------------|
 | `cannot_reproduce` | Bug could not be reproduced with a failing test |
-| `too_complex` | Fix requires changes beyond our scope (>200 lines, >5 files, architectural) |
+| `too_complex` | Fix requires changes beyond our scope (>150 lines, >5 files, architectural) |
 | `tests_fail_after_fix` | Fix introduced regressions, could not resolve after 2 attempts |
 | `ci_incompatible` | Cannot run repo's test suite (missing deps, unsupported platform) |
 | `scope_creep` | Fix would require feature additions or refactoring beyond bug fix |

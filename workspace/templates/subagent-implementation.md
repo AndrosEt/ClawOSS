@@ -22,6 +22,12 @@ Status: failure, Reason: 'not actionable — issue is a feature request/enhancem
 
 Read the attached repo-conventions.md and issue-details.md.
 
+0. COMMENT ON THE ISSUE FIRST (before any code):
+   Post a brief comment on the issue: "I've been looking into this — [1-2 sentence description of your approach]."
+   This signals intent, builds trust with maintainers, and significantly increases merge odds.
+   Use: `gh issue comment {issue} --repo {repo} --body "your comment"`
+   Keep it short, specific to this issue, and written like a human developer.
+
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
    Clone repo INTO this directory. All work happens here.
@@ -98,7 +104,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - Is the fix correct? (for docs/typos, verify against actual code behavior)
    - No feature additions or refactoring snuck in. STRIP them if found.
    - Will this pass the FULL CI matrix? If unsure, run more tests.
-   - Scope, style, secrets, size, commit msg.
+   - Scope, style, secrets, size (target 25-100 LOC, max 150 — smaller PRs merge 40% faster), commit msg.
    - Commit type: 'fix' for bugs, 'docs' for documentation, 'test' for tests.
    - 3+ failures = abandon.
 
@@ -109,11 +115,16 @@ Read the attached repo-conventions.md and issue-details.md.
    ```
    Create the PR against $DEFAULT_BRANCH — NOT hardcoded 'main' or 'master'.
    A PR targeting the wrong branch will be closed immediately.
-   PR title should clearly describe the fix. PR body must include:
-   - For bugs: Root Cause Analysis, fix explanation, before/after test evidence
-   - For docs/typos: What was incorrect, what's now correct, how you verified
-   - For tests: What's now tested, why it matters
-   - Reference to the original issue (Fixes #{issue})
+   PR title should clearly describe the fix. PR body rules:
+   - Write as a human developer, specific to THIS codebase. No generic AI phrasing.
+   - NO: "I noticed this issue and...", "This PR addresses...", "Upon investigation..."
+   - YES: State the bug/problem in 1 sentence. State root cause in 1 sentence. State fix in 1 sentence.
+   - Be terse: 3-5 sentences total for the description. Maintainers skim, not read.
+   - Reference codebase-specific files, functions, and line numbers.
+   - For bugs: root cause + fix + before/after test evidence
+   - For docs/typos: what was wrong + what's now correct
+   - For tests: what's now tested + why it matters
+   - Reference the original issue (Fixes #{issue})
    Include a CLA confirmation section at the bottom of the PR body:
    '## Contributor License Agreement
    By submitting this pull request, I confirm that my contribution is made

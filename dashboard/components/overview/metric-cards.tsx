@@ -211,6 +211,40 @@ export function MetricCards({
                     : "bg-red-500/50"
               }
             />
+            {/* Competitor benchmark reference lines (MSR 2026 study data) */}
+            <div className="relative h-3 mt-2">
+              <div className="absolute inset-x-0 top-1 h-[1px] bg-foreground/[0.04]" />
+              {[
+                { label: "Copilot", pct: 35, color: "text-muted-foreground/30" },
+                { label: "Devin", pct: 49, color: "text-muted-foreground/40" },
+                { label: "Codex", pct: 64, color: "text-emerald-400/40" },
+              ].map((b) => (
+                <div
+                  key={b.label}
+                  className="absolute top-0 flex flex-col items-center"
+                  style={{ left: `${b.pct}%`, transform: "translateX(-50%)" }}
+                >
+                  <div className="h-2.5 w-[1px] bg-foreground/10" />
+                  <span className={`text-[7px] font-mono leading-none mt-0.5 ${b.color}`}>
+                    {b.label} {b.pct}%
+                  </span>
+                </div>
+              ))}
+              {/* Our position marker */}
+              {mergeRate > 0 && (
+                <div
+                  className="absolute top-0 flex flex-col items-center"
+                  style={{ left: `${Math.min(mergeRate, 100)}%`, transform: "translateX(-50%)" }}
+                >
+                  <div className={`h-2.5 w-[2px] rounded-full ${
+                    mergeRate >= 20 ? "bg-emerald-500" : mergeRate >= 10 ? "bg-amber-500" : "bg-red-500"
+                  }`} />
+                  <span className={`text-[7px] font-mono font-bold leading-none mt-0.5 ${mergeColor}`}>
+                    us {mergeRate.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

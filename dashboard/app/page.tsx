@@ -10,6 +10,7 @@ import { FollowUpTracker } from "@/components/overview/follow-up-tracker";
 import { RepoHealthPanel } from "@/components/overview/repo-health-panel";
 import { StalePRPanel } from "@/components/overview/stale-pr-panel";
 import { PRTypeBreakdown } from "@/components/overview/pr-type-breakdown";
+import { PRSizeHistogram } from "@/components/overview/pr-size-histogram";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -158,6 +159,8 @@ export default function OverviewPage() {
           <PRTypeBreakdown />
           <StalePRPanel />
         </div>
+
+        <PRSizeHistogram />
 
         {/* Pipeline telemetry bar */}
         {connectionData && (

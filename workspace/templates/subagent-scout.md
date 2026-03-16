@@ -35,53 +35,51 @@ Search for repos with actionable issues. Prioritize:
 Search queries (adapt to your tier):
 
 **Tier 0 — Agentic AI (highest value) — find by CRITERIA:**
+
+IMPORTANT: `gh search issues` with qualifier combos silently returns EMPTY. Use `gh api` instead.
+For topic searches, first find repos by topic, then search issues within them.
 ```bash
 # Date calculation
 THREE_DAYS_AGO=$(date -v-3d +%Y-%m-%d 2>/dev/null || date -d "3 days ago" +%Y-%m-%d)
 TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d)
 
-# PRIMARY: Topic-based discovery — finds ANY repo tagged with these topics, not just known ones
-gh search issues "is:issue is:open label:bug topic:llm stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:agent stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:rag stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:machine-learning stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:generative-ai stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:vector-database stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:embedding stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug topic:nlp stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
+# Step 1: Find repos by topic (returns repo full_names)
+for TOPIC in llm agent rag ai machine-learning generative-ai vector-database embedding nlp; do
+  gh api "/search/repositories?q=topic:${TOPIC}+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
+done
 
-# Keyword-based discovery — finds repos by description content
-gh search issues "is:issue is:open label:bug \"language model\" stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:bug \"ai agent\" stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
+# Step 2: For each discovered repo, search for bug issues
+gh api "/search/issues?q=is:issue+is:open+label:bug+repo:{owner}/{repo}+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 
-# Easy wins: typos, docs, tests in AI repos
-gh search issues "is:issue is:open label:documentation topic:llm stars:>200 sort:created-desc" --limit=20 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:documentation topic:ai stars:>200 sort:created-desc" --limit=20 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:typo stars:>200 sort:created-desc" --limit=20 --json number,title,url,createdAt,repository
+# Direct issue searches (work without topic qualifier)
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:python+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 
-# Help-wanted in AI repos — highest merge probability
-gh search issues "is:issue is:open label:help-wanted topic:llm stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:good-first-issue topic:ai stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
+# Easy wins: docs, typos (near-guaranteed merges)
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:typo+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+
+# Help-wanted — highest merge probability
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 **Tier 1 — High-Star Repos with Easy Issues:**
 ```bash
 # Good-first-issue and help-wanted (highest merge probability)
-gh search issues "is:issue is:open label:good-first-issue label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:help-wanted label:bug stars:>200 created:>$TWO_WEEKS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:help-wanted+label:bug+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 # Easy documentation/typo fixes
-gh search issues "is:issue is:open label:documentation stars:>1000 sort:created-desc" --limit=20 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:typo stars:>200 sort:reactions-+1-desc" --limit=20 --json number,title,url,createdAt,repository
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>1000+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:typo+stars:>200+created:>$TWO_WEEKS_AGO&sort=reactions-%2B1&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 # Test additions wanted
-gh search issues "is:issue is:open label:test stars:>200 sort:created-desc" --limit=20 --json number,title,url,createdAt,repository
+gh api "/search/issues?q=is:issue+is:open+label:test+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 **Tier 2 — General Bug Search:**
 ```bash
-gh search issues "is:issue is:open label:bug stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=50 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:defect stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
-gh search issues "is:issue is:open label:regression stars:>200 created:>$THREE_DAYS_AGO sort:created-desc" --limit=30 --json number,title,url,createdAt,repository
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:defect+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:regression+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
 ```
 
 ### Step 2: Check Repo Health

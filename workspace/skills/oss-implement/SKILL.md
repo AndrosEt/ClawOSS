@@ -116,7 +116,7 @@ Self-check diff with these questions:
 4. **Is every change directly related to the issue?** Revert unrelated changes.
 5. **Did I accidentally add a feature or refactor code?** If yes, strip it out.
 6. **Is the commit type correct?** `fix` for bugs, `docs` for documentation, `test` for tests.
-7. Scoped to issue only? Matches style? No secrets/debug/AI-slop? <200 LOC?
+7. Scoped to issue only? Matches style? No secrets/debug/AI-slop? 25-100 LOC target, max 150?
 8. If 3+ checks fail, abandon.
 
 ### 6. SUBMIT
@@ -129,7 +129,7 @@ Commit with appropriate type: `fix(scope): desc`, `docs(scope): desc`, or `test(
 - Push to fork.
 
 ## Constraints
-- Max 200 LOC. Match repo style. No new deps unless essential.
+- Target 25-100 LOC (max 150). Match repo style. No new deps unless essential.
 - No AI-slop, no single-use helpers, variable names match repo conventions.
 - **Commit type must match contribution**: `fix` for bugs, `docs` for docs/typos, `test` for tests.
 - **Every line changed must be necessary to resolve the reported issue.**
