@@ -323,7 +323,7 @@ export function AutonomyHealthPanel() {
           if (totalFailures === 0) return null;
           const categoryLabels: Record<string, { label: string; color: string }> = {
             no_review: { label: "No Review (bad targeting)", color: "text-red-400/70" },
-            quick_reject: { label: "Auto-Rejected (CI/bot)", color: "text-orange-400/70" },
+            quick_reject: { label: "Auto-Rejected (CI/policy)", color: "text-orange-400/70" },
             changes_requested: { label: "Fix Rejected", color: "text-amber-400/70" },
             scope_reject: { label: "Scope Too Large", color: "text-violet-400/70" },
             duplicate: { label: "Duplicate Closed", color: "text-red-400/70" },

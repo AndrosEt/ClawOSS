@@ -147,7 +147,7 @@ export async function GET() {
       }));
 
     // --- QUICK REJECTIONS ---
-    // PRs closed within 1 hour = likely auto-rejected (CLA, CI, anti-bot)
+    // PRs closed within 1 hour = likely auto-rejected (CLA, CI, policy)
     const quickRejections = allPRs
       .filter((pr) => {
         if (pr.status !== "closed" || !pr.closedAt || !pr.createdAt) return false;
@@ -193,7 +193,7 @@ export async function GET() {
       )
     );
 
-    // --- CLA BOT DETECTION (informational only — agent now signs CLAs) ---
+    // --- CLA CHECK DETECTION (informational only — agent now signs CLAs) ---
     const claBotPrIds = new Set<string>();
     try {
       const claReviews = await db
@@ -291,7 +291,7 @@ export async function GET() {
     if (quickRejections.length > 0) {
       promptGaps.push({
         id: "auto_reject",
-        name: "Auto-rejected (CI/anti-bot)",
+        name: "Auto-rejected (CI/policy)",
         severity: "high",
         evidence: `${quickRejections.length} PRs closed within 1 hour`,
         count: quickRejections.length,
@@ -428,6 +428,6 @@ function inferClosureReason(pr: {
   reviewCount: number | null;
 }): string {
   if ((pr.reviewCount ?? 0) === 0) return "no_review";
-  if (/bot|automated|ai.generated/i.test(pr.body || "")) return "anti_bot";
+  if (/automated|policy.reject/i.test(pr.body || "")) return "policy_reject";
   return "rejected";
 }

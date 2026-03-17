@@ -67,11 +67,7 @@ export function PRPortfolioHealth() {
 
   const openColor = !data
     ? "text-muted-foreground/40"
-    : data.open >= 30
-      ? "text-red-400"
-      : data.open >= 20
-        ? "text-amber-400"
-        : "text-emerald-400";
+    : "text-foreground/80";
 
   return (
     <Card className="metric-card card-lift">
@@ -104,13 +100,13 @@ export function PRPortfolioHealth() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Stale warning banner */}
+            {/* Stale follow-up banner */}
             {data.stale > 10 && (
-              <div className="px-3 py-2 rounded-md bg-red-500/8 border border-red-500/20">
+              <div className="px-3 py-2 rounded-md bg-amber-500/8 border border-amber-500/20">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                  <span className="text-[11px] font-mono text-red-400 font-medium">
-                    CLOSE STALE PRs — {data.stale} open PRs with no update in 7+ days
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  <span className="text-[11px] font-mono text-amber-400 font-medium">
+                    BUMP STALE PRs — {data.stale} open PRs with no update in 7+ days need follow-up
                   </span>
                 </div>
               </div>

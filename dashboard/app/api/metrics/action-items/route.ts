@@ -176,7 +176,7 @@ export async function GET() {
         category: "followup",
         title: "Improve PR follow-up rate",
         problem: `${open} PRs are still open. Many may have review comments that need responses or rework.`,
-        suggestedFix: "Check open PRs every cycle. If reviewer left comments, spawn follow-up sub-agent immediately. If changes requested, rework and push updates. Prioritize follow-ups over new PRs.",
+        suggestedFix: "Check open PRs every cycle. If reviewer left comments, spawn follow-up sub-agent immediately. If changes requested, rework and push updates. Balance follow-ups with new PR submissions.",
         impactEstimate: "Responding to reviews within 4h increases merge rate by ~25%",
         dataPoint: `${open} open PRs pending follow-up`,
       });

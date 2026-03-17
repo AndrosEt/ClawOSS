@@ -9,9 +9,8 @@ import { sql, eq, and, lte } from "drizzle-orm";
  * GET /api/metrics/stale-prs?days=7
  *
  * Returns open PRs that have been sitting with no human engagement
- * beyond a threshold (default 7 days). Used for the "stale PR cleanup"
- * view so we can close PRs that will never get reviewed and reduce
- * our spam footprint.
+ * beyond a threshold (default 7 days). Used for the "stale PR rework"
+ * view so we can bump, follow up, or rework PRs that need attention.
  */
 export async function GET(request: Request) {
   try {
@@ -74,13 +73,13 @@ export async function GET(request: Request) {
           latestState: null,
         };
         existing.count++;
-        // Bot reviewers typically have [bot] suffix or known bot names
-        const isBot =
+        // Automated reviewers typically have [bot] suffix or known service names
+        const isAutomated =
           /\[bot\]$/i.test(rev.reviewer) ||
           /^(dependabot|renovate|github-actions|codecov|gemini-code-assist|coderabbit)/i.test(
             rev.reviewer
           );
-        if (!isBot) {
+        if (!isAutomated) {
           existing.hasHuman = true;
         }
         existing.latestState = rev.state;
