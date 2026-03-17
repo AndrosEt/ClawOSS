@@ -16,6 +16,7 @@ attachments: [batch-context.json]
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
+**ALL work MUST happen in `/tmp/clawoss-batch-{timestamp}/`.** NEVER clone to `/tmp/{repo-name}/` or any location outside the `clawoss-` prefix.
 
 ## Web Search — Use Before Every Change
 `web_search` the reviewer's feedback before implementing. Search for the pattern, API, or approach they suggest. `web_fetch` any links in their comments. Don't guess — search first.

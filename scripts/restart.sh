@@ -372,6 +372,11 @@ else
     echo "[WARN] Agent wake event failed — agent will wake on next heartbeat timer"
 fi
 
+# ── 17. Start tmp-cleaner daemon ───────────────────────────────────────
+pkill -f "tmp-cleaner.sh" 2>/dev/null || true
+nohup bash "$PROJECT_DIR/scripts/tmp-cleaner.sh" > /dev/null 2>&1 &
+echo "[OK] tmp-cleaner daemon started (PID $!, cleans /tmp/clawoss-* every 5m)"
+
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
 echo "=== ClawOSS V10 Running ==="

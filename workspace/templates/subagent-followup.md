@@ -15,12 +15,12 @@ label: "followup-{repo}#{pr}"
 attachments: [followup-{repo}-{pr}.md]
 ```
 
-## CRITICAL: Script Path
-**EVERY bash block MUST start with this line:**
+## CRITICAL: Workspace Rules
+**EVERY bash block MUST start with:**
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
-All ClawOSS utility scripts are at this absolute path. You run in /tmp — relative paths WILL NOT WORK.
+**ALL work MUST happen in `/tmp/clawoss-followup-{pr}-{timestamp}/`.** NEVER clone to `/tmp/{repo-name}/` or any other location outside the `clawoss-` prefix. Cleanup daemon deletes stale dirs — anything outside `/tmp/clawoss-*` escapes cleanup and wastes disk.
 
 ```
 ```

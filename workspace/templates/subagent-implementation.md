@@ -11,12 +11,12 @@ label: "{repo}#{issue}"
 attachments: [repo-conventions.md, issue-details.md]
 ```
 
-## CRITICAL: Script Path
-**EVERY bash block MUST start with this line:**
+## CRITICAL: Workspace Rules
+**EVERY bash block MUST start with:**
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
-All ClawOSS utility scripts are at this path. Subagents run in /tmp workspaces — relative paths WILL NOT WORK.
+**ALL work MUST happen in `/tmp/clawoss-{issue}-{timestamp}/`.** NEVER clone repos to `/tmp/{repo-name}/` or any other location. NEVER run `npm install`, `pip install`, `cargo build`, or any dependency installation OUTSIDE your `/tmp/clawoss-*` workspace. This is NON-NEGOTIABLE — a cleanup daemon deletes stale dirs, and anything outside `/tmp/clawoss-*` wastes disk and escapes cleanup.
 
 ## Web Search — Use Aggressively
 You have `web_search` and `web_fetch` tools. **Use them before and during implementation:**
@@ -81,11 +81,13 @@ Read the attached repo-conventions.md and issue-details.md.
    EXISTING=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
    [ "$EXISTING" -ge 5 ] && echo "ABORT: 5+ open PRs at this repo" && bash $SCRIPTS/unlock-repo.sh {repo} && exit 1
 
-   # Clone
+   # Clone — MUST be in /tmp/clawoss-* (cleanup daemon monitors this prefix)
    WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR
    gh repo clone {repo} $WORKDIR -- --depth=50 || exit 1
    cd $WORKDIR
+   # ALL subsequent work (npm install, pip install, cargo build, tests) happens HERE
+   # NEVER cd to /tmp/{something-else} or clone to a different location
    DEFAULT_BRANCH=$(gh api repos/{repo} --jq '.default_branch' 2>/dev/null || echo main)
    ```
    **IMPORTANT**: Use `python3` (not `python`). The `python` binary does not exist on macOS.
