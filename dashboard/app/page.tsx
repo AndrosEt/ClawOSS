@@ -8,7 +8,7 @@ import { CurrentTaskCard } from "@/components/overview/current-task-card";
 import { RecentPRsList } from "@/components/overview/recent-prs-list";
 import { FollowUpTracker } from "@/components/overview/follow-up-tracker";
 import { RepoHealthPanel } from "@/components/overview/repo-health-panel";
-import { StalePRPanel } from "@/components/overview/stale-pr-panel";
+// StalePRPanel removed from overview — not a priority
 import { PRTypeBreakdown } from "@/components/overview/pr-type-breakdown";
 import { PRSizeHistogram } from "@/components/overview/pr-size-histogram";
 import { AutonomyHealthPanel } from "@/components/overview/autonomy-health-panel";
@@ -157,6 +157,18 @@ export default function OverviewPage() {
 
         <AlertsBanner />
 
+        {/* === LIVE PIPELINE (top of page — what the agent is doing RIGHT NOW) === */}
+
+        {/* Full-width: Agent slot grid — 13 slots showing all active work */}
+        <SubagentHealthPanel />
+
+        {/* Throughput + Discovery — live work metrics */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ThroughputPanel />
+          <DiscoveryPipeline />
+        </div>
+
+        {/* Stats overview */}
         <MetricCards
           totalPRs={data?.stats?.totalPRs || 0}
           mergeRate={data?.stats?.mergeRate || 0}
@@ -169,46 +181,34 @@ export default function OverviewPage() {
           avgHoursToReview={data?.stats?.avgHoursToReview}
         />
 
-        {/* V10.1: Agent swarm health — the most critical monitoring panels */}
+        {/* PR portfolio scoreboard + repo health */}
         <div className="grid gap-5 lg:grid-cols-2">
-          <SubagentHealthPanel />
           <PRPortfolioHealth />
+          <RepoHealthPanel />
         </div>
 
+        {/* Merge intelligence */}
         <div className="grid gap-5 lg:grid-cols-2">
-          <ThroughputPanel />
-          <DiscoveryPipeline />
+          <MergeProbabilityPanel />
+          <VelocityTimeline />
         </div>
 
-        <DirectivesPanel />
+        {/* === ANALYTICS (below fold — reference data) === */}
 
         <div className="grid gap-5 lg:grid-cols-2">
           <AutonomyHealthPanel />
-          <PostMergeHealthPanel />
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <MergeProbabilityPanel />
-          <div /> {/* Placeholder for direction analysis panel (V10 Phase 2) */}
-        </div>
-
-        <ActionItemsPanel />
-
-        <VelocityTimeline />
-
-        <RepoHealthPanel />
-
-        <div className="grid gap-5 lg:grid-cols-2">
           <PRTypeBreakdown />
-          <StalePRPanel />
         </div>
-
-        <CorrelationPanel />
 
         <div className="grid gap-5 lg:grid-cols-2">
           <PRSizeHistogram />
           <ResponseTimePanel />
         </div>
+
+        <DirectivesPanel />
+        <ActionItemsPanel />
+        <PostMergeHealthPanel />
+        <CorrelationPanel />
 
         {/* Pipeline telemetry bar */}
         {connectionData && (
