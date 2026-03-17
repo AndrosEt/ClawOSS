@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
-import { pullRequests, prReviews } from "@/lib/schema";
+import { pullRequests, prReviews, agentLogs } from "@/lib/schema";
 import { eq, sql, gte } from "drizzle-orm";
 
 /**
@@ -181,12 +181,26 @@ export async function GET() {
       directives.push("TOO MANY DEAD REPOS: " + allAvoidRepos.length + " repos with 0 merges or blocklisted. Focus on responsive repos only.");
     }
 
-    if (reposWithOpenPRs.length > 10) {
-      directives.push("FOLLOW UP FIRST: " + reposWithOpenPRs.length + " repos have open PRs. Follow up and rework before submitting new ones.");
+    if (open > 30) {
+      directives.push("TOO MANY OPEN PRs (" + open + "): Close stale PRs with no activity >7 days. Target <30 open PRs total.");
     }
 
     if (closed > 0 && total > 0 && closed / total > 0.3) {
       directives.push("REWORK NEEDED: " + closed + " closed PRs (" + ((closed / total) * 100).toFixed(0) + "%). Rework rejected PRs instead of abandoning — reopen and address feedback.");
+    }
+
+    // Log directives for the directives panel
+    if (directives.length > 0) {
+      try {
+        await db.insert(agentLogs).values({
+          id: crypto.randomUUID(),
+          timestamp: now,
+          level: "info",
+          source: "directive",
+          message: directives.join(" | "),
+          metadata: JSON.stringify({ directives, stats: { total, merged, open, closed } }),
+        });
+      } catch { /* non-critical */ }
     }
 
     return NextResponse.json({

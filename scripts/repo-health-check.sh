@@ -265,7 +265,7 @@ if [ -n "$CONTRIBUTING" ]; then
   score=$((score + 1))  # has CONTRIBUTING.md = welcoming
   # Decode and check for anti-bot/anti-AI policies
   CONTRIB_TEXT=$(echo "$CONTRIBUTING" | base64 -d 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "")
-  if echo "$CONTRIB_TEXT" | grep -qiE "no (bot|ai[- ]generated|automated|machine[- ]generated)|human[- ]only|not accept.*(bot|ai|automated)|ban.*(bot|ai)|prohibit.*(bot|ai)"; then
+  if echo "$CONTRIB_TEXT" | grep -qiE "\bno (bots?|ai[- ]generated|automated)\b|\bhuman[- ]only\b|\bnot accept.*(bots?|ai)\b|\bban.*(bots?|ai)\b|\bprohibit.*(bots?|ai)\b"; then
     ANTI_BOT=true
     reasons+=("anti-bot policy detected in CONTRIBUTING.md")
     fail "anti-bot/anti-AI policy in CONTRIBUTING.md" "repo_health_fail: anti-bot policy detected"

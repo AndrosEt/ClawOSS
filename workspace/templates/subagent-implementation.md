@@ -18,6 +18,15 @@ SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
 All ClawOSS utility scripts are at this path. Subagents run in /tmp workspaces — relative paths WILL NOT WORK.
 
+## Skills — Load These Before Working
+You have skills available. **Read each SKILL.md file** with the `read` tool for detailed instructions:
+1. **`~/clawOSS/workspace/skills/oss-implement/SKILL.md`** — The reproduce-first workflow. Read this FIRST.
+2. **`~/clawOSS/workspace/skills/oss-review/SKILL.md`** — 8-point self-review checklist. Read BEFORE committing.
+3. **`~/clawOSS/workspace/skills/safety-checker/SKILL.md`** — Final safety gate. Read BEFORE submitting PR.
+4. **`~/clawOSS/workspace/skills/oss-submit/SKILL.md`** — PR creation workflow. Read when ready to submit.
+5. **`~/clawOSS/workspace/skills/systematic-debugging/SKILL.md`** — If you get stuck debugging, read this for structured approach.
+Load skills proactively — they contain exact steps, not just guidelines.
+
 ## Task Prompt
 
 Fix issue in {repo}#{issue}: {title}.
@@ -41,22 +50,25 @@ Read the attached repo-conventions.md and issue-details.md.
    `gh issue comment {issue} --repo {repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."`
    Keep it short, specific to this issue, and written like a human developer. No AI phrasing.
 
-1. SETUP WORKSPACE — run these checks yourself, then clone:
+1. SETUP WORKSPACE — run quick checks, then clone:
    ```bash
    SCRIPTS=/Users/kevinlin/clawOSS/scripts
 
-   # Gate checks (each returns JSON, exit 1 = abort)
-   bash $SCRIPTS/check-blocklist.sh {repo} || exit 1
-   bash $SCRIPTS/check-already-fixed.sh {repo} {issue} || exit 1
-   bash $SCRIPTS/check-supersession.sh {repo} {issue} || exit 1
-   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {repo} || exit 1
+   # Quick checks (use gh directly — no scripts needed for basic gates)
+   # Is issue still open?
+   STATE=$(gh api repos/{repo}/issues/{issue} --jq '.state' 2>/dev/null)
+   [ "$STATE" = "closed" ] && echo "ABORT: issue is closed" && exit 1
+
+   # Is it assigned to someone else?
+   ASSIGNEES=$(gh api repos/{repo}/issues/{issue} --jq '[.assignees[].login] | map(select(. != "BillionClaw")) | length' 2>/dev/null || echo 0)
+   [ "$ASSIGNEES" -gt 0 ] && echo "ABORT: assigned to someone" && exit 1
 
    # Lock repo (prevents duplicate agents)
    bash $SCRIPTS/lock-repo.sh {repo} {issue} || exit 1
 
-   # Check for existing open PR by BillionClaw
+   # Check for existing open PRs by BillionClaw (max 5 per repo)
    EXISTING=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
-   [ "$EXISTING" -gt 0 ] && echo "ABORT: already have open PR" && bash $SCRIPTS/unlock-repo.sh {repo} && exit 1
+   [ "$EXISTING" -ge 5 ] && echo "ABORT: 5+ open PRs at this repo" && bash $SCRIPTS/unlock-repo.sh {repo} && exit 1
 
    # Clone
    WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
@@ -222,7 +234,7 @@ Read the attached repo-conventions.md and issue-details.md.
      `self._report_failure()`. Test added confirming propagation. Fixes #21131
    - Be terse: 3-5 sentences. Reference specific files/functions/lines. Fixes #{issue}.
    - Verify EVERY claim matches the actual `git diff --stat HEAD~1`. Phantom changes = -51.7% merge rate.
-   Include disclosure: '> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.'
+
 
 9. SUBMIT — fork, push, create PR yourself:
    ```bash
@@ -235,7 +247,10 @@ Read the attached repo-conventions.md and issue-details.md.
    REPO_NAME=$(echo "{repo}" | cut -d/ -f2)
    git remote add fork https://github.com/BillionClaw/$REPO_NAME.git 2>/dev/null || true
    BRANCH=$(git branch --show-current)
-   [[ "$BRANCH" != clawoss/* ]] && git branch -m "clawoss/$BRANCH" && BRANCH="clawoss/$BRANCH"
+   if [[ "$BRANCH" != clawoss/* ]]; then
+     BRANCH="clawoss/fix/$(echo "$BRANCH" | sed 's|^main$||;s|^master$||' | head -c 50)"
+     git checkout -b "$BRANCH" 2>/dev/null || git branch -m "$BRANCH"
+   fi
    git push fork $BRANCH --force
 
    # Create PR

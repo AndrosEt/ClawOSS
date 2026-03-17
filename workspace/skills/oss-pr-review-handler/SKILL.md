@@ -11,8 +11,7 @@ This skill runs inside a dedicated sub-agent spawned by the orchestrator — one
 
 ## Context (provided via attachments)
 
-The orchestrator writes a context file to `memory/subagent-inputs/followup-{repo}-{pr}.md`
-and passes it as an attachment. It contains:
+The orchestrator passes review context via attachments when spawning. The context contains:
 - PR URL and number
 - Repository owner and name
 - Original issue link and number

@@ -155,7 +155,7 @@ Repo profile containing:
 - **Recommendation**: contribute / skip / skip-permanently (with reason)
 
 ## Caching
-Cache repo health results in `memory/repos/{owner}_{repo}.md` for 7 days.
-Re-run health check if cache is older than 7 days.
+Cache repo health results in `memory/repos/{owner}_{repo}.md` for 24 hours.
+Re-run health check if cache is older than 24 hours.
 If a repo was previously skipped due to health gate failure, do NOT re-check
 for 14 days (they won't improve that fast).

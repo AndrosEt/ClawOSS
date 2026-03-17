@@ -19,6 +19,11 @@ import { ResponseTimePanel } from "@/components/overview/response-time-panel";
 import { AlertsBanner } from "@/components/overview/alerts-banner";
 import { ActionItemsPanel } from "@/components/overview/action-items-panel";
 import { CorrelationPanel } from "@/components/overview/correlation-panel";
+import { SubagentHealthPanel } from "@/components/overview/subagent-health-panel";
+import { PRPortfolioHealth } from "@/components/overview/pr-portfolio-health";
+import { ThroughputPanel } from "@/components/overview/throughput-panel";
+import { DirectivesPanel } from "@/components/overview/directives-panel";
+import { DiscoveryPipeline } from "@/components/overview/discovery-pipeline";
 import { AgentStatePanel } from "@/components/live/agent-state-panel";
 import { useAgentStatus } from "@/lib/hooks/use-agent-status";
 import { useConnectionStatus } from "@/lib/hooks/use-connection-status";
@@ -163,6 +168,19 @@ export default function OverviewPage() {
           tokensPerMerge={data?.stats?.tokensPerMerge || 0}
           avgHoursToReview={data?.stats?.avgHoursToReview}
         />
+
+        {/* V10.1: Agent swarm health — the most critical monitoring panels */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <SubagentHealthPanel />
+          <PRPortfolioHealth />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ThroughputPanel />
+          <DiscoveryPipeline />
+        </div>
+
+        <DirectivesPanel />
 
         <div className="grid gap-5 lg:grid-cols-2">
           <AutonomyHealthPanel />

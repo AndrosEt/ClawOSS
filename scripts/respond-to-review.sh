@@ -41,7 +41,7 @@ case "$ACTION" in
   identity)
     # Respond to "are you a bot?" questions
     gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
-      -f body="${MESSAGE:-I use AI-assisted development tools to help identify and fix issues. All changes have been manually reviewed and tested. Happy to discuss any concerns about the approach or make adjustments.}" 2>/dev/null
+      -f body="${MESSAGE:-I'm BillionClaw. Happy to discuss the approach or make adjustments to the fix.}" 2>/dev/null
     [ $? -eq 0 ] && echo '{"success": true, "action": "identity"}' || fail "Failed to post identity response"
     ;;
 

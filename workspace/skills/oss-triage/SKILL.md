@@ -40,7 +40,7 @@ Read `memory/trust-repos.md` Deprioritized section. If the repo appears there AN
 **We only contribute to repos that will actually review and merge our work.**
 
 Run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}` or quick-check via `gh api`
-(use cached results from `memory/repos/` if available and < 7 days old):
+(use cached results from `memory/repos/` if available and < 24 hours old):
 
 ```bash
 # 1. Stars — SKIP if < 200
@@ -194,13 +194,11 @@ Score each issue 1-25:
 - **+3** Repo engaged positively with a previous PR (approved, constructive feedback)
 - **-5** Repo closed our PR without review in < 24h (check pr-ledger.md)
 
-### Niche Fit (agentic AI repos = highest ROI)
-- **+5** Repo is in the agentic AI / LLM niche (langchain, autogen, crewai, llama-index,
-  semantic-kernel, haystack, dspy, chromadb, qdrant, vllm, ollama, litellm, instructor,
-  openai-python, or matches keywords: agent, llm, rag, embedding, vector, inference)
-- **+3** Repo has 1000+ stars (high-impact, visible contribution)
-- **+2** Repo has 500-1000 stars (solid mid-size)
-- **+1** Repo has 200-500 stars
+### Repo Quality
+- **+3** Repo has 5000+ stars (high-impact)
+- **+2** Repo has 1000+ stars (solid)
+- **+1** Repo has 200-1000 stars
+- **+2** Repo is in a niche where we've had merges before
 
 ### Repo Health (merge velocity — from step 0d)
 - **+5** Repo avg merge time < 3 days (fast reviewers — highest merge chance)

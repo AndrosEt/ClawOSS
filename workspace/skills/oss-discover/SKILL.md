@@ -48,18 +48,42 @@ Trusted repos get **+8 bonus** in scoring. This is the single biggest lever for 
 5. Score: merge probability (most important), recency, fix feasibility, repo health. Minimum score 5. **+8 trusted repo bonus.**
 6. Return ranked top 10. Write full list to memory/today.md.
 
-## Golden Niche: Agentic AI Repos (find by CRITERIA, not hardcoded list)
-Our highest-value targets are agentic AI / LLM framework repos. Find them autonomously.
+## Discovery Niches (rotate through ALL — the AI niche is saturated)
+Diversify targets across the full open-source ecosystem. Do NOT camp on the same 10 AI repos.
 
-### How to Discover Niche Repos
-Search GitHub using topic tags and description keywords — do NOT rely on a fixed list:
-- **Topics**: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning`,
-  `topic:generative-ai`, `topic:vector-database`, `topic:embedding`, `topic:nlp`
-- **Keywords in repo description**: agent, agentic, llm, large language model, rag,
-  retrieval augmented, embedding, vector store, prompt, chain, tool-use, function-calling,
-  ai-assistant, copilot, chatbot, inference, transformer, fine-tuning, mlops
+### Niche 1: Agentic AI (familiar territory)
+- **Topics**: `topic:llm`, `topic:agent`, `topic:rag`, `topic:ai`, `topic:machine-learning`
+- **Combined with**: `stars:>200`, `label:bug` or `label:help-wanted`
+
+### Niche 2: Developer Tools & CLIs
+- **Topics**: `topic:cli`, `topic:devtools`, `topic:developer-tools`, `topic:terminal`, `topic:editor`
+- Many responsive maintainers, fast review cycles
+
+### Niche 3: Web Frameworks & Libraries
+- **Topics**: `topic:web-framework`, `topic:nextjs`, `topic:fastapi`, `topic:django`, `topic:flask`, `topic:express`
+- High star counts, active communities
+
+### Niche 4: Databases & Storage
+- **Topics**: `topic:database`, `topic:sql`, `topic:nosql`, `topic:vector-database`, `topic:redis`
+- Well-maintained, clear bug reports
+
+### Niche 5: Cloud-Native & Infrastructure
+- **Topics**: `topic:kubernetes`, `topic:docker`, `topic:cloud-native`, `topic:infrastructure`
+- Massive ecosystem, always needs docs fixes
+
+### Niche 6: Testing & Code Quality
+- **Topics**: `topic:testing`, `topic:linting`, `topic:code-quality`, `topic:formatter`
+- Maintainers are meticulous — match their quality
+
+### Niche 7: Data Engineering
+- **Topics**: `topic:data-pipeline`, `topic:etl`, `topic:data-engineering`, `topic:streaming`
+- Growing ecosystem, responsive maintainers
+
+### How to Discover
+Search GitHub using topic tags and description keywords — rotate through niches each cycle:
 - **Combined with**: `stars:>200`, `label:bug` or `label:help-wanted`, `created:>$THREE_DAYS_AGO`
 - Always verify repo health before queuing — new discoveries haven't been vetted yet
+- Search across ALL languages: Python, TypeScript, Go, Rust, Java
 
 ### Known High-Value Repos (supplement, not replace, criteria search)
 These are verified high-star, actively-maintained repos in our niche. The agent should discover more autonomously.
@@ -194,19 +218,19 @@ gh api "/search/issues?q=regression+is:issue+is:open+stars:>200+created:>$TWO_WE
 
 By language (diversify): add `language:python`/`language:typescript`/`language:rust`/`language:go`/`language:java`.
 
-## Repo Health Pre-Filter (MANDATORY — before scoring)
-For each candidate issue, quick-check the repo:
-1. **Stars >= 200** — `repository.stargazers_count` from search result JSON. Skip if < 200.
-2. **Open PR count < 50** — `gh pr list --repo {owner}/{repo} --state open --json number --jq 'length'`. Skip if >= 50.
-3. **Recent merges** — `gh pr list --repo {owner}/{repo} --state merged --limit 5 --json mergedAt`. Skip if 0 merged PRs in last 30 days.
-4. **Prefer repos with cached health score >= 5** in `memory/repos/`. Skip repos with cached health failures (< 7 days old).
-5. **Run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`** for uncached repos — caches result automatically.
-6. **Anti-bot/anti-AI policy detection** — handled automatically by `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`.
-   The script checks CONTRIBUTING.md for anti-bot phrases. HARD SKIP if anti-bot policy detected.
-   Automatable CLA/DCO repos are allowed (CLA-assistant, DCO). Non-automatable CLAs (apache, microsoft, google, meta-llama) are hard-skipped by the script.
-7. **AI disclosure policy detection** — some repos require explicit AI disclosure in a specific format (e.g., qdrant requires AI contributions to be clearly labeled). When writing repo guides to `memory/repos/`, note any AI disclosure requirements found in CONTRIBUTING.md so subagents can follow them exactly. This is NOT a skip reason — it's metadata for subagents to comply with.
+## Repo Health Pre-Filter (lightweight — use judgment, not just scripts)
+For each candidate repo, do a quick check using `gh api repos/{owner}/{repo}`:
+1. **Stars >= 100** — skip if very low-star. Use judgment for 100-200 range.
+2. **Not archived** — skip archived repos
+3. **Recent push** — skip if no push in 30 days
+4. **Not forking-disabled** — can't submit PRs if forking disabled
+5. **Check our open PRs** — skip if we already have >= 5 open PRs there
+6. **Anti-bot check** — if you've seen "no bot PRs" or "no AI" in CONTRIBUTING.md from a previous visit, skip
+7. **Skip non-automatable CLA orgs**: apache, microsoft, google, meta-llama
 
-If a repo fails the pre-filter, SKIP all issues from that repo. Cache the failure.
+You CAN use `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh` for a thorough check, but it's NOT required for every repo. Use your judgment — a quick `gh api` call is often enough.
+
+If a repo fails, skip all issues from it. Cache the result in `memory/repos/`.
 
 ## SKIP Labels (never pick these for bug contributions)
 - `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`
@@ -242,11 +266,11 @@ Score each candidate 1-25 based on:
 - **+3** Repo engaged positively with a previous PR (approved, constructive feedback)
 - **-5** Repo closed our PR without review in < 24h (check pr-ledger.md)
 
-### Niche Fit (golden niche = highest ROI)
-- **+5** Repo is in the agentic AI / LLM niche
-- **+3** Repo has 1000+ stars (high-impact)
-- **+2** Repo has 500-1000 stars (solid mid-size)
-- **+1** Repo has 200-500 stars
+### Repo Quality
+- **+3** Repo has 5000+ stars (high-impact)
+- **+2** Repo has 1000+ stars (solid)
+- **+1** Repo has 200-1000 stars
+- **+2** Repo is in a niche where we've had merges before
 
 ### Repo Health (merge velocity)
 - **+5** Repo avg merge time < 3 days (fast reviewers)

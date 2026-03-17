@@ -193,7 +193,7 @@ For each PR needing follow-up, request orchestrator to spawn via sessions_spawn.
 See HEARTBEAT.md step 2d for exact spawn instructions.
 
 **Priority**: Follow-up sub-agents are spawned BEFORE implementation sub-agents.
-If spawning a follow-up would exceed the 5-slot limit, defer implementation work.
+If spawning a follow-up would exceed the 10-slot impl/followup limit (13 total with always-on subagents), defer implementation work.
 
 ## Step 7: Update State
 

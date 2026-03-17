@@ -12,7 +12,7 @@ Replaces the cron-based `pr-followup-scan` and the expensive HEARTBEAT step 2a s
 label: "pr-monitor"
 mode: "session"
 thread: true
-runTimeoutSeconds: 3600
+runTimeoutSeconds: 0
 ```
 
 ## CRITICAL: Script Path
@@ -85,7 +85,8 @@ Assign each PR exactly ONE classification:
 | `ci_failing` | CI checks are failing (our fault, not flaky) |
 | `fix_rejected` | Maintainer says fix doesn't work / wrong approach |
 | `already_fixed_upstream` | Maintainer says already fixed / resolved upstream |
-| `stale` | No activity for >14 days |
+| `stale_7d` | No maintainer activity for >7 days (not Tier 1) → CLOSE |
+| `stale_14d` | No maintainer activity for >14 days (any tier) → CLOSE |
 | `pending_review` | No reviews, no comments — waiting for first review |
 | `invalid_contribution` | PR title starts with `feat:` or adds features/refactors |
 | `low_star_repo` | Repo has < 200 stars |
@@ -104,15 +105,20 @@ case "$CLASSIFICATION" in
     # This is the highest-value action in the entire system.
     ;;
   maintainer_question)
-    # Identity questions:
+    # Identity questions: reply "I'm BillionClaw." and redirect to the contribution
     bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} identity
     # CLA questions: check CLA status first
     bash $SCRIPTS/sign-cla.sh {owner}/{repo} {number}
     # Approach questions: read the PR diff and explain reasoning briefly (do this manually)
     ;;
-  stale)
-    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} bump
-    # Do NOT close. Many repos review on 2-week cycles. Only bump ONCE per PR per cycle.
+  stale_7d)
+    # Close PRs with no maintainer activity >7 days (unless Tier 1 in trust-repos.md)
+    # Read trust-repos.md to check if Tier 1 — if so, bump instead of close
+    gh pr close {number} --repo {owner}/{repo} --comment "Closing — maintainers appear focused elsewhere. Happy to revisit if interested."
+    ;;
+  stale_14d)
+    # Hard close ALL PRs >14 days with no activity, including Tier 2
+    gh pr close {number} --repo {owner}/{repo} --comment "Closing — no reviewer activity in 14 days. Happy to resubmit if there's interest."
     ;;
   already_fixed_upstream)
     bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} close-fixed

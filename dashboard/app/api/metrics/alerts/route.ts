@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
-import { pullRequests, prReviews, autonomySnapshots } from "@/lib/schema";
-import { eq, sql, desc, gte } from "drizzle-orm";
+import { pullRequests, prReviews, autonomySnapshots, agentState } from "@/lib/schema";
+import { eq, sql, desc, gte, and } from "drizzle-orm";
 
 interface Alert {
   id: string;
@@ -182,6 +182,123 @@ export async function GET() {
         metric: "merged_prs",
         value: 0,
         threshold: ">0",
+        timestamp: now.toISOString(),
+      });
+    }
+
+    // 7. Always-on subagent dead check
+    try {
+      const healthRows = await db
+        .select()
+        .from(agentState)
+        .where(eq(agentState.currentSkill, "subagent-health"))
+        .orderBy(desc(agentState.timestamp))
+        .limit(1);
+
+      const healthRow = healthRows[0];
+      if (healthRow && healthRow.metadata) {
+        const meta = healthRow.metadata as Record<string, unknown>;
+        const alwaysOnData = (meta.alwaysOn || {}) as Record<
+          string,
+          { status?: string; ageMinutes?: number }
+        >;
+        const alwaysOnLabels = ["scout", "pr-monitor", "pr-analyst"];
+        const deadAlwaysOn = alwaysOnLabels.filter((label) => {
+          const camelKey = label.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+          const data = alwaysOnData[camelKey] || alwaysOnData[label];
+          if (!data) return true;
+          return data.status === "DEAD" || (data.ageMinutes != null && data.ageMinutes > 30);
+        });
+
+        if (deadAlwaysOn.length > 0) {
+          alerts.push({
+            id: "always-on-dead",
+            severity: "critical",
+            title: "Always-on subagent(s) dead",
+            detail: `${deadAlwaysOn.join(", ")} ${deadAlwaysOn.length === 1 ? "has" : "have"} been dead or stale for >30 min. Check subagent health and restart.`,
+            metric: "always_on_dead",
+            value: deadAlwaysOn.length,
+            threshold: "0",
+            timestamp: now.toISOString(),
+          });
+        }
+
+        // 8. Impl slots empty — agent is idle
+        const implSlotsData = (meta.implSlots || []) as Array<{
+          status?: string;
+        } | null>;
+        const activeImplSlots = implSlotsData.filter(
+          (s) => s !== null && (s.status === "ACTIVE" || s.status === "IDLE")
+        ).length;
+
+        if (activeImplSlots === 0) {
+          alerts.push({
+            id: "slots-empty",
+            severity: "warning",
+            title: "All impl slots empty — agent is idle",
+            detail: `0/${implSlotsData.length || 10} implementation slots in use. The agent may be stuck or paused.`,
+            metric: "impl_slots_active",
+            value: 0,
+            threshold: ">0",
+            timestamp: now.toISOString(),
+          });
+        }
+      }
+    } catch {
+      // subagent health data may not exist yet
+    }
+
+    // 9. PR deadlock: >30 open and 0 new PRs in last 3 hours
+    const openPRs = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pullRequests)
+      .where(eq(pullRequests.status, "open"));
+    const openCount = openPRs[0]?.count || 0;
+
+    if (openCount > 30) {
+      const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      const recentPRs = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(pullRequests)
+        .where(gte(pullRequests.createdAt, threeHoursAgo));
+      const recentCount = recentPRs[0]?.count || 0;
+
+      if (recentCount === 0) {
+        alerts.push({
+          id: "pr-deadlock",
+          severity: "critical",
+          title: "PR deadlock detected",
+          detail: `${openCount} open PRs but 0 new PRs in the last 3 hours. The agent may be stalled or blocked.`,
+          metric: "open_prs_no_new",
+          value: openCount,
+          threshold: "30 open + 0 new in 3h",
+          timestamp: now.toISOString(),
+        });
+      }
+    }
+
+    // 10. Stale PRs high: 15+ PRs with no activity >7 days
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const stalePRsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pullRequests)
+      .where(
+        and(
+          eq(pullRequests.status, "open"),
+          sql`${pullRequests.createdAt} < ${sevenDaysAgo}`
+        )
+      );
+    const staleCount = stalePRsResult[0]?.count || 0;
+
+    if (staleCount >= 15) {
+      alerts.push({
+        id: "stale-prs-high",
+        severity: "warning",
+        title: "Too many stale PRs",
+        detail: `${staleCount} open PRs older than 7 days with no activity. Run dead PR triage to close or rework them.`,
+        metric: "stale_prs",
+        value: staleCount,
+        threshold: "15",
         timestamp: now.toISOString(),
       });
     }

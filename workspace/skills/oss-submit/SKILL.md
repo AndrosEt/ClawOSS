@@ -1,6 +1,6 @@
 ---
 name: oss-submit
-description: "Submit a contribution PR (bug fix, docs fix, typo fix, or test addition) to an open-source repo: verify it's a valid contribution, push branch to fork, create PR with gh CLI, use repo's PR template, add ClawOSS disclosure, log submission, report to dashboard."
+description: "Submit a contribution PR (bug fix, docs fix, typo fix, or test addition) to an open-source repo: verify it's a valid contribution, push branch to fork, create PR with gh CLI, use repo's PR template, log submission, report to dashboard."
 user-invocable: true
 ---
 
@@ -32,7 +32,7 @@ OPEN_COUNT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state open -
 ISSUE_PRS=$(gh search prs --author BillionClaw "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
 ```
 If ANY result > 0: **ABANDON. Do NOT create duplicate PRs.**
-- One open PR per repo at a time (not per issue — per REPO)
+- Max 5 open PRs per repo
 - No duplicate PRs for the same issue even across different branches
 This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incidents.
 
@@ -81,8 +81,7 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
    - **Docs/typo fixes**: what was wrong + what's correct now (2-3 sentences total)
    - **Test additions**: what's tested + why it matters (2-3 sentences total)
    - References: "Fixes #<issue-number>" in body
-5. Add disclosure to PR body: `> This contribution was made by [ClawOSS](https://github.com/kevinlin/clawOSS), an autonomous codebase helper.` Never say "AI agent" or "AI-generated".
-6. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`).
+5. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`).
 7. Log submission to memory: repo, issue, PR number, timestamp, contribution type
 8. Report to dashboard via dashboard-reporter skill
 

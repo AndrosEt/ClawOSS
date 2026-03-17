@@ -73,7 +73,7 @@ fi
 CREATED_AT=$(gh api "repos/${REPO}/issues/${ISSUE}" --jq '.created_at' 2>/dev/null || echo "")
 S_FRESH=50
 if [ -n "$CREATED_AT" ]; then
-  CREATED_TS=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$CREATED_AT" +%s 2>/dev/null || date -d "$CREATED_AT" +%s 2>/dev/null || echo 0)
+  CREATED_TS=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$CREATED_AT" +%s 2>/dev/null || date -d "$CREATED_AT" +%s 2>/dev/null || python3 -c "from datetime import datetime; print(int(datetime.fromisoformat('${CREATED_AT}'.replace('Z','+00:00')).timestamp()))" 2>/dev/null || echo 0)
   NOW_TS=$(date +%s)
   AGE_DAYS=$(( (NOW_TS - CREATED_TS) / 86400 ))
   if [ "$AGE_DAYS" -lt 3 ]; then S_FRESH=95

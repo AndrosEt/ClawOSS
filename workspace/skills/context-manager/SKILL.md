@@ -24,7 +24,7 @@ Manage context window to maintain continuity across compaction cycles.
    c. Trigger compaction
 3. After compaction:
    a. Re-read critical memory files
-   b. Re-read AGENTS.md and SOUL.md
+   b. Re-read HEARTBEAT.md and AGENTS.md
    c. Resume work from saved state
 4. Between tasks:
    - Summarize completed work to memory

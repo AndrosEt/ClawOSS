@@ -69,7 +69,9 @@ Verify no force-push, no push to main/master, no `--force` flags.
 If target repo has required CI checks, verify our branch builds locally.
 
 ### 8. Independent Review
-Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context). Subagent must confirm:
+Spawn an isolated subagent via `sessions_spawn` with ONLY the diff and issue description (no implementation context).
+Note: The isolated subagent receives only the diff and issue description. It does NOT have access to memory tools, repo history, or other PR context.
+Subagent must confirm:
 - The change is correct and slop-free
 - **The change is a valid contribution (bug fix, docs fix, typo, or test addition) — not a feature or refactor**
 - **The work is complete — it fully resolves the reported issue, not just partially**

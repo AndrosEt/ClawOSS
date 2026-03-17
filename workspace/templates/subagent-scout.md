@@ -10,7 +10,7 @@ to staging queue for the main agent to pick up.
 label: "scout-tier0"
 mode: "session"
 thread: true
-runTimeoutSeconds: 3600
+runTimeoutSeconds: 0
 attachments: [trust-repos.md, pr-ledger.md]
 ```
 
@@ -20,6 +20,13 @@ attachments: [trust-repos.md, pr-ledger.md]
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
 All ClawOSS utility scripts are at this absolute path. You run in /tmp — relative paths WILL NOT WORK.
+
+## Skills — Load These Before Working
+You have skills available. **Read each SKILL.md file** with the `read` tool:
+1. **`~/clawOSS/workspace/skills/oss-discover/SKILL.md`** — The full discovery workflow with API queries, scoring, and 7-niche rotation. Read this FIRST — it has the exact queries to run.
+2. **`~/clawOSS/workspace/skills/oss-triage/SKILL.md`** — Scoring rubric for candidates. Read when scoring.
+3. **`~/clawOSS/workspace/skills/repo-analyzer/SKILL.md`** — Repo health assessment. Read when evaluating new repos.
+Load skills proactively — they have exact GitHub API queries and scoring formulas.
 
 ## Task Prompt
 
@@ -41,7 +48,7 @@ WHILE context < 70%:
   2. Analyze codebase direction for promising repos
   3. Run health checks and filters
   4. Score and write candidates to staging
-  5. Wait ~15 minutes between cycles (use session_status to check context)
+  5. Proceed to next cycle immediately — no waiting needed.
 ```
 
 ### Step 1: Search GitHub for Candidates
@@ -57,23 +64,28 @@ gh api "/search/issues?q=is:issue+is:open+label:bug+repo:{owner}/{repo}+created:
 ```
 Trusted repos get +8 score bonus. These are highest priority.
 
-**Cycle B — Agentic AI niche (highest value new repos):**
+**Cycle B — Broad ecosystem discovery (rotate through niches each cycle):**
 ```bash
 TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d)
-# Find repos by topic
-for TOPIC in llm agent rag generative-ai vector-database embedding; do
+# Rotate through ALL niches — don't just search AI repos
+NICHES=("llm agent rag ai" "cli devtools developer-tools terminal" "web-framework nextjs fastapi django" "database sql nosql" "kubernetes docker cloud-native" "testing linting code-quality" "data-pipeline etl")
+# Pick 2-3 niches per cycle based on cycle number
+for TOPIC in $(echo ${NICHES[$((RANDOM % ${#NICHES[@]}))])}); do
   gh api "/search/repositories?q=topic:${TOPIC}+stars:>200&sort=updated&per_page=20" --jq '.items[].full_name'
 done
 
-# Search for issues (use gh api, not gh search — qualifier combos work better)
-gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:python+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
-gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url}'
+# Search across ALL languages, not just Python
+for LANG in python typescript go rust java; do
+  gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+language:${LANG}+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=20" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+done
+gh api "/search/issues?q=is:issue+is:open+label:documentation+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url}'
 gh api "/search/issues?q=is:issue+is:open+label:help-wanted+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url}'
 ```
 
-**Cycle C — General bug search:**
+**Cycle C — General bug search (broad net):**
 ```bash
-gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>200+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:bug+stars:>500+created:>$THREE_DAYS_AGO&sort=created&order=desc&per_page=50" --jq '.items[] | {number, title, html_url, created_at, repository_url}'
+gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>200+created:>$TWO_WEEKS_AGO&sort=created&order=desc&per_page=30" --jq '.items[] | {number, title, html_url}'
 ```
 
 ### Step 2: Analyze Codebase Direction (CRITICAL — V10 enhanced)
@@ -106,21 +118,29 @@ An issue about a deprecated module or a feature the maintainers are actively rep
 
 Write a "direction summary" for each analyzed repo to `memory/repos/{owner}_{repo}.md` so implementation subagents have context.
 
-### Step 3: Repo Health Check
+### Step 3: Quick Health Check (lightweight — no script needed)
 
-For each unique repo found, run the health check:
+For each unique repo, do a quick API check — don't run the full script:
 ```bash
-bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh owner/repo
+REPO_INFO=$(gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count, pushed: .pushed_at, archived: .archived, fork: .fork}' 2>/dev/null)
+# Skip if: archived, stars < 100, fork, or no push in 30 days. Use YOUR judgment for edge cases.
 ```
-Exit code 0 = healthy, 1 = skip. Checks stars, merge velocity, anti-bot policies.
 
-### Step 3b: Filter Issues (use small tools)
+### Step 3b: Filter Issues (use direct gh commands — no scripts)
 
-For each candidate issue, run gate checks individually:
+For each candidate issue, run quick checks yourself:
 ```bash
-bash $SCRIPTS/check-blocklist.sh owner/repo || continue      # skip blocklisted
-bash $SCRIPTS/check-already-fixed.sh owner/repo issue_num || continue  # skip fixed
-bash $SCRIPTS/check-supersession.sh owner/repo issue_num || continue   # skip claimed
+# Is issue closed?
+STATE=$(gh api repos/{owner}/{repo}/issues/{number} --jq '.state' 2>/dev/null)
+[ "$STATE" = "closed" ] && continue
+
+# Is it assigned?
+ASSIGNEES=$(gh api repos/{owner}/{repo}/issues/{number} --jq '.assignees | length' 2>/dev/null)
+[ "$ASSIGNEES" -gt 0 ] && continue
+
+# Already have 5+ open PRs at this repo?
+OPEN=$(gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
+[ "$OPEN" -ge 5 ] && continue
 ```
 
 Also apply local filters (no API calls needed):
@@ -179,8 +199,7 @@ Write cycle summary to `memory/scout-report-{timestamp}.md`:
 Check context usage. If > 70%: write current state to `memory/scout-state.md` and exit.
 The orchestrator will re-spawn you on the next heartbeat cycle.
 
-If context < 70%: wait ~15 minutes (you can use sleep or just proceed to next cycle).
+If context < 70%: proceed to next cycle immediately — no waiting needed.
 Rotate through Cycles A, B, C on each iteration.
 
-ALWAYS reply ANNOUNCE_SKIP at the end of every cycle. The orchestrator reads your output from memory files directly — announce delivery is not needed and causes "Channel is required" errors.
-If a cycle found high-value candidates (score >= 12), complete the task to announce to main agent.
+ALWAYS reply ANNOUNCE_SKIP at the end of every cycle — no exceptions. The orchestrator reads your output from memory files directly. Announce delivery is broken (causes "Channel is required" errors) and is never needed. Even when you find high-value candidates, just write them to staging and reply ANNOUNCE_SKIP.

@@ -12,7 +12,7 @@ Runs as an always-on subagent alongside scout and PR monitor. Uses 1 of 3 always
 label: "pr-analyst"
 mode: "session"
 thread: true
-runTimeoutSeconds: 3600
+runTimeoutSeconds: 0
 ```
 
 ## CRITICAL: Script Path
@@ -40,7 +40,7 @@ WHILE context < 70%:
   4. Update trust scores and blocklist
   5. Calibrate P(merge) model weights
   6. Write strategy recommendations
-  7. Wait ~30 minutes between cycles (use session_status to check context)
+  7. Proceed to next cycle immediately — no waiting needed.
 ```
 
 ### Step 1: Fetch Complete PR Portfolio
@@ -242,7 +242,7 @@ Write comprehensive analysis to `memory/pr-portfolio-analysis.md`:
 Check context usage. If > 70%: write current state and exit.
 The orchestrator will re-spawn you on the next heartbeat cycle.
 
-If context < 70%: wait ~30 minutes, then start from Step 1 again.
+If context < 70%: proceed to next cycle immediately — no waiting needed. Start from Step 1 again.
 Each cycle only processes NEW data (new closed PRs, new merges) — skip already-classified PRs.
 
 Output files (updated each cycle):

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # cleanup-stale-sessions.sh — Clean stale locks and report stale state
 # Usage: cleanup-stale-sessions.sh
-# Cleans lock files older than 1 hour
+# Cleans lock files older than 30 minutes
 # Resets spawned_pending entries in state files
 # Exit 0 always, outputs JSON summary
 
@@ -13,10 +13,10 @@ FOLLOWUP_STATE="${WORKSPACE_DIR}/memory/pr-followup-state.md"
 STALE_LOCKS=0
 RESET_PENDING=0
 
-# Clean stale lock files (> 1 hour old)
+# Clean stale lock files (> 30 minutes old)
 if [ -d "$LOCK_DIR" ]; then
-  STALE_LOCKS=$(find "$LOCK_DIR" -name "*.lock" -mmin +60 2>/dev/null | wc -l | tr -d ' ')
-  find "$LOCK_DIR" -name "*.lock" -mmin +60 -delete 2>/dev/null
+  STALE_LOCKS=$(find "$LOCK_DIR" -name "*.lock" -mmin +30 2>/dev/null | wc -l | tr -d ' ')
+  find "$LOCK_DIR" -name "*.lock" -mmin +30 -delete 2>/dev/null
 fi
 
 # Reset orphaned spawned_pending entries

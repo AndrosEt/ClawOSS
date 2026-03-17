@@ -224,14 +224,23 @@ else
     echo "[INFO] No gateway plist found at $GATEWAY_PLIST — gateway install will create it"
 fi
 
-# ── 7. Clean stale sessions ──────────────────────────────────────────
-# NOTE: Do NOT delete .jsonl session files — they contain transcripts that the
-# heartbeat runner needs. Deleting them breaks the session->sessionId lookup in
-# sessions.json, causing the heartbeat to silently fail after restart.
-# Only delete .lock files (stale process locks).
-# rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.jsonl 2>/dev/null || true  # DISABLED — root cause of heartbeat-dies-after-restart bug
-rm -f "$HOME/.openclaw/agents/clawoss/sessions/"*.lock 2>/dev/null || true
-echo "[OK] Sessions cleaned"
+# ── 7. Flush context & clean sessions ─────────────────────────────────
+# Delete ALL session .jsonl files (main + subagents) to force fresh context.
+# OpenClaw recreates them on next message — this is safe per DeepWiki docs.
+# The heartbeat timer lives in gateway process memory, not in session files.
+# Also delete sessions.json entries — they're recreated on demand.
+SESSIONS_DIR="$HOME/.openclaw/agents/clawoss/sessions"
+TOTAL_CLEANED=0
+if [ -d "$SESSIONS_DIR" ]; then
+    TOTAL_CLEANED=$(find "$SESSIONS_DIR" -name "*.jsonl*" 2>/dev/null | wc -l | tr -d ' ')
+    rm -f "$SESSIONS_DIR/"*.jsonl 2>/dev/null || true
+    rm -f "$SESSIONS_DIR/"*.jsonl.deleted.* 2>/dev/null || true
+    rm -f "$SESSIONS_DIR/"*.jsonl.reset.* 2>/dev/null || true
+    rm -f "$SESSIONS_DIR/"*.lock 2>/dev/null || true
+    # Reset sessions.json to empty — gateway recreates entries on first heartbeat
+    echo '{}' > "$SESSIONS_DIR/sessions.json"
+fi
+echo "[OK] Context flushed ($TOTAL_CLEANED session files removed, fresh start)"
 
 # ── 7b. Reset orphaned spawned_pending entries ────────────────────────
 # All subagents die on restart. Any repo with spawned_pending in state files
@@ -334,7 +343,7 @@ fi
 # ── 16. Kick the agent ───────────────────────────────────────────────
 sleep 3
 if openclaw system event \
-    --text "ClawOSS V10 restart. Execute HEARTBEAT.md steps 0-7. 3 always-on subagents (scout + PR monitor + PR analyst) + 7 impl/followup = 10 slots. Use P(merge) scoring — only work on issues with P(merge) >= 30. Follow-ups FIRST. Rework rejected PRs. Sign CLAs. Use scripts/ for all checks." \
+    --text "ClawOSS V10.1 restart. Execute HEARTBEAT.md steps 0-7. CRITICAL: Step 1.5 = close stale PRs (>7d no activity). Max 5 open PRs per repo. Always-on agents use runTimeoutSeconds:0 (no timeout). Discover across ALL niches (devtools, web, databases, cloud-native, testing, data eng — not just AI). Target <30 open PRs. Fill all 10 impl slots. NEVER idle — always work on something." \
     --mode now 2>&1; then
     echo "[OK] Agent kicked (V10)"
 else
@@ -346,14 +355,14 @@ echo ""
 echo "=== ClawOSS V10 Running ==="
 echo "  Model: kimi-coding/k2p5 (Kimi Code direct API)"
 echo "  Dashboard: https://clawoss-dashboard.vercel.app"
-echo "  Slots: 3 always-on (scout + PR monitor + PR analyst) + 7 impl/followup = 10"
-echo "  Heartbeat: 5m"
+echo "  Slots: 3 always-on (scout + PR monitor + PR analyst) + 10 impl/followup = 13"
+echo "  Heartbeat: 10m"
 echo "  Logs: openclaw logs"
 echo "  PRs: gh search prs --author BillionClaw --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
-echo "V10 features: P(merge) scoring, codebase direction analysis, 3 always-on subagents,"
-echo "rework-not-close, lock-file dedup, mandatory health checks, CLA auto-signing,"
-echo "16 reusable scripts in scripts/, blocklist hard gates."
+echo "V10.1 features: P(merge) scoring, dead PR triage (7d/14d), max 5 PRs/repo,"
+echo "7-niche discovery, always-on agents with no timeout (runTimeoutSeconds:0),"
+echo "rework-not-close, lock-file dedup, CLA auto-signing, unconditional ANNOUNCE_SKIP."
 echo ""
 echo "The agent runs independently via OpenClaw gateway — no manual intervention needed."
