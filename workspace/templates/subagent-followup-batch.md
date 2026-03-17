@@ -17,6 +17,9 @@ attachments: [batch-context.json]
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
 
+## Web Search — Use Before Every Change
+`web_search` the reviewer's feedback before implementing. Search for the pattern, API, or approach they suggest. `web_fetch` any links in their comments. Don't guess — search first.
+
 ## Skills — Load Before Working
 1. `~/clawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`
 2. `~/clawOSS/workspace/skills/verification-before-completion/SKILL.md`

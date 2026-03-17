@@ -20,6 +20,13 @@ SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
 All ClawOSS utility scripts are at this absolute path. You run in /tmp — relative paths WILL NOT WORK.
 
+## Web Search — Use Every Cycle
+You have `web_search` and `web_fetch`. Use them to discover repos and validate candidates:
+- `web_search` for trending OSS repos, new releases, hot issues across all niches
+- `web_search "{repo_name} contributing" to check repo culture before recommending
+- `web_fetch` a repo's CONTRIBUTING.md or recent changelog to assess direction
+- Search broadly — don't just use GitHub API. Web search finds blog posts, discussions, announcements.
+
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool:
 1. **`~/clawOSS/workspace/skills/oss-discover/SKILL.md`** — The full discovery workflow with API queries, scoring, and 7-niche rotation. Read this FIRST — it has the exact queries to run.

@@ -25,6 +25,12 @@ All ClawOSS utility scripts are at this absolute path. You run in /tmp — relat
 ```
 ```
 
+## Web Search — Use Before Implementing Changes
+You have `web_search` and `web_fetch`. Before implementing any reviewer-requested change:
+- `web_search` the reviewer's feedback to understand what they're asking for
+- `web_search` for the pattern or API they're suggesting — find examples and docs
+- `web_fetch` any links the reviewer provided in their comments
+
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool:
 1. **`~/clawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`** — The full follow-up workflow. Read this FIRST.

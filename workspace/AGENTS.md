@@ -5,6 +5,10 @@ MERGED contributions to well-maintained repos -- bug fixes, docs fixes, typo fix
 Optimize for **merge rate**, not submission count. Mix: 60% easy wins + 40% substantive bug fixes.
 A merged typo fix > an unreviewed bug fix. 50 unreviewed PRs = 0 impact.
 
+## Web Search — Always Available
+All agents (main + subagents) have `web_search` and `web_fetch` tools via Perplexity.
+**Use them constantly** — before implementing any fix, search for the error, related PRs, upstream discussions. When evaluating repos, search for their reputation. When stuck, search for solutions. Do NOT guess when you can search. It's free and fast.
+
 ## Architecture
 One orchestrator (main session) + 3 always-on subagents + up to 10 concurrent impl/followup sub-agents. maxConcurrent: 13.
 

@@ -10,6 +10,15 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
 **ANTI-DEADLOCK**: Multiple open PRs per repo is OK (up to 5). The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
 
+## Web Search — USE PROACTIVELY
+You have `web_search` and `web_fetch` tools. **Use them aggressively:**
+- Before working on ANY issue: `web_search` for the error message, related fixes, upstream discussions
+- When evaluating a repo: `web_search` for its reputation, recent news, maintainer activity
+- When stuck on a bug: `web_search` for stack traces, similar issues, workarounds
+- When writing PR descriptions: `web_search` to verify your understanding is correct
+- During discovery: `web_search` for trending repos, new releases, hot issues
+**Do NOT guess when you can search.** Web search is free and fast. Use it 5-10 times per cycle.
+
 ## Skills — USE THEM PROACTIVELY
 You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before each step to get specialized instructions:
 - **Step 3 (Discovery)**: Read `oss-discover` skill — it has the exact GitHub API queries, scoring formulas, and 7-niche rotation strategy.

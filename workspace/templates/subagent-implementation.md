@@ -18,6 +18,13 @@ SCRIPTS=/Users/kevinlin/clawOSS/scripts
 ```
 All ClawOSS utility scripts are at this path. Subagents run in /tmp workspaces — relative paths WILL NOT WORK.
 
+## Web Search — Use Aggressively
+You have `web_search` and `web_fetch` tools. **Use them before and during implementation:**
+- `web_search` the error message or issue title before starting — find related fixes, discussions, root causes
+- `web_search` when stuck — find stack traces, workarounds, similar PRs in other repos
+- `web_fetch` to read relevant documentation, changelogs, or migration guides
+- Search before writing code — someone may have already solved this exact problem
+
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool for detailed instructions:
 1. **`~/clawOSS/workspace/skills/oss-implement/SKILL.md`** — The reproduce-first workflow. Read this FIRST.
@@ -30,6 +37,10 @@ Load skills proactively — they contain exact steps, not just guidelines.
 ## Task Prompt
 
 Fix issue in {repo}#{issue}: {title}.
+
+**FIRST: `web_search` the issue title and error message RIGHT NOW before doing anything else.**
+Find: related fixes in other repos, upstream discussions, root cause analysis, Stack Overflow answers.
+This takes 5 seconds and can save 30 minutes of wrong-direction debugging.
 
 IMPORTANT: This must be a valid contribution (bug fix, docs fix, typo fix, or test addition).
 If at any point you determine this is actually a large feature request, enhancement,
@@ -130,7 +141,11 @@ Read the attached repo-conventions.md and issue-details.md.
 
 3. ROUTE BY TYPE — follow the workflow for YOUR contribution type:
 
-### BUG FIX WORKFLOW (reproduce-first):
+### BUG FIX WORKFLOW (search-first, then reproduce):
+   **3-ZERO. WEB SEARCH** (MANDATORY before ANY code reading):
+   `web_search("{repo} {error_message_or_title}")` — find if this bug is known, has workarounds, or was fixed upstream.
+   `web_search("{error_message} site:stackoverflow.com OR site:github.com")` — find community solutions.
+   Read the top 2-3 results with `web_fetch`. This often reveals the root cause immediately.
    3a. DEEP COMPREHENSION (do NOT skip):
        - Read the repo's architecture: directory structure, key modules, how components connect.
        - Trace the bug through the FULL execution path — start from the entry point,
