@@ -100,8 +100,7 @@ export async function GET() {
     }
 
     // Status determination
-    const status: "healthy" | "warning" | "critical" =
-      open >= 30 ? "critical" : open >= 20 ? "warning" : "healthy";
+    const status: "healthy" | "warning" | "critical" = "healthy";
 
     return NextResponse.json({
       open,

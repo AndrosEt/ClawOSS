@@ -55,7 +55,6 @@ Tiered limits (large repos have higher PR volume — a flat limit rejects health
 - **20000+ stars**: SKIP if 1000+ open PRs
 - **5000+ stars**: SKIP if 500+ open PRs
 - **<5000 stars**: SKIP if 50+ open PRs
-- **SKIP** if 30+ open PRs AND avg merge time > 7 days — queue is growing, not draining
 
 ### 5. Stars + Contributors (is this an established project?)
 ```bash

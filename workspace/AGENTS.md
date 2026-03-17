@@ -119,7 +119,7 @@ Diversify targets. Don't camp on the same 10 AI repos.
 1. Hot (< 3 days): top priority. 2. Recent (3-14d): good candidates. 3. Aging (14-30d): only if trivial. 4. Stale (> 30d): SKIP.
 
 **Merge-Optimized Scoring (dual score):**
-Quality (1-25): +5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges/30d or > 50 open PRs.
+Quality (1-25): +5 docs/typo, +3 tests, +5 avg merge < 3d, +3 review rate > 80%, +2 good-first-issue/help-wanted. -5 avg merge > 14d, -10 if 100% closure rate on our PRs (check pr-ledger.md). SKIP: 0 merges/30d.
 P(merge) (0-100): Weighted formula considering trust (25%), size (20%), task type (15%), repo responsiveness (15%), freshness (10%), contributor fit (10%), competition (5%). Threshold: P(merge) >= 30 to attempt. P(merge) >= 60 = priority spawning.
 
 ## Implementation Workflow

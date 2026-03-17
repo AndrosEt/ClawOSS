@@ -248,35 +248,6 @@ export async function GET() {
       // subagent health data may not exist yet
     }
 
-    // 9. PR deadlock: >30 open and 0 new PRs in last 3 hours
-    const openPRs = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(pullRequests)
-      .where(eq(pullRequests.status, "open"));
-    const openCount = openPRs[0]?.count || 0;
-
-    if (openCount > 30) {
-      const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-      const recentPRs = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(pullRequests)
-        .where(gte(pullRequests.createdAt, threeHoursAgo));
-      const recentCount = recentPRs[0]?.count || 0;
-
-      if (recentCount === 0) {
-        alerts.push({
-          id: "pr-deadlock",
-          severity: "critical",
-          title: "PR deadlock detected",
-          detail: `${openCount} open PRs but 0 new PRs in the last 3 hours. The agent may be stalled or blocked.`,
-          metric: "open_prs_no_new",
-          value: openCount,
-          threshold: "30 open + 0 new in 3h",
-          timestamp: now.toISOString(),
-        });
-      }
-    }
-
     // 10. PRs needing follow-up: 15+ open PRs older than 7 days
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oldPRsResult = await db
