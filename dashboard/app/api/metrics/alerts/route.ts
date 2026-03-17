@@ -277,9 +277,9 @@ export async function GET() {
       }
     }
 
-    // 10. Stale PRs high: 15+ PRs with no activity >7 days
+    // 10. PRs needing follow-up: 15+ open PRs older than 7 days
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const stalePRsResult = await db
+    const oldPRsResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(pullRequests)
       .where(
@@ -288,16 +288,16 @@ export async function GET() {
           sql`${pullRequests.createdAt} < ${sevenDaysAgo}`
         )
       );
-    const staleCount = stalePRsResult[0]?.count || 0;
+    const oldCount = oldPRsResult[0]?.count || 0;
 
-    if (staleCount >= 15) {
+    if (oldCount >= 15) {
       alerts.push({
-        id: "stale-prs-high",
-        severity: "warning",
-        title: "Too many stale PRs",
-        detail: `${staleCount} open PRs older than 7 days with no activity. Run dead PR triage to close or rework them.`,
-        metric: "stale_prs",
-        value: staleCount,
+        id: "prs-need-followup",
+        severity: "info",
+        title: "Many PRs awaiting review",
+        detail: `${oldCount} open PRs older than 7 days. Consider bumping or following up on them.`,
+        metric: "old_prs",
+        value: oldCount,
         threshold: "15",
         timestamp: now.toISOString(),
       });

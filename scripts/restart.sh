@@ -343,7 +343,7 @@ fi
 # ── 16. Kick the agent ───────────────────────────────────────────────
 sleep 3
 if openclaw system event \
-    --text "ClawOSS V10.1 restart. Execute HEARTBEAT.md steps 0-7. CRITICAL: Step 1.5 = close stale PRs (>7d no activity). Max 5 open PRs per repo. Always-on agents use runTimeoutSeconds:0 (no timeout). Discover across ALL niches (devtools, web, databases, cloud-native, testing, data eng — not just AI). Target <30 open PRs. Fill all 10 impl slots. NEVER idle — always work on something." \
+    --text "ClawOSS V10.1 restart. Execute HEARTBEAT.md steps 0-7. Max 5 open PRs per repo. Always-on agents use runTimeoutSeconds:0 (no timeout). Discover across ALL niches. Fill all 10 impl slots. NEVER idle — always work on something." \
     --mode now 2>&1; then
     echo "[OK] Agent kicked (V10)"
 else
@@ -361,7 +361,7 @@ echo "  Logs: openclaw logs"
 echo "  PRs: gh search prs --author BillionClaw --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
-echo "V10.1 features: P(merge) scoring, dead PR triage (7d/14d), max 5 PRs/repo,"
+echo "V10.1 features: P(merge) scoring, max 5 PRs/repo,"
 echo "7-niche discovery, always-on agents with no timeout (runTimeoutSeconds:0),"
 echo "rework-not-close, lock-file dedup, CLA auto-signing, unconditional ANNOUNCE_SKIP."
 echo ""

@@ -52,21 +52,10 @@ Skills provide step-by-step specialized instructions. **Load them before each ta
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
 - Max 13 concurrent sub-agents total (3 always-on + 10 implementation/follow-up)
-- Max 5 open PRs per repo — close oldest if exceeded
+- Max 5 open PRs per repo
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting
-
-## PR Lifecycle Policy (CRITICAL — prevents deadlock)
-Open PRs block throughput. Zombie PRs kill the pipeline. Aggressive lifecycle management:
-- **7-day stale close**: PRs with zero maintainer activity after 7 days → close (except Tier 1)
-- **14-day hard close**: ALL PRs with zero activity after 14 days → close (including Tier 2)
-- **CI-dead close**: PRs with CI failing >3 days (our fault) and no fix spawned → close
-- **Blocklist/low-star close**: PRs at blocklisted or <200-star repos → close immediately
-- **Target: <30 open PRs total.** Above 30 = too many blocked repos, agent stalls
-- Close message: "Closing — maintainers appear focused elsewhere. Happy to revisit if interested."
-- Track closures in pr-ledger.md as `closed_stale`. Remove lock files after closing.
-- **Tier 1 repos get 14-day grace**, not 7-day. These repos have proven they review.
 
 ## PR Conflict & Supersession Prevention (non-negotiable)
 Before starting work on ANY issue, verify:

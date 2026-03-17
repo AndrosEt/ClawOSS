@@ -1,14 +1,14 @@
 # Heartbeat -- Autonomous Work Loop
 
 ## CRITICAL: NEVER REPLY HEARTBEAT_OK — ALWAYS WORK
-There is ALWAYS something to do. Execute ALL steps 0-7 every cycle. If queue is empty, run discovery. If discovery finds nothing, expand to new niches. If no new issues, close stale PRs. If no stale PRs, follow up on open PRs. If truly nothing: search broader (lower star threshold, older issues, new languages). The agent must NEVER be idle.
+There is ALWAYS something to do. Execute ALL steps 0-7 every cycle. If queue is empty, run discovery. If discovery finds nothing, expand to new niches. If no new issues, follow up on open PRs. If truly nothing: search broader (lower star threshold, older issues, new languages). The agent must NEVER be idle.
 
 ## Rules — see AGENTS.md (loaded alongside this file)
-Keep all 10 impl/followup sub-agent slots filled. Follow-ups FIRST, then dead PR triage, then new work.
+Keep all 10 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
-**ANTI-DEADLOCK**: If open PRs > 30, close stale ones in step 1.5 BEFORE picking new work. Multiple open PRs per repo is OK (up to 5). The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
+**ANTI-DEADLOCK**: Multiple open PRs per repo is OK (up to 5). The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
 
 ## Skills — USE THEM PROACTIVELY
 You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before each step to get specialized instructions:
@@ -67,23 +67,9 @@ Always-on subagents use 3 slots. Remaining 10 for impl/followup. Total maxConcur
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
 **Clean stale locks + orphaned state**: `bash /Users/kevinlin/clawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >30min, resets orphaned spawned_pending entries)
 
-## 1.5. Dead PR Triage (FREE UP REPO SLOTS — CRITICAL)
-Dead PRs block repo slots and prevent new work. **Target: keep open PRs under 30.** Currently way over — close aggressively.
-
-**Close PRs matching ANY of these (use `gh search prs --author BillionClaw --state open --sort updated --limit 100`):**
-- **No review activity >7 days** AND repo is NOT Tier 1 in trust-repos.md
-- **No review activity >14 days** (any tier including Tier 2)
-- **CI failing >3 days** where failure is our fault and no fix spawned
-- **Repo < 200 stars** or **repo in blocklist** (shouldn't have PRs here)
-- **5+ open PRs in same repo** → keep 4 newest, close older
-
-Close with: `gh pr close {number} --repo {owner}/{repo} --comment "Closing — maintainers appear focused elsewhere. Happy to revisit if interested."`
-After closing: `rm -f memory/locks/{owner}_{repo}.lock` and update pr-ledger.md status to `closed_stale`.
-**NEVER close Tier 1 PRs under 14 days old.**
-
 ## 2. PR Follow-ups (delegated to PR Monitor — main agent handles code changes only)
 The PR Monitor subagent (step 0.5) continuously scans ALL open PRs and handles simple actions
-(merging approved PRs, bumping stale, responding to questions, closing invalid PRs, batch cleanup).
+(merging approved PRs, responding to questions, closing invalid PRs, batch cleanup).
 The main agent only needs to process items requiring CODE CHANGES.
 
 **2a.** Read `memory/followup-staging.md`. This is written by the PR Monitor with items needing follow-up subagents.

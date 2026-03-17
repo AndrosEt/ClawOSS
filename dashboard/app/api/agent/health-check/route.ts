@@ -182,7 +182,7 @@ export async function GET() {
     }
 
     if (open > 30) {
-      directives.push("TOO MANY OPEN PRs (" + open + "): Close stale PRs with no activity >7 days. Target <30 open PRs total.");
+      directives.push("MANY OPEN PRs (" + open + "): Follow up on older PRs — bump, respond to reviews, merge approved ones.");
     }
 
     if (closed > 0 && total > 0 && closed / total > 0.3) {

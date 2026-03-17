@@ -85,8 +85,7 @@ Assign each PR exactly ONE classification:
 | `ci_failing` | CI checks are failing (our fault, not flaky) |
 | `fix_rejected` | Maintainer says fix doesn't work / wrong approach |
 | `already_fixed_upstream` | Maintainer says already fixed / resolved upstream |
-| `stale_7d` | No maintainer activity for >7 days (not Tier 1) → CLOSE |
-| `stale_14d` | No maintainer activity for >14 days (any tier) → CLOSE |
+| `stale` | No activity for >14 days — bump with polite comment |
 | `pending_review` | No reviews, no comments — waiting for first review |
 | `invalid_contribution` | PR title starts with `feat:` or adds features/refactors |
 | `low_star_repo` | Repo has < 200 stars |
@@ -111,14 +110,9 @@ case "$CLASSIFICATION" in
     bash $SCRIPTS/sign-cla.sh {owner}/{repo} {number}
     # Approach questions: read the PR diff and explain reasoning briefly (do this manually)
     ;;
-  stale_7d)
-    # Close PRs with no maintainer activity >7 days (unless Tier 1 in trust-repos.md)
-    # Read trust-repos.md to check if Tier 1 — if so, bump instead of close
-    gh pr close {number} --repo {owner}/{repo} --comment "Closing — maintainers appear focused elsewhere. Happy to revisit if interested."
-    ;;
-  stale_14d)
-    # Hard close ALL PRs >14 days with no activity, including Tier 2
-    gh pr close {number} --repo {owner}/{repo} --comment "Closing — no reviewer activity in 14 days. Happy to resubmit if there's interest."
+  stale)
+    # Bump stale PRs with a polite comment — do NOT close
+    bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} bump
     ;;
   already_fixed_upstream)
     bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} close-fixed
