@@ -11,10 +11,11 @@ import { eq, sql, gte } from "drizzle-orm";
  * Source: collab_space/v9-closed-pr-failure-analysis.md
  */
 const HARD_BLOCKLIST: { repo: string; reason: string }[] = [
-  { repo: "run-llama/llama_index", reason: "Maintainer threatened to BAN BillionClaw (PR #21031). 47K-star repo in LLM niche — ban visible to ecosystem." },
-  { repo: "JosefNemec/Playnite", reason: "Maintainer called PR 'vibe coded slop' — AI hostile." },
-  { repo: "micro-editor/micro", reason: "Maintainer commented 'AI slop' — hostile to AI contributions." },
-  { repo: "qdrant/qdrant", reason: "AI disclosure policy violation flagged by maintainer." },
+  { repo: "run-llama/llama_index", reason: "Maintainer threatened to ban BillionClaw (PR #21031)." },
+  { repo: "JosefNemec/Playnite", reason: "Maintainer rejected contribution style." },
+  { repo: "micro-editor/micro", reason: "Maintainer rejected contribution." },
+  { repo: "qdrant/qdrant", reason: "Policy violation flagged by maintainer." },
+  { repo: "langchain-ai/langchain", reason: "Hostile closure — PR #35978 closed immediately." },
 ];
 
 /**
@@ -181,9 +182,7 @@ export async function GET() {
       directives.push("TOO MANY DEAD REPOS: " + allAvoidRepos.length + " repos with 0 merges or blocklisted. Focus on responsive repos only.");
     }
 
-    if (open > 30) {
-      directives.push("MANY OPEN PRs (" + open + "): Follow up on older PRs — bump, respond to reviews, merge approved ones.");
-    }
+    // No directive about open PR count — having many open PRs is fine
 
     if (closed > 0 && total > 0 && closed / total > 0.3) {
       directives.push("REWORK NEEDED: " + closed + " closed PRs (" + ((closed / total) * 100).toFixed(0) + "%). Rework rejected PRs instead of abandoning — reopen and address feedback.");
