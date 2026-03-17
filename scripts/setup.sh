@@ -39,7 +39,7 @@ echo "[OK] API keys configured"
 
 # Configure git identity
 GITHUB_USERNAME="${GITHUB_USERNAME:-BillionClaw}"
-GITHUB_EMAIL="${GITHUB_EMAIL:-billionclaw+clawoss@users.noreply.github.com}"
+GITHUB_EMAIL="${GITHUB_EMAIL:-267901332+BillionClaw@users.noreply.github.com}"
 git config --global user.name "$GITHUB_USERNAME"
 git config --global user.email "$GITHUB_EMAIL"
 echo "[OK] Git identity: $GITHUB_USERNAME <$GITHUB_EMAIL>"
