@@ -8,8 +8,7 @@ to staging queue for the main agent to pick up.
 ## Spawn Config
 ```
 label: "scout-tier0"
-mode: "session"
-thread: true
+mode: "run"
 runTimeoutSeconds: 0
 attachments: [trust-repos.md, pr-ledger.md]
 ```

@@ -10,8 +10,7 @@ Runs as an always-on subagent alongside scout and PR monitor. Uses 1 of 3 always
 ## Spawn Config
 ```
 label: "pr-analyst"
-mode: "session"
-thread: true
+mode: "run"
 runTimeoutSeconds: 0
 ```
 

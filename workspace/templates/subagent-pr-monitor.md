@@ -10,8 +10,7 @@ Replaces the cron-based `pr-followup-scan` and the expensive HEARTBEAT step 2a s
 ## Spawn Config
 ```
 label: "pr-monitor"
-mode: "session"
-thread: true
+mode: "run"
 runTimeoutSeconds: 0
 ```
 

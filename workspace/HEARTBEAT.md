@@ -49,7 +49,7 @@ Check always-on subagents via `sessions_list`:
 **1. Scout** (label "scout-*") — continuous issue discovery:
 - **Alive** (active in last 30 min): read `memory/scout-report-*.md`. Merge scored candidates into `memory/work-queue-staging.md`. Delete processed reports.
 - **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-scout.md` to get its FULL current content. Then spawn:
-  `sessions_spawn(task: {THE_FULL_CONTENT_YOU_JUST_READ}, label: "scout-tier0", mode: "session", thread: true, runTimeoutSeconds: 0)`
+  `sessions_spawn(task: {THE_FULL_CONTENT_YOU_JUST_READ}, label: "scout-tier0", mode: "run", runTimeoutSeconds: 0)`
   Pass trust-repos.md and pr-ledger.md via attachments.
 
 **2. PR Monitor** (label "pr-monitor") — continuous PR follow-up scanning:

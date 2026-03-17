@@ -7,8 +7,7 @@ Clone each repo ONCE, process all its PRs, then move to next repo. Uses 1 slot i
 ## Spawn Config
 ```
 label: "followup-batch-{timestamp}"
-mode: "session"
-thread: true
+mode: "run"
 runTimeoutSeconds: 0
 attachments: [batch-context.json]
 ```
