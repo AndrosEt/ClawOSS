@@ -351,6 +351,17 @@ else
     echo "[INFO] No pr-ledger-sync plist found — skipping"
 fi
 
+# ── 15b. Ensure dual push remotes (CMLKevin + billion-token-one-task) ──
+cd "$PROJECT_DIR"
+# Add billionclaw as second push URL so `git push origin` goes to both repos
+PUSH_URLS=$(git remote get-url --push --all origin 2>/dev/null || echo "")
+if ! echo "$PUSH_URLS" | grep -q "billion-token-one-task"; then
+    git remote set-url --add --push origin https://github.com/billion-token-one-task/ClawOSS.git 2>/dev/null || true
+    echo "[OK] Added billion-token-one-task as second push target"
+else
+    echo "[OK] Dual push remotes already configured"
+fi
+
 # ── 16. Kick the agent ───────────────────────────────────────────────
 sleep 3
 if openclaw system event \
