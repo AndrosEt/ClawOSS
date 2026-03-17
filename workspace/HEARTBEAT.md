@@ -4,7 +4,7 @@
 There is ALWAYS something to do. Execute ALL steps 0-7 every cycle. If queue is empty, run discovery. If discovery finds nothing, expand to new niches. If no new issues, follow up on open PRs. If truly nothing: search broader (lower star threshold, older issues, new languages). The agent must NEVER be idle.
 
 ## Rules — see AGENTS.md (loaded alongside this file)
-Keep all 10 impl/followup sub-agent slots filled. Follow-ups FIRST, then new work.
+Keep all 10 impl/followup sub-agent slots filled. **NEW PRs FIRST** — fill all 10 slots with new implementations. Only do follow-ups AFTER all 10 impl slots are full or no new work exists.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
@@ -67,26 +67,7 @@ Always-on subagents use 3 slots. Remaining 10 for impl/followup. Total maxConcur
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
 **Clean stale locks + orphaned state**: `bash /Users/kevinlin/clawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >30min, resets orphaned spawned_pending entries)
 
-## 2. PR Follow-ups (delegated to PR Monitor — main agent handles code changes only)
-The PR Monitor subagent (step 0.5) continuously scans ALL open PRs and handles simple actions
-(merging approved PRs, responding to questions, closing invalid PRs, batch cleanup).
-The main agent only needs to process items requiring CODE CHANGES.
-
-**2a.** Read `memory/followup-staging.md`. This is written by the PR Monitor with items needing follow-up subagents.
-**SPAWNED_PENDING GUARD:** skip items with `spawned_pending` in `memory/impl-spawn-state.md`.
-
-**2b.** For each staged item, spawn follow-up subagent based on classification:
-- `changes_requested` (round < 3): spawn follow-up subagent to implement requested changes.
-- `changes_requested` (round >= 3): leave open for maintainer — do NOT spawn.
-- `comment_only` (needs code changes): spawn follow-up. Counts as round only if code pushed.
-- `ci_failing` (our fault): treat as changes_requested — spawn to fix CI.
-- `fix_rejected`: spawn subagent with DIFFERENT approach, force-push to same branch. Priority: urgent.
-
-**2c.** Use the `read` tool to load `templates/subagent-followup-batch.md` from disk NOW. Group staged items by repo. Spawn ONE batch subagent per repo group (max 5 PRs per batch). Pass all PRs for that repo as JSON in attachments. This uses 1 slot per repo group instead of 1 per PR. Set status to `spawned_pending` IMMEDIATELY.
-**2e.** Clear processed items from `memory/followup-staging.md`.
-**2f.** Read `memory/pr-monitor-report.md` — note any merges or trust-building events from the monitor's cycle.
-
-## 3. Pick Work
+## 2. Pick New Work (PRIORITY — new PRs before follow-ups)
 
 ### 3a. Merge Staging + Trust Priority
 Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear staging. DEDUP by issue URL.
@@ -147,6 +128,14 @@ This gives the sub-agent awareness of what's in flight so it can avoid file conf
 
 Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 13 (3 always-on + 10 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 
+## 5. PR Follow-ups (ONLY when all 10 impl slots are full)
+**Skip this step entirely if < 10 impl subagents are active.** New PRs always take priority.
+Only when ALL 10 slots are filled with implementations, use remaining capacity for follow-ups:
+
+The PR Monitor (always-on) stages items to `memory/followup-staging.md`. Read it.
+Use the `read` tool to load `templates/subagent-followup-batch.md` from disk. Group staged items by repo dynamically (do NOT hardcode repo names). Spawn ONE batch subagent per repo group — this agent handles ALL PRs for that repo in a single session. Pass PR details as JSON in attachments.
+If no slots available, skip entirely — follow-ups can wait.
+
 ## 6. Handle Sub-Agent Results
 
 **6a. Implementation**: List `memory/subagent-result-*.md` (not followup-*). Parse YAML. Update `memory/impl-spawn-state.md` status for each result.
@@ -167,5 +156,5 @@ Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter 
 ## 7. Report, Cleanup & Loop
 Run dashboard-reporter. Update wake-state.md. Remove completed/abandoned from queue.
 **Memory cleanup** (every cycle): delete processed subagent-result-*.md files, remove stale work-queue items (>30 days), prune closed PRs from impl-spawn-state.md. Archive important patterns to MEMORY.md if significant events occurred (merge, ban, new trusted repo).
-**ALWAYS loop back to step 3.** If < 10 active: pick more. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
+**ALWAYS loop back to step 2.** If < 10 active: pick more new work. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
 Self-wake: `exec: openclaw system event --text "cycle-complete" --mode now`

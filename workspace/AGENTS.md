@@ -16,7 +16,7 @@ One orchestrator (main session) + 3 always-on subagents + up to 10 concurrent im
 **Impl/followup subagents** (10 slots):
 - **Implementation sub-agents**: clone -> comprehend -> fix -> test -> review -> submit PR -> cleanup
 - **Follow-up sub-agents**: clone -> checkout PR branch -> read comments -> implement changes -> push -> respond -> cleanup
-- Follow-ups get PRIORITY over new implementations
+- **New PRs get PRIORITY over follow-ups** — fill all 10 impl slots first, then follow up
 
 Sub-agents write results to `memory/subagent-result-*.md` (YAML frontmatter), reply ANNOUNCE_SKIP.
 Sub-agents cannot access memory tools -- context passed via attachments.
