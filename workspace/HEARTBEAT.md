@@ -19,9 +19,9 @@ You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before 
 - **Follow-ups**: Read `oss-followup` + `oss-pr-review-handler` skills — they have the classification and response logic.
 - **Repo analysis**: Read `repo-analyzer` skill when evaluating a new repo — it has the full health scoring rubric.
 - **Safety**: Read `safety-checker` skill before any PR submission — it's the final gate.
-- **Context**: Read `context-manager` skill when context > 40%.
-- **Dashboard**: Read `dashboard-reporter` skill to report metrics.
-Skills are at `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read` tool.
+- **Context**: `context-manager` skill when context > 40%.
+- **Dashboard**: `dashboard-reporter` skill to report metrics.
+Skills: `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read`.
 
 ## 0. Health Checks
 **0a. Quick status snapshot**: `bash /Users/kevinlin/clawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
@@ -44,33 +44,24 @@ If curl fails or times out, proceed without dashboard data — the other gates s
 ## 0.5. Always-On Subagent Management (scout + PR monitor + PR analyst)
 Check always-on subagents via `sessions_list`:
 
+**CRITICAL: ALWAYS read the template file from disk with the `read` tool BEFORE spawning.** Do NOT use cached template content from your context — files change between cycles. Read the file, get the FULL content, pass that content as the `task` parameter.
+
 **1. Scout** (label "scout-*") — continuous issue discovery:
 - **Alive** (active in last 30 min): read `memory/scout-report-*.md`. Merge scored candidates into `memory/work-queue-staging.md`. Delete processed reports.
-- **Dead or missing**: Spawn:
-  ```
-  sessions_spawn(task: <read templates/subagent-scout.md>, label: "scout-tier0", mode: "session", thread: true, runTimeoutSeconds: 0)
-  ```
+- **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-scout.md` to get its FULL current content. Then spawn:
+  `sessions_spawn(task: {THE_FULL_CONTENT_YOU_JUST_READ}, label: "scout-tier0", mode: "session", thread: true, runTimeoutSeconds: 0)`
   Pass trust-repos.md and pr-ledger.md via attachments.
 
 **2. PR Monitor** (label "pr-monitor") — continuous PR follow-up scanning:
 - **Alive** (active in last 30 min): read `memory/followup-staging.md` for items needing code changes (see step 2). Read `memory/pr-monitor-report.md` for cycle summary.
-- **Dead or missing**: Spawn:
-  ```
-  sessions_spawn(task: <read templates/subagent-pr-monitor.md>, label: "pr-monitor", mode: "session", thread: true, runTimeoutSeconds: 0)
-  ```
-  The PR monitor handles: merging approved PRs, bumping stale PRs, responding to questions, closing invalid PRs, updating pr-followup-state.md.
+- **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-pr-monitor.md`. Then spawn with that content as the task.
 
 **3. PR Analyst** (label "pr-analyst") — continuous portfolio analysis & strategy:
-- **Alive** (active in last 30 min): read `memory/pr-strategy.md` and `memory/repo-blocklist.md` — adjust issue selection and repo targeting based on latest analysis.
-- **Dead or missing**: Spawn:
-  ```
-  sessions_spawn(task: <read templates/subagent-pr-analyst.md>, label: "pr-analyst", mode: "session", thread: true, runTimeoutSeconds: 0)
-  ```
-  The PR analyst handles: failure mode classification, trust scoring, blocklist maintenance, P(merge) model calibration, strategy recommendations.
+- **Alive** (active in last 30 min): read `memory/pr-strategy.md` and `memory/repo-blocklist.md`.
+- **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-pr-analyst.md`. Then spawn with that content as the task.
 
-Always-on subagents use 3 slots (scout + PR monitor + PR analyst). Remaining 10 are for implementation/follow-up. Total maxConcurrent = 13.
-
-**ALWAYS-ON = TRULY PERSISTENT**: Templates use `runTimeoutSeconds: 0` (no timeout). If an always-on agent dies (context >70%, crash, or error), respawn IMMEDIATELY — don't wait for the next cycle. Use `sessions_list` to check by label. If `sessions_kill` fails with "Ambiguous label", kill by sessionKey instead: `sessions_kill(target: "agent:clawoss:subagent:{uuid}")`. Clean up zombie sessions with duplicate labels.
+Always-on subagents use 3 slots. Remaining 10 for impl/followup. Total maxConcurrent = 13.
+**Respawn IMMEDIATELY when dead.** Kill zombies by sessionKey if label is ambiguous.
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
@@ -105,7 +96,7 @@ The main agent only needs to process items requiring CODE CHANGES.
 - `ci_failing` (our fault): treat as changes_requested — spawn to fix CI.
 - `fix_rejected`: spawn subagent with DIFFERENT approach, force-push to same branch. Priority: urgent.
 
-**2c.** Spawn using `templates/subagent-followup.md`. Set status to `spawned_pending` IMMEDIATELY.
+**2c.** Use the `read` tool to load `templates/subagent-followup-batch.md` from disk NOW. Group staged items by repo. Spawn ONE batch subagent per repo group (max 5 PRs per batch). Pass all PRs for that repo as JSON in attachments. This uses 1 slot per repo group instead of 1 per PR. Set status to `spawned_pending` IMMEDIATELY.
 **2e.** Clear processed items from `memory/followup-staging.md`.
 **2f.** Read `memory/pr-monitor-report.md` — note any merges or trust-building events from the monitor's cycle.
 
@@ -122,6 +113,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 - **impl/followup active < 10, queue has items**: pick next (urgent first, P(merge) >= 30, score >= 5). Gates:
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
   b. **DEDUP**: skip if in pr-ledger.md, open PRs for repo >= 5 (`gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` >= 5), in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md, OR lock file exists (`memory/locks/{owner}_{repo}.lock`). Multiple open PRs per repo is FINE (up to 5). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
+  **DOUBLE-CHECK**: Before each spawn, re-run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If count changed, skip (race condition guard).
   **LOCK FILE**: Before spawning, write lock: `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) {issue}" > memory/locks/{owner}_{repo}.lock`. Sub-agent deletes lock after PR creation or failure. Orchestrator cleans stale locks (>30 minutes) in step 1 (stall recovery).
   b2. **BLOCKLIST HARD-BLOCK**: Read `memory/trust-repos.md` Deprioritized section. If the repo appears there AND `Skip Until` is "permanent" or a future date, SKIP unconditionally — no override by score, labels, or any other factor. Repos on this list have hostile maintainers, ban threats, or non-automatable CLAs.
   c. Skip if we had a PR closed on this repo in the last 7 days.
@@ -145,7 +137,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
      If > 0: skip with reason `already_fixed_upstream`. Also check if the issue itself is closed:
      `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state'` — if "closed", skip.
      **Submitting a fix for an already-resolved issue gets us flagged as bots and threatened with bans.**
-  After spawn, LOOP BACK until 10 active or queue empty.
+  **BATCH SPAWN**: Collect ALL candidates first. Spawn them in rapid succession — no interleaved work. If "Skipped due to queued user message", RESUME after handling event. Loop NOT done until slots full or queue empty.
 - **Queue < 5**: run oss-discover IMMEDIATELY. Target 30-50 candidates, score >= 3. Search ALL niches (devtools, CLIs, web frameworks, databases, cloud-native, testing, data engineering) — NOT just AI repos. If first pass finds < 5, lower star threshold to 100 and expand date range to 30 days.
 - **Queue >= 10**: drain first, but still run discovery in background (scout handles this).
 
@@ -153,13 +145,13 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 **4-ZERO.** Quick health check: `gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count, pushed: .pushed_at, archived: .archived}'`. Skip if archived, stars < 100, no push in 30 days. No script needed — use judgment.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
 **4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama).
-**4b-SUPERSESSION.** Check if issue is already being worked on OR already fixed: assigned? linked PRs? someone commented "I'll take this"? Issue closed? Recently merged PR referencing this issue? If yes, remove from queue and mark `superseded`, `assigned`, or `already_fixed_upstream` in pr-ledger.md. This is cheaper to check here (1 API call) than to discover mid-implementation.
+**4b-SUPERSESSION.** Assigned? Linked PRs? "I'll take this" comment? Issue closed? Merged PR refs? If yes, remove and mark in pr-ledger.md.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d, >50 open PRs.
 **4d.** Quick research via web_search.
 
 ## 5. Spawn Implementation Sub-Agent
-**5a. Pre-spawn issue comment (score >= 8, or >= 6 for trusted repos):** If the issue's triage score >= 8 (or >= 6 and repo is in memory/trust-repos.md), post a brief comment before spawning: `gh issue comment {issue} --repo {owner}/{repo} --body "I've been looking into this — [1-sentence approach]. Happy to submit a fix."` This signals intent and increases merge odds. Skip for lower-scoring issues to avoid noise on uncertain picks.
-**5b.** Read `templates/subagent-implementation.md`. Substitute `{repo}`, `{issue}`, `{title}`. Spawn via sessions_spawn. Pass repo conventions + issue details as attachments.
+**5a. Pre-spawn comment (score >= 8, or >= 6 for trusted repos):** Post brief comment: `gh issue comment {issue} --repo {owner}/{repo} --body "Looking into this — [1-sentence approach]. Happy to submit a fix."` Skip for lower scores.
+**5b.** Use the `read` tool to load `templates/subagent-implementation.md` from disk NOW (do NOT reuse cached content). Substitute `{repo}`, `{issue}`, `{title}` in the content. Spawn: `sessions_spawn(task: {THE_SUBSTITUTED_CONTENT}, label: "{repo}#{issue}", ...)`. Always re-read the template for EVERY spawn — files change between cycles. Pass repo conventions + issue details as attachments.
 **IMMEDIATELY mark issue as `spawned_pending` in `memory/impl-spawn-state.md` BEFORE spawning the next agent.**
 **ALSO check: `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If >= 5, SKIP — too many open PRs at this repo. NEVER use `@me` — it fails in sub-agent contexts.**
 **Read `memory/repos/{owner}_{repo}.md`** if it exists — pass key info (target branch, CLA, CI) to the subagent via attachments.
@@ -189,5 +181,5 @@ Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter 
 ## 7. Report, Cleanup & Loop
 Run dashboard-reporter. Update wake-state.md. Remove completed/abandoned from queue.
 **Memory cleanup** (every cycle): delete processed subagent-result-*.md files, remove stale work-queue items (>30 days), prune closed PRs from impl-spawn-state.md. Archive important patterns to MEMORY.md if significant events occurred (merge, ban, new trusted repo).
-**ALWAYS loop back to step 3** after cleanup. If < 10 active AND queue has items: pick more work. If queue empty: run oss-discover immediately — search ALL 7 niches, lower thresholds if needed (stars >= 100, P(merge) >= 20). If discovery STILL finds nothing: expand search (new languages, new topics, broader date range). NEVER stop. NEVER reply HEARTBEAT_OK.
+**ALWAYS loop back to step 3.** If < 10 active: pick more. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
 Self-wake: `exec: openclaw system event --text "cycle-complete" --mode now`

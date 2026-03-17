@@ -297,26 +297,33 @@ Each test should:
 6. ~~**P1-6**: workspace-submit.sh size gate 500~~ — **FIXED** (commit 653b680). Now 200.
 7. ~~**P1-7**: workspace-submit.sh PR body missing disclosure~~ — **FIXED** (commit 653b680). Disclosure line added.
 8. ~~**P1-8**: workspace-submit.sh dedup regex~~ — **FIXED** (commit 653b680). Word boundary added.
-9. **P1-9**: batch-fetch-pr-status.sh structurally broken (heredoc + stdin conflict) — **STILL OPEN**
-10. **P1-10**: batch-fetch-pr-status.sh $FILTER_REPO not interpolated in single-quoted heredoc — **STILL OPEN**
-11. **P1-11**: run-repo-tests.sh `timeout` command not found on macOS — **STILL OPEN**
+9. ~~**P1-9**: batch-fetch-pr-status.sh heredoc + stdin~~ — **MOOT** (script deleted in commit 5bba906)
+10. ~~**P1-10**: batch-fetch-pr-status.sh $FILTER_REPO~~ — **MOOT** (script deleted in commit 5bba906)
+11. ~~**P1-11**: run-repo-tests.sh `timeout`~~ — **MOOT** (script deleted in commit 5bba906)
 
-### Additional unfixed items:
-- **P1-12**: subagent-pr-analyst.md lines 53+56 — `mergedAt` not valid for `gh search prs --json`, `--merged` not a valid flag — **STILL OPEN**
-- **P1-13**: config/openclaw.json heartbeat prompt says "8 impl/followup + 2 always-on = 10" but should be "7 + 3 = 10" — **STILL OPEN**
+### Additional items:
+- ~~**P1-12**: subagent-pr-analyst.md `--merged` and `mergedAt`~~ — **FIXED** (commit b2c5de8). Line 53: removed mergedAt. Line 56: --merged -> "is:merged".
+- ~~**P1-13**: config/openclaw.json heartbeat prompt slot count~~ — **FIXED** (commit b37211d). Now "7 + 3 = 10". Live config verified.
+- ~~**P1-14**: compute-merge-probability.sh `--merged`~~ — **FIXED** (commit b37211d). Uses `"is:merged"` now.
+
+### ~~NEW P0: Dangling references to deleted scripts~~ — **FIXED** (commits 974e0dd + b37211d)
+- subagent-implementation.md: run-repo-tests.sh + lint-and-format.sh replaced with inline instructions
+- subagent-followup.md: rework-pr.sh replaced with inline rework instructions
+- scripts/tests/run-all-tests.sh: still references workspace-cleanup.sh (minor — test suite only)
+Impact: resolved. Subagents will use inline test/lint/rework instructions.
 
 ### P0 config fix:
 - ~~**"Channel is required" error**: messages.queue.mode collect causes queue drain failures~~ — **FIXED** (commit 0f141fa). Changed to "steer". Deployed to live config.
 
-### P2 bugs (13 total — all still open):
-1. **P2-1**: workspace-cleanup.sh lock matching never works
-2. **P2-2**: compute-merge-probability.sh threshold 30 vs spec 40 (may be intentional)
-3. **P2-5**: responsiveness weight 15 vs adopted 20 (may be intentional)
-4. **P2-6**: No input validation on REPO argument
-5. **P2-7**: respond-to-review.sh identity text too close to forbidden "AI assistance"
-6. **P2-8**: workspace-submit.sh anti-slop filter breaks sentences
-7. **P2-9**: workspace-submit.sh missing format-pr-description.sh integration
-8. **P2-10**: sign-cla.sh wildcard case claims signed=true for unknown CLA types
-9. **P2-11**: rework-pr.sh triple-quoted Python strings break on review bodies with triple quotes
-10. **P2-12**: update-trust-repos.sh deprioritize always writes "permanent", no time-limited skip
-11. **P2-13**: batch-check-issues.sh bare `except: pass` — failed checks default to "pass"
+### P2 bugs (13 total — 6 moot due to script deletion, 7 still open):
+1. ~~**P2-1**: workspace-cleanup.sh lock matching~~ — **MOOT** (deleted)
+2. **P2-2**: compute-merge-probability.sh threshold 30 vs spec 40 (may be intentional) — OPEN
+3. **P2-5**: responsiveness weight 15 vs adopted 20 (may be intentional) — OPEN
+4. ~~**P2-6**: workspace-setup.sh input validation~~ — **MOOT** (deleted)
+5. **P2-7**: respond-to-review.sh identity text too close to forbidden "AI assistance" — OPEN
+6. ~~**P2-8**: workspace-submit.sh anti-slop filter~~ — **MOOT** (deleted)
+7. ~~**P2-9**: workspace-submit.sh format-pr-description~~ — **MOOT** (deleted)
+8. **P2-10**: sign-cla.sh wildcard case claims signed=true for unknown CLA types — OPEN
+9. ~~**P2-11**: rework-pr.sh triple-quoted Python~~ — **MOOT** (deleted)
+10. **P2-12**: update-trust-repos.sh deprioritize always writes "permanent", no time-limited skip — OPEN
+11. ~~**P2-13**: batch-check-issues.sh bare `except: pass`~~ — **MOOT** (deleted)

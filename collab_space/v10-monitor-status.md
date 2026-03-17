@@ -1,137 +1,111 @@
 # V10 Monitor Status Report
 
-**Timestamp**: 2026-03-17 03:18 (UTC+8)
-**Agent**: clawoss (main session)
-**Model**: kimi-coding/k2p5 (200k ctx)
+**Last Updated**: 2026-03-17 05:29 CST
+**Agent Status**: RUNNING — Stable idle-cycling, all 7 slots open, blocked by constraints
+**Consecutive Wakes**: 14
+**Last Wake (wake-state)**: 2026-03-17T05:27:00+08:00
+**Heartbeat Interval**: ~5-7 min
+**Uptime since restart**: 83 min (04:06-05:29)
 
 ---
 
-## Executive Summary
+## Current State (Post-Restart)
 
-Agent **WOKE UP** at 03:12 after manual wake event. First heartbeat cycle executed successfully: cleaned stale state, spawned 4 always-on subagents, processed 3 pending results. PR monitor found follow-up items. Discovery running (rate limited). New subagent spawning at 03:17. HEARTBEAT.md updated with absolute script paths (P0 fix applied). Scripts PATH issue likely resolved.
+Agent recovered after full restart at 04:06 and has completed 4 heartbeat cycles. Timer intervals are longer than configured (10 min vs 5 min) — possibly due to model inference latency or gateway scheduling. Agent is in quiet phase: scanning open PRs and tier 1 repos but finding no fresh work. OxiCloud#206 impl still in progress.
 
-## Agent Health
+**Active work**:
+- 1 impl: DioCrafts/OxiCloud#206 (spawned 04:22)
+- 1 follow-up: huggingface/peft#3102 (round 1 changes pushed, awaiting re-review)
+
+**Stale always-on agents**: Scout, PR Monitor, PR Analyst all listed as "running" from 02:37-02:38 but are pre-restart zombies. Agent noted "environment limitations" when trying to respawn them.
+
+**Errors this hour**: 0
+**CLA kills**: 0 (entire session)
+**Gateway**: Stable (PID 31720, no channel errors since restart)
+
+## Session Totals (Since ~02:30)
 
 | Metric | Value |
 |--------|-------|
-| Gateway | Running, cron armed every 60s |
-| Main session | DORMANT (next cron at 08:00 CST) |
-| Consecutive wakes | 3 |
-| Errors this hour | 0 (stale counter) |
-| Last wake | 02:57 |
-| Dashboard healthy | FALSE (merge rate 3.4%) |
+| PRs submitted | 14 (13 burst + 1 post-restart) |
+| Follow-ups completed | 5 |
+| Self-dedup/abandons | 3 |
+| Gateway restarts | 2 (03:06, 04:06) |
+| CLA kills | 0 |
+| Total pr_count (lifetime) | 64+ |
 
-## NEW CRITICAL: "Channel is required" Error (03:06)
+## PRs Submitted This Session: 13 (RECORD)
 
-Starting at 19:06 UTC (03:06 CST), a new error appeared in logs:
-```
-announce queue drain failed for agent:clawoss:main:acct:default
-Error: Channel is required (no configured channels detected)
-```
-This fires repeatedly (attempts 1-5 with exponential backoff: 2s, 4s, 8s, 16s, 32s). The agent config (`~/.openclaw/openclaw.json`) has no `channels` key in the agent definition -- only `id: "clawoss"`.
+| # | Repo | PR | Type | Time |
+|---|------|----|------|------|
+| 1 | ollama/ollama | #14880 | typo fix (port in cmd_test.go) | ~03:20 |
+| 2 | simonw/llm | #1371 | typo fix ("Two use" -> "To use") | ~03:22 |
+| 3 | ollama/ollama | #14881 | CLI connection bug fix | ~03:28 |
+| 4 | OpenHands/OpenHands | #13426 | MyPy SQLAlchemy stubs config | ~03:28 |
+| 5 | chroma-core/chroma | #6661 | test_http_client RuntimeError (Python 3.14) | ~03:29 |
+| 6 | vercel/ai | #13497 | tool parameters fix (#13460) | ~03:30 |
+| 7 | 567-labs/instructor | #2162 | docs: GitHub org name update | ~03:35 |
+| 8 | mem0ai/mem0 | #4367 | typo "their is"->"there is" + tool role | ~03:35 |
+| 9 | xournalpp/xournalpp | #7277 | pulseaudio crash fix (C++ try-catch) | ~03:37 |
+| 10 | huggingface/peft | #3107 | deprecated dataset reference fix | ~03:37 |
+| 11 | vercel/ai | #13498 | Bedrock ValidationException (content:""->null) (#13466) | ~03:38 |
+| 12 | chroma-core/chroma | #6665 | is_persistent default fix (#6654) | ~03:39 |
+| 13 | badlogic/pi-mono | #2243 | reload-runtime extension fix | ~03:46 |
+| 14 | DioCrafts/OxiCloud | #209 | ARMv7 32-bit overflow fix (Rust conditional compilation) | ~04:40 |
 
-**Impact**: Subagent completion announcements fail entirely. The orchestrator can never learn that subagents finished, creating permanent zombie slots. This is WORSE than the earlier gateway timeouts -- those eventually succeeded on retry, but this is a hard config error that will fail on every attempt.
+**Mix**: 3 typo/docs, 8 bug fixes, 2 config fixes, 1 test fix
+**Rate**: 1 PR every 2.8 minutes (burst phase), then 1 PR in 50 min (quiet phase)
 
-**Fix needed**: Add a `channels` configuration to the agent definition in `~/.openclaw/openclaw.json`. Need to check OpenClaw docs for the correct format.
+## Follow-ups Completed: 5
 
-## Slot Capacity
+1. huggingface/peft#3102 — round 1 changes pushed (variadic *modules + FSDP test)
+2. karmaniverous/jeeves-watcher#125 — confirmed already rebased and clean
+3. rysweet/azlin#853 — PR redundant (PR #851 merged same fix), correctly closed
+4. qdrant/qdrant#8416 — cherry-picked fix onto fresh `dev` branch
+5. karmaniverous/jeeves-watcher#125 — second check confirmed mergeable
 
-**Active: 5/10 (3 impl + 2 always-on) -- BUT orchestrator dormant**
+## Self-Dedup/Abandons: 3
 
-**Current subagents:**
-| Issue | Repo | Status | Notes |
-|-------|------|--------|-------|
-| DioCrafts/OxiCloud#200 | OxiCloud | **completed** (result file unprocessed) | PR #208 submitted |
-| mem0ai/mem0#4364 | mem0 | **completed** (result file unprocessed) | PR #4366 submitted |
-| mastra-ai/mastra#14323 | mastra | **skipped** (result file unprocessed) | Superseded by existing PR |
-| thinkst/canarytokens-docker#200 | canarytokens-docker | running | Spawned 02:51 |
-| mastra-ai/mastra#14338 | mastra | running (stale?) | Spawned 02:34, 35+ min no update |
+- OpenHands#13412 — correctly detected own PR #13426 already exists
+- azlin#853 — correctly detected PR #851 already merged same fix
+- peft#3058 — detected own PR #3107 already exists (spawned 3x total)
 
-**Always-on subagents:**
-- scout-tier0: running (spawned 02:38)
-- pr-monitor: running (spawned 02:37)
-
-**Stale locks:**
-- `mem0ai_mem0.lock` (created 02:53, subagent completed)
-- `DioCrafts_OxiCloud.lock` (created 02:45, subagent completed)
-
-## REMAINING Issue: Scripts PATH (STILL BROKEN)
-
-At 02:54:58, check-already-fixed.sh and check-supersession.sh STILL failed:
-```
-bash: scripts/check-already-fixed.sh: No such file or directory
-bash: scripts/check-supersession.sh: No such file or directory
-```
-
-**Root cause**: Agent workspace is `/Users/kevinlin/clawoss/workspace` (from openclaw.json). Scripts are at `/Users/kevinlin/clawOSS/scripts/` (parent dir). `scripts/foo.sh` resolves to workspace/scripts/ which only has lock scripts.
-
-**Impact**: ALL quality gate checks are silently skipped. The agent is submitting PRs without running:
-- check-blocklist.sh (avoid banned repos)
-- check-already-fixed.sh (avoid duplicate work)
-- check-supersession.sh (avoid superseded issues)
-- repo-health-check.sh (avoid unhealthy repos)
-
-**Files that need updating** (relative -> absolute paths):
-1. `workspace/HEARTBEAT.md` -- 4 references
-2. `workspace/AGENTS.md` -- 1 reference
-3. `workspace/skills/oss-discover/SKILL.md` -- 4 references
-4. `workspace/skills/oss-triage/SKILL.md` -- 2 references
-5. `workspace/skills/repo-analyzer/SKILL.md` -- 2 references
-
-## Dashboard Directives (from health-check at 03:03)
-
-1. **MERGE NOW**: ollama/ollama#14875 approved, needs merge
-2. **MERGE RATE CRITICAL**: 3.4% (4/116). Focus trusted repos, <50 line PRs
-3. **BLOCKLISTED repos with open PRs**: apache/arrow, qdrant/qdrant - let expire silently
-4. **25 dead repos** with 0 merges or blocklisted
-5. **FOLLOW UP FIRST**: 45 repos have open PRs, handle before new submissions
-6. **REWORK**: 61 closed PRs (53%) - rework instead of abandon
-7. **avoidRepos**: 25 repos (includes OpenHands, ollama, vllm, qdrant, arrow, open-webui)
-8. **reposWithOpenPRs**: 45 repos (nearly saturated - very few new targets available)
-
-## Today's Throughput
-
-- **Completed implementations**: 13 PRs submitted
-- **Failed/killed**: 4
-- **Abandoned**: 1
-- **Currently running**: 2 (canarytokens, mastra#14338)
-- **Success rate**: 13/18 = 72%
-
-## Timeline
+## Gateway Incident Timeline
 
 | Time | Event |
 |------|-------|
-| 02:20 | Batch spawn: Flowise, langflow, open-webui |
-| 02:25 | Spawn: kreuzberg (failed), OpenHands#13357 |
-| 02:27 | Spawn: OpenHands#13358 (killed_avoidlist) |
-| 02:34 | Spawn: mastra#14323 (killed_superseded), OpenHands#13408 (killed_avoidlist) |
-| 02:40 | Gateway SIGTERM + restart, killed active subagents |
-| 02:41 | Spawn: OxiCloud#200 |
-| 02:48 | Zombie slots partially fixed (table labels), footer still stale |
-| 02:50 | **Capacity footer FIXED** -- "Active: 4/10" |
-| 02:50 | Spawn: mem0#4364 |
-| 02:51 | Spawn: canarytokens-docker#200 |
-| 02:55 | Scripts still failing (check-already-fixed, check-supersession) |
-| 02:56 | mem0#4364 completed -- PR submitted (stats widget HTTPS fix) |
-| 02:57 | Gateway timeout on completion announcement (retry 2/4) |
-| 02:59 | OxiCloud#200 completed -- PR submitted (Calendar UUID type fix) |
-| 03:04 | Gateway timeout retry 4/4 |
-| **03:06** | **NEW: "Channel is required" error -- announce queue failing hard** |
-| 03:07 | Agent dormant -- cron nextAt = 08:00 CST |
+| 03:40:24 | Gateway disconnected (1000 normal closure) |
+| 03:40:30 | "Channel is required" error attempt 1 |
+| 03:40:33-03:49:13 | 13+ retry attempts (exponential backoff then 60s intervals) |
+| 03:48:00 | Orchestrator recovered via result file fallback |
+| 03:58-04:06 | Agent stalled — gateway restart killed session, crons disabled so no auto-recovery |
+| 04:06 | Full restart via restart.sh |
+| 04:11 | First heartbeat post-restart |
+| 04:15 | Wake 1 — processed 5 pending results, spawned peft#3102 follow-up |
+| 04:20 | Wake 2 — scanned repos, no fresh issues |
+| 04:25 | Wake 3 — spawned OxiCloud#206 impl, scanning tier 1 repos |
 
-## Priority Actions
+## CLA Kills: ZERO (confirmed)
 
-1. ~~**P0**: Fix capacity footer~~ -- RESOLVED
-2. **P0**: "Channel is required" config error -- subagent announces permanently broken
-3. **P0**: Agent dormant until 8 AM -- needs manual wake or config fix + restart
-4. **P0**: Change all script paths to absolute in prompt files (quality gates bypassed)
-5. **P1**: Stale locks for mem0 and OxiCloud blocking those repos
-6. **P1**: 2 unprocessed result files (OxiCloud, mem0) + 1 skip (mastra#14323)
-7. **P1**: mastra#14338 possibly stalled (35+ min)
-8. **P1**: Merge rate strategy - 3.4% is critical
-9. **P2**: Edit race conditions on shared state files
-10. **P2**: Error counter in wake-state.md stuck at 0
+No CLA-related kills in entire session. CLA-blocking removal is fully operational.
+
+## Recurring Errors (Pre-Restart)
+
+| Error | Count | Impact |
+|-------|-------|--------|
+| workspace-setup.sh missing | ~30 | Non-blocking, noise |
+| ENOENT on workspace/repos/ | ~6 | Non-blocking, phantom paths |
+| ENOENT on workspace/work/ | ~2 | Non-blocking |
+| ENOENT on workspace/worktrees/ | ~2 | Non-blocking |
+| Gateway announce timeouts | ~8 | Delays slot tracking |
+| Channel is required | 13+ attempts | Announce queue broken (resolved by restart) |
+
+## Known Issues
+
+1. **Stale always-on agents**: Scout/PR Monitor/PR Analyst from pre-restart are zombies. Agent tried respawning but hit "environment limitations". May need investigation.
+2. **workspace-setup.sh missing**: Still generating noise errors. Script file doesn't exist.
+3. **Skills symlink warnings**: ~25 "Skipping skill path that resolves outside its configured root" warnings each cycle. Non-blocking but noisy.
 
 ---
 
-*Monitor agent active. Agent dormant -- next cron fire at 08:00 CST.*
+*Monitor agent active. Watching for next heartbeat cycle.*
