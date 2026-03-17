@@ -267,17 +267,28 @@ mkdir -p "$WORKSPACE_DIR/memory/locks"
 mkdir -p "$WORKSPACE_DIR/memory/subagent-inputs"
 echo "[OK] Directories ready (including memory/locks/ for dedup)"
 
-# ── 10. Clean stale lock files (dirty shutdown leftovers) ─────────────
-STALE_LOCKS=$(find "$WORKSPACE_DIR/memory/locks/" -name "*.lock" -mmin +60 2>/dev/null | wc -l | tr -d ' ')
-find "$WORKSPACE_DIR/memory/locks/" -name "*.lock" -mmin +60 -delete 2>/dev/null || true
-echo "[OK] Stale lock files cleaned ($STALE_LOCKS removed)"
+# ── 10. Clean ALL lock files (restart = full cleanup) ─────────────────
+ALL_LOCKS=$(find "$WORKSPACE_DIR/memory/locks/" -name "*.lock" 2>/dev/null | wc -l | tr -d ' ')
+find "$WORKSPACE_DIR/memory/locks/" -name "*.lock" -delete 2>/dev/null || true
+echo "[OK] All lock files cleaned ($ALL_LOCKS removed)"
 
-# ── 11. Clean orphaned /tmp workspaces ────────────────────────────────
-ORPHANED=$(find /tmp -maxdepth 1 -name "clawoss-*" -type d -mmin +120 2>/dev/null | wc -l | tr -d ' ')
-find /tmp -maxdepth 1 -name "clawoss-*" -type d -mmin +120 -exec rm -rf {} + 2>/dev/null || true
-echo "[OK] Orphaned workspaces cleaned ($ORPHANED removed)"
+# ── 11. Clean ALL /tmp workspaces (restart = full cleanup) ────────────
+ORPHANED=$(find /tmp -maxdepth 1 -name "clawoss-*" -type d 2>/dev/null | wc -l | tr -d ' ')
+find /tmp -maxdepth 1 -name "clawoss-*" -type d -exec rm -rf {} + 2>/dev/null || true
+echo "[OK] All /tmp workspaces cleaned ($ORPHANED removed)"
 
-# ── 12. Stop existing gateway ─────────────────────────────────────────
+# ── 12. Kill all subagents, then stop gateway ─────────────────────────
+# Kill all running subagents BEFORE stopping the gateway.
+# This prevents orphaned LLM inference runs that consume API tokens.
+# The /subagents kill all command terminates all active subagent runs.
+if openclaw gateway status 2>/dev/null | grep -qi "running\|reachable\|ok"; then
+    echo "[INFO] Killing all active subagents..."
+    openclaw system event --text "/subagents kill all" --mode now 2>/dev/null || true
+    sleep 3  # Give gateway time to process kill commands
+    # Also run sessions cleanup to prune any stale entries
+    openclaw sessions cleanup --agent clawoss 2>/dev/null || true
+    echo "[OK] All subagents killed"
+fi
 openclaw gateway stop 2>/dev/null || true
 sleep 2
 echo "[OK] Gateway stopped"
