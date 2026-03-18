@@ -8,7 +8,8 @@ Keep all 10 impl/followup sub-agent slots filled. **NEW PRs FIRST** — fill all
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
-**ANTI-DEADLOCK**: Multiple open PRs per repo is OK. The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
+**ANTI-DEADLOCK**: Multiple open PRs per repo is OK. The agent MUST NOT idle when work exists.
+**NEVER WAIT**: Do NOT say "monitoring for completion events", "standing by", "waiting for results", or yield. After ANY step, continue to the next step. After step 7, loop to step 2. The heartbeat is an infinite loop with NO pause states.
 
 ## Web Search — USE PROACTIVELY
 You have `web_search` and `web_fetch` tools. **Use them aggressively:**
@@ -85,7 +86,7 @@ Merge work-queue-staging.md and followup-staging.md into work-queue.md. Clear st
 ### 3b. Count and Pick
 Count active impl/followup sub-agents (sessions_list, exclude main + always-on scouts/monitors + stale >30min).
 
-- **impl/followup active >= 10**: skip to step 6.
+- **impl/followup active >= 10**: skip to step 6. **Do NOT say "monitoring for completion events" and stop.** Always continue to step 6, then 7, then self-wake and loop back.
 - **impl/followup active < 10, queue has items**: pick next (urgent first, P(merge) >= 30, score >= 5). Gates:
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
   b. **DEDUP**: skip if in pr-ledger.md, in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md, OR lock file exists (`memory/locks/{owner}_{repo}.lock`). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
@@ -171,6 +172,6 @@ Processing results adds significant context (each result file = ~1k tokens read 
 Run dashboard-reporter. Update wake-state.md. Remove completed/abandoned from queue.
 **Memory cleanup** (every cycle): delete ALL processed subagent-result-*.md files with `rm`. Remove stale work-queue items (>30 days). Prune closed PRs from impl-spawn-state.md.
 **DELETE result files IMMEDIATELY after processing** — do NOT leave them for the next cycle. 43 unprocessed files = 43k tokens of bloat.
-**Self-wake FIRST, then loop**: `exec: openclaw system event --text "cycle-complete" --mode now`
-This ensures the next cycle starts even if the current session compacts or dies.
-**THEN loop back to step 2.** If < 10 active: pick more new work. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
+**Self-wake**: `exec: openclaw system event --text "cycle-complete" --mode now`
+**THEN IMMEDIATELY loop back to step 2.** If < 10 active: pick more new work. Queue empty: run oss-discover.
+**NEVER say "monitoring for completion events" or "standing by" or "waiting for results".** These are FORBIDDEN phrases. The heartbeat is a LOOP — after step 7, go DIRECTLY to step 2. If all slots are full, process results (step 6) and loop again. There is no "wait" state.
