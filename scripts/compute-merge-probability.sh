@@ -45,11 +45,11 @@ fi
 
 # ─── 3. Repo responsiveness (0-100) ───
 AVG_COMMENTS=$(gh api "repos/${REPO}/issues?state=closed&per_page=5&sort=updated" --jq '[.[].comments] | add / length' 2>/dev/null || echo 0)
-if [ "$(echo "$AVG_COMMENTS > 3" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+if python3 -c "exit(0 if float('${AVG_COMMENTS:-0}') > 3 else 1)" 2>/dev/null; then
   S_RESPONSIVE=85
-elif [ "$(echo "$AVG_COMMENTS > 1" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+elif python3 -c "exit(0 if float('${AVG_COMMENTS:-0}') > 1 else 1)" 2>/dev/null; then
   S_RESPONSIVE=65
-elif [ "$(echo "$AVG_COMMENTS > 0" | bc 2>/dev/null || echo 0)" -eq 1 ]; then
+elif python3 -c "exit(0 if float('${AVG_COMMENTS:-0}') > 0 else 1)" 2>/dev/null; then
   S_RESPONSIVE=40
 else
   S_RESPONSIVE=20

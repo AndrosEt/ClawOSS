@@ -22,7 +22,8 @@ fi
 # Reset orphaned spawned_pending entries
 # These occur when a subagent dies without writing a result
 if [ -f "$IMPL_STATE" ]; then
-  PENDING_COUNT=$(grep -c "spawned_pending" "$IMPL_STATE" 2>/dev/null || echo 0)
+  PENDING_COUNT=$(grep -c "spawned_pending" "$IMPL_STATE" 2>/dev/null || true)
+  PENDING_COUNT=${PENDING_COUNT:-0}
   if [ "$PENDING_COUNT" -gt 0 ]; then
     sed -i '' 's/spawned_pending/stale_reset/g' "$IMPL_STATE" 2>/dev/null || \
     sed -i 's/spawned_pending/stale_reset/g' "$IMPL_STATE" 2>/dev/null || true
@@ -31,7 +32,8 @@ if [ -f "$IMPL_STATE" ]; then
 fi
 
 if [ -f "$FOLLOWUP_STATE" ]; then
-  PENDING_COUNT=$(grep -c "spawned_pending" "$FOLLOWUP_STATE" 2>/dev/null || echo 0)
+  PENDING_COUNT=$(grep -c "spawned_pending" "$FOLLOWUP_STATE" 2>/dev/null || true)
+  PENDING_COUNT=${PENDING_COUNT:-0}
   if [ "$PENDING_COUNT" -gt 0 ]; then
     sed -i '' 's/spawned_pending/stale_reset/g' "$FOLLOWUP_STATE" 2>/dev/null || \
     sed -i 's/spawned_pending/stale_reset/g' "$FOLLOWUP_STATE" 2>/dev/null || true

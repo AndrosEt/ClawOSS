@@ -21,7 +21,7 @@ ERRORS=$(echo "$WAKE_STATE" | sed -n 's/.*errors_this_hour: *\([0-9]*\).*/\1/p' 
 ERRORS=${ERRORS:-0}
 
 # Lock files
-LOCK_COUNT=$(ls "$MEMORY_DIR/locks/"*.lock 2>/dev/null | wc -l | xargs)
+LOCK_COUNT=$(ls "$MEMORY_DIR/locks/"*.lock 2>/dev/null | wc -l | tr -d ' ')
 
 # Queue depth
 QUEUE_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue.md" 2>/dev/null || true)
@@ -39,7 +39,8 @@ SCOUT_STATUS="unknown"
 SCOUT_REPORT=""
 LATEST_SCOUT=$(ls -t "$MEMORY_DIR"/scout-report-*.md 2>/dev/null | head -1)
 if [ -n "$LATEST_SCOUT" ]; then
-  SCOUT_AGE_MIN=$(( ($(date +%s) - $(stat -f %m "$LATEST_SCOUT" 2>/dev/null || stat -c %Y "$LATEST_SCOUT" 2>/dev/null || echo 0)) / 60 ))
+  MTIME=$(stat -f %m "$LATEST_SCOUT" 2>/dev/null || stat -c %Y "$LATEST_SCOUT" 2>/dev/null || echo 0)
+  [ "$MTIME" -eq 0 ] 2>/dev/null && SCOUT_AGE_MIN=9999 || SCOUT_AGE_MIN=$(( ($(date +%s) - MTIME) / 60 ))
   if [ "$SCOUT_AGE_MIN" -lt 30 ]; then
     SCOUT_STATUS="active"
   else
@@ -53,7 +54,8 @@ fi
 # PR Monitor status
 MONITOR_STATUS="unknown"
 if [ -f "$MEMORY_DIR/pr-monitor-report.md" ]; then
-  MONITOR_AGE_MIN=$(( ($(date +%s) - $(stat -f %m "$MEMORY_DIR/pr-monitor-report.md" 2>/dev/null || stat -c %Y "$MEMORY_DIR/pr-monitor-report.md" 2>/dev/null || echo 0)) / 60 ))
+  MTIME=$(stat -f %m "$MEMORY_DIR/pr-monitor-report.md" 2>/dev/null || stat -c %Y "$MEMORY_DIR/pr-monitor-report.md" 2>/dev/null || echo 0)
+  [ "$MTIME" -eq 0 ] 2>/dev/null && MONITOR_AGE_MIN=9999 || MONITOR_AGE_MIN=$(( ($(date +%s) - MTIME) / 60 ))
   if [ "$MONITOR_AGE_MIN" -lt 30 ]; then
     MONITOR_STATUS="active"
   else
@@ -66,7 +68,8 @@ fi
 # PR Analyst status
 ANALYST_STATUS="unknown"
 if [ -f "$MEMORY_DIR/pr-strategy.md" ]; then
-  ANALYST_AGE_MIN=$(( ($(date +%s) - $(stat -f %m "$MEMORY_DIR/pr-strategy.md" 2>/dev/null || stat -c %Y "$MEMORY_DIR/pr-strategy.md" 2>/dev/null || echo 0)) / 60 ))
+  MTIME=$(stat -f %m "$MEMORY_DIR/pr-strategy.md" 2>/dev/null || stat -c %Y "$MEMORY_DIR/pr-strategy.md" 2>/dev/null || echo 0)
+  [ "$MTIME" -eq 0 ] 2>/dev/null && ANALYST_AGE_MIN=9999 || ANALYST_AGE_MIN=$(( ($(date +%s) - MTIME) / 60 ))
   if [ "$ANALYST_AGE_MIN" -lt 30 ]; then
     ANALYST_STATUS="active"
   else

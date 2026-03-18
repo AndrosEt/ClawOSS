@@ -20,7 +20,8 @@ if [ -n "$MATCH" ]; then
   # Extract reason and skip date
   REASON=$(echo "$MATCH" | sed 's/.*| *\(.*\) *|.*/\1/' | head -1 | xargs)
   SKIP_UNTIL=$(echo "$MATCH" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -1 || echo "permanent")
-  IS_PERMANENT=$(echo "$MATCH" | grep -ic "permanent" || echo 0)
+  IS_PERMANENT=$(echo "$MATCH" | grep -ic "permanent" || true)
+  IS_PERMANENT=${IS_PERMANENT:-0}
 
   # Check if skip period has expired (unless permanent)
   if [ "$IS_PERMANENT" -eq 0 ] && [ -n "$SKIP_UNTIL" ] && [ "$SKIP_UNTIL" != "permanent" ]; then
@@ -31,9 +32,16 @@ if [ -n "$MATCH" ]; then
     fi
   fi
 
-  cat <<ENDJSON
-{"blocked": true, "repo": "$REPO", "reason": $(echo "$REASON" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '"blocklisted"'), "skip_until": "$SKIP_UNTIL", "permanent": $([ "$IS_PERMANENT" -gt 0 ] && echo true || echo false)}
-ENDJSON
+  python3 -c "
+import json, sys
+print(json.dumps({
+    'blocked': True,
+    'repo': sys.argv[1],
+    'reason': sys.argv[2],
+    'skip_until': sys.argv[3],
+    'permanent': sys.argv[4] == 'true'
+}))
+" "$REPO" "$REASON" "$SKIP_UNTIL" "$([ "$IS_PERMANENT" -gt 0 ] && echo true || echo false)"
   exit 1
 fi
 

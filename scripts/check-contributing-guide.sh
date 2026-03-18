@@ -49,20 +49,23 @@ if [ -z "$CONTRIBUTING" ]; then
 fi
 
 # ─── 2. Extract metadata ───
-python3 -c "
+echo "$CONTRIBUTING" | python3 -c "
 import json, re, sys
 
 text = sys.stdin.read()
+_repo = sys.argv[1]
+_source = sys.argv[2]
+_default_branch = sys.argv[3]
 result = {
     'has_contributing': True,
-    'repo': '$REPO',
-    'source': '$SOURCE',
-    'default_branch': '$DEFAULT_BRANCH',
+    'repo': _repo,
+    'source': _source,
+    'default_branch': _default_branch,
 }
 
 # Branch target
 m = re.search(r'(?:branch|target|base).*?[\x60\"]([\w./-]+)[\x60\"]', text, re.I)
-result['branch_target'] = m.group(1) if m else '$DEFAULT_BRANCH'
+result['branch_target'] = m.group(1) if m else _default_branch
 
 # PR title format
 if re.search(r'conventional.commit|feat:|fix:|chore:', text, re.I):
@@ -102,6 +105,6 @@ result['ai_disclosure'] = bool(re.search(r'ai.*(disclos|label|tag)|disclose.*ai|
 result['requires_issue_link'] = bool(re.search(r'link.*issue|reference.*issue|fixes #|closes #|must.*issue', text, re.I))
 
 print(json.dumps(result, indent=2))
-" <<< "$CONTRIBUTING" 2>/dev/null || echo "{\"has_contributing\": true, \"repo\": \"$REPO\", \"source\": \"$SOURCE\", \"parse_error\": true}"
+" "$REPO" "$SOURCE" "$DEFAULT_BRANCH" 2>/dev/null || echo "{\"has_contributing\": true, \"repo\": \"$REPO\", \"source\": \"$SOURCE\", \"parse_error\": true}"
 
 exit 0

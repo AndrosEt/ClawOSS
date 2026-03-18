@@ -19,7 +19,7 @@ if [ ! -d "$WORKFLOWS_DIR" ]; then
 fi
 
 # Count workflow files
-WORKFLOW_COUNT=$(ls "$WORKFLOWS_DIR"/*.yml "$WORKFLOWS_DIR"/*.yaml 2>/dev/null | wc -l | xargs)
+WORKFLOW_COUNT=$(ls "$WORKFLOWS_DIR"/*.yml "$WORKFLOWS_DIR"/*.yaml 2>/dev/null | wc -l | tr -d ' ')
 
 if [ "$WORKFLOW_COUNT" -eq 0 ]; then
   echo '{"has_ci": false, "workflows": 0}'
@@ -27,10 +27,10 @@ if [ "$WORKFLOW_COUNT" -eq 0 ]; then
 fi
 
 # Parse all workflow files
-python3 -c "
-import os, json, re, glob
+python3 - "$WORKFLOWS_DIR" <<'PYEOF'
+import os, json, re, glob, sys
 
-workflows_dir = '$WORKFLOWS_DIR'
+workflows_dir = sys.argv[1]
 files = glob.glob(os.path.join(workflows_dir, '*.yml')) + glob.glob(os.path.join(workflows_dir, '*.yaml'))
 
 os_targets = set()
@@ -75,26 +75,26 @@ for f in files:
         # OS targets
         for m in re.findall(r'os:\s*\[([^\]]+)\]', content):
             for os_name in m.split(','):
-                os_targets.add(os_name.strip().strip('\"').strip(\"'\"))
+                os_targets.add(os_name.strip().strip('"').strip("'"))
         for m in re.findall(r'runs-on:\s*(.+)', content):
-            os_val = m.strip().strip('\"').strip(\"'\")
+            os_val = m.strip().strip('"').strip("'")
             if 'matrix' not in os_val:
                 os_targets.add(os_val)
 
         # Python versions
         for m in re.findall(r'python-version:\s*\[([^\]]+)\]', content):
-            versions = [v.strip().strip('\"').strip(\"'\") for v in m.split(',')]
+            versions = [v.strip().strip('"').strip("'") for v in m.split(',')]
             lang_versions.setdefault('python', set()).update(versions)
-        for m in re.findall(r'python-version:\s*[\"\\']?([0-9.]+)', content):
+        for m in re.findall(r"python-version:\s*[\"']?([0-9.]+)", content):
             lang_versions.setdefault('python', set()).add(m)
 
         # Node versions
         for m in re.findall(r'node-version:\s*\[([^\]]+)\]', content):
-            versions = [v.strip().strip('\"').strip(\"'\") for v in m.split(',')]
+            versions = [v.strip().strip('"').strip("'") for v in m.split(',')]
             lang_versions.setdefault('node', set()).update(versions)
 
         # Go versions
-        for m in re.findall(r'go-version:\s*[\"\\']?([0-9.]+)', content):
+        for m in re.findall(r"go-version:\s*[\"']?([0-9.]+)", content):
             lang_versions.setdefault('go', set()).add(m)
 
         # Rust versions
@@ -134,6 +134,10 @@ result = {
     'test_commands': sorted(test_commands)[:10],
 }
 print(json.dumps(result, indent=2))
-" 2>/dev/null || echo '{"has_ci": true, "workflows": '"$WORKFLOW_COUNT"', "error": "parse failed"}'
+PYEOF
+
+if [ $? -ne 0 ]; then
+  echo '{"has_ci": true, "workflows": '"$WORKFLOW_COUNT"', "error": "parse failed"}'
+fi
 
 exit 0

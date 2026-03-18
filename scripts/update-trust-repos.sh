@@ -40,15 +40,16 @@ EOMD
 fi
 
 # ─── Perform action ───
-python3 -c "
+python3 - "$ACTION" "$REPO" "${SCORE:-7}" "${REASON:-}" "$TRUST_FILE" <<'PYEOF'
 import sys, re
 
-action = '$ACTION'
-repo = '$REPO'
-score = '${SCORE:-7}'
-reason = '${REASON:-}'
+action = sys.argv[1]
+repo = sys.argv[2]
+score = sys.argv[3]
+reason = sys.argv[4]
+trust_file = sys.argv[5]
 
-with open('$TRUST_FILE', 'r') as f:
+with open(trust_file, 'r') as f:
     content = f.read()
 
 lines = content.split('\n')
@@ -110,11 +111,12 @@ if action == 'deprioritize' and not found_in_depri:
     if depri_header in result:
         result = result.replace(depri_header, depri_header + f'\n| \`{repo}\` | {reason} | permanent |')
 
-with open('$TRUST_FILE', 'w') as f:
+with open(trust_file, 'w') as f:
     f.write(result)
 
-print(f'{{\"success\": true, \"action\": \"{action}\", \"repo\": \"{repo}\", \"score\": \"{score}\"}}')
-" 2>/dev/null
+import json
+print(json.dumps({"success": True, "action": action, "repo": repo, "score": score}))
+PYEOF
 
 if [ $? -eq 0 ]; then
   exit 0

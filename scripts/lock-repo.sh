@@ -17,8 +17,9 @@ mkdir -p "$LOCK_DIR"
 
 # Check existing lock
 if [ -f "$LOCK_FILE" ]; then
-  # Stale after 1 hour
-  if find "$LOCK_FILE" -mmin +60 -print 2>/dev/null | grep -q .; then
+  # Stale after 30 minutes (1800 seconds)
+  LOCK_AGE=$(( ($(date +%s) - $(stat -f %m "$LOCK_FILE" 2>/dev/null || stat -c %Y "$LOCK_FILE" 2>/dev/null || echo $(date +%s))) ))
+  if [ "$LOCK_AGE" -gt 1800 ]; then
     rm -f "$LOCK_FILE"
   else
     EXISTING=$(cat "$LOCK_FILE" 2>/dev/null || echo "unknown")

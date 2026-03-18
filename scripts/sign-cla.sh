@@ -20,7 +20,7 @@ while [ $# -gt 0 ]; do
 done
 
 fail() {
-  echo "{\"signed\": false, \"cla_type\": \"$CLA_TYPE\", \"reason\": $(echo "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '\"failed\"')}"
+  python3 -c "import json,sys; print(json.dumps({'signed': False, 'cla_type': sys.argv[1], 'reason': sys.argv[2]}))" "$CLA_TYPE" "$1" 2>/dev/null || echo '{"signed": false, "cla_type": "unknown", "reason": "failed"}'
   exit 1
 }
 

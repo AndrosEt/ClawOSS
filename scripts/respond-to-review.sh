@@ -18,7 +18,7 @@ while [ $# -gt 0 ]; do
 done
 
 fail() {
-  echo "{\"success\": false, \"action\": \"$ACTION\", \"reason\": $(echo "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo '\"failed\"')}"
+  python3 -c "import json,sys; print(json.dumps({'success': False, 'action': sys.argv[1], 'reason': sys.argv[2]}))" "$ACTION" "$1" 2>/dev/null || echo '{"success": false, "action": "unknown", "reason": "failed"}'
   exit 1
 }
 
@@ -34,14 +34,14 @@ case "$ACTION" in
     # Polite bump for stale PRs
     DAYS="${MESSAGE:-7}"
     gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
-      -f body="Friendly bump — this PR has been open for a while. Happy to make any changes if needed, or close it if it's no longer relevant." 2>/dev/null
+      -f body="Friendly bump -- this PR has been open for a while. Happy to make any changes if needed, or close it if no longer relevant." 2>/dev/null
     [ $? -eq 0 ] && echo '{"success": true, "action": "bump"}' || fail "Failed to post bump comment"
     ;;
 
   identity)
     # Respond to "are you a bot?" questions
     gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
-      -f body="${MESSAGE:-I'm BillionClaw. Happy to discuss the approach or make adjustments to the fix.}" 2>/dev/null
+      -f body="${MESSAGE:-This is BillionClaw. Happy to discuss the approach or make adjustments to the fix.}" 2>/dev/null
     [ $? -eq 0 ] && echo '{"success": true, "action": "identity"}' || fail "Failed to post identity response"
     ;;
 
@@ -55,7 +55,7 @@ case "$ACTION" in
   close-invalid)
     # Close PR that's no longer valid
     gh pr close "$PR_NUM" --repo "$REPO" \
-      --comment "${MESSAGE:-Closing this PR as it's no longer applicable. Thank you for the review time!}" 2>/dev/null
+      --comment "${MESSAGE:-Closing this PR as it is no longer applicable. Thank you for the review time!}" 2>/dev/null
     [ $? -eq 0 ] && echo '{"success": true, "action": "close-invalid"}' || fail "Failed to close PR"
     ;;
 
