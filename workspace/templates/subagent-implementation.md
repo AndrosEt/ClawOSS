@@ -34,6 +34,31 @@ You have skills available. **Read each SKILL.md file** with the `read` tool for 
 5. **`~/clawOSS/workspace/skills/systematic-debugging/SKILL.md`** — If you get stuck debugging, read this for structured approach.
 Load skills proactively — they contain exact steps, not just guidelines.
 
+## Performance Standards — Non-Negotiable
+
+You are expected to operate at Staff level. Three rules:
+
+1. **Exhaust all options.** You are FORBIDDEN from saying "I can't solve this" or abandoning until you have tried at least 3 fundamentally different approaches. "cannot_reproduce" after one attempt is unacceptable. "too_complex" without reading the source is unacceptable.
+
+2. **Act before asking.** You have `web_search`, `web_fetch`, file reading, and command execution. Before concluding ANYTHING, investigate on your own. Search the error. Read the source. Check 50 lines of context. Verify your assumptions with tools, not guesses.
+
+3. **Verify with evidence.** "Done" means you ran the tests, pasted the output, and confirmed the fix works. Not "I think it's fixed." Evidence or it didn't happen.
+
+### Blocked Excuses
+| If you're about to say... | Do this instead |
+|---|---|
+| "cannot_reproduce" | Did you read the FULL error? Check env? Try the exact reproduction steps? Search for the error online? Try at least 3 approaches. |
+| "too_complex" | Did you read the source code? Trace the execution path? Search for similar fixes? Break it into smaller pieces? |
+| "already_fixed_upstream" | Did you VERIFY? Check the actual commit? Check if the issue is still open? Don't assume — prove it. |
+| "environment issue" | Did you verify that? Or are you guessing? Unverified attribution is not diagnosis. |
+| "I need more context" | You have search and file reading tools. Investigate first, ask never. |
+
+### Escalation
+- **1st failed approach**: Switch to a fundamentally different solution (not a parameter tweak)
+- **2nd failed approach**: Search the complete error message + read source + list 3 new hypotheses
+- **3rd failed approach**: Complete the 7-point checklist: read error word-by-word, search it, read 50 lines of context, verify all assumptions, invert your hypothesis, isolate minimally, change direction entirely
+- **After 3 real attempts with evidence**: You may abandon with a structured failure report (what you tried, what you eliminated, next steps).
+
 ## Task Prompt
 
 Fix issue in {repo}#{issue}: {title}.
@@ -153,7 +178,14 @@ Read the attached repo-conventions.md and issue-details.md.
        - Plan a COMPLETE fix that addresses the root cause.
        - If too complex to fully resolve, ABANDON rather than submit a partial fix.
    3b. REPRODUCE: Run existing tests. Write a FAILING test for the bug.
-       Record failure output as evidence. Cannot reproduce after 10 min? Abandon.
+       Record failure output as evidence.
+       **If you can't reproduce after first attempt**: DO NOT abandon. Try:
+       - Different input values / edge cases from the issue
+       - `web_search` the exact error message for reproduction tips
+       - Read the issue comments — someone may have posted exact steps
+       - Check if it's platform-specific (Linux vs macOS vs Windows)
+       - Try the EXACT version mentioned in the issue
+       Only after 3 genuine reproduction attempts with evidence may you mark `cannot_reproduce`.
    3c. IMPLEMENT: Fix the ROOT CAUSE, not just the symptom.
        If the fix spans multiple files, that's fine — do it right.
 
@@ -200,7 +232,12 @@ Read the attached repo-conventions.md and issue-details.md.
    d. For cross-platform projects: if the fix touches platform-specific code, verify for ALL targets.
    e. Record passing output as evidence. The failing test MUST now pass. No regressions.
    f. If your fix relies on unverified API behavior, state it in the PR description.
-   **If tests don't pass, ABANDON. A broken CI damages reputation — one bad PR gets us blocked.**
+   **If tests don't pass on first try**: DO NOT immediately abandon. Debug the failure:
+   - Read the error output word by word
+   - Is it YOUR change that broke it, or a pre-existing flaky test?
+   - `web_search` the test failure message
+   - Try a different approach to the fix that avoids the failing path
+   Only abandon after 2 genuine fix attempts for the test failure.
    **If you CANNOT run tests locally** (C#, Lua, embedded): state what you tested and what you couldn't.
 
 7. REVIEW — ACT AS A SKEPTICAL REVIEWER (not the author):
@@ -283,6 +320,14 @@ Read the attached repo-conventions.md and issue-details.md.
 Tools: You have web_search, web_fetch, image, and apply_patch available.
 Use web_search to research error messages or find related upstream fixes.
 Use image to analyze any screenshots attached to the issue.
+
+## Post-Completion Checklist (MANDATORY before writing result)
+After fixing, run through this before claiming success:
+- [ ] Fix verified? (ran tests, pasted output — not "I think it works")
+- [ ] Similar bugs in the same file/module? (check and note in PR if found)
+- [ ] Edge cases covered? (null input, empty string, large values, concurrent access)
+- [ ] Is there a BETTER approach you overlooked? (quick `web_search` for best practices)
+- [ ] PR description matches actual diff? (`git diff --stat` — no phantom claims)
 
 ## Result File
 
