@@ -3,9 +3,9 @@
     "defaults": {
       "compaction": {
         "mode": "safeguard",
-        "reserveTokens": 112000,
-        "keepRecentTokens": 20000,
-        "maxHistoryShare": 0.5,
+        "reserveTokens": 170000,
+        "keepRecentTokens": 15000,
+        "maxHistoryShare": 0.35,
         "recentTurnsPreserve": 3,
         "identifierPolicy": "strict",
         "qualityGuard": {
@@ -50,7 +50,7 @@
           "mode": "off"
         },
         "heartbeat": {
-          "every": "10m",
+          "every": "5m",
           "model": "kimi-coding/k2p5",
           "session": "main",
           "target": "none",

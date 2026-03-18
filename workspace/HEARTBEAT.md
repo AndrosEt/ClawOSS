@@ -34,11 +34,11 @@ Skills: `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read`.
 
 ## 0. Health Checks
 **0a. Quick status snapshot**: `bash /Users/kevinlin/clawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
-**0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). >50%: flush to memory, /compact, re-read state. >40%: compact before continuing to next steps.
+**0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). **>35%: COMPACT IMMEDIATELY** — flush state to memory files, then `/compact`. Do NOT proceed to any other step until context is under 35%. This is the #1 cause of gateway timeouts and stalled cycles.
 **0b. Circuit breakers**: Read wake-state.md (or use heartbeat-status.sh output). If errors_this_hour >= 5, pause 2 minutes then continue (never fully stop). consecutive_wakes is informational only — never use it to skip work.
 **0b2. Cycle guardrails** (prevent runaway cycles and quota burn):
 - **Max cycle time**: If any single step takes >5 minutes, skip to the next step. Do not block the entire cycle.
-- **Context check mid-cycle**: If >50% context used after steps 2-3, compact immediately before continuing to steps 4-7.
+- **Context check mid-cycle**: If >35% context used after ANY step, compact IMMEDIATELY. Do not wait — context bloat causes gateway timeouts and stalled cycles. Compact early, compact often.
 - **API error backoff**: If 3+ API calls fail in a row (rate limit, 403, 5xx), pause 60 seconds before continuing. If 5+ fail, skip to step 7 cleanup and self-wake — never fully stop.
 **0c. Dashboard self-check** (run every cycle, skip if dashboard unreachable):
 ```bash
@@ -162,8 +162,15 @@ If no slots available, skip entirely — follow-ups can wait.
 - `failure` -> `pending_review` (retry next cycle)
 - Round 3: `disengaged`, leave PR open for maintainer. Delete result file.
 
+## 6.5. MANDATORY Context Check After Results
+**Check context with `session_status` NOW.** If >35%, flush state to memory files and `/compact` before continuing.
+Processing results adds significant context (each result file = ~1k tokens read + state file edits).
+**Do NOT skip this step.** Proceeding to step 7 with >35% context causes the NEXT cycle to timeout.
+
 ## 7. Report, Cleanup & Loop
 Run dashboard-reporter. Update wake-state.md. Remove completed/abandoned from queue.
-**Memory cleanup** (every cycle): delete processed subagent-result-*.md files, remove stale work-queue items (>30 days), prune closed PRs from impl-spawn-state.md. Archive important patterns to MEMORY.md if significant events occurred (merge, ban, new trusted repo).
-**ALWAYS loop back to step 2.** If < 10 active: pick more new work. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
-Self-wake: `exec: openclaw system event --text "cycle-complete" --mode now`
+**Memory cleanup** (every cycle): delete ALL processed subagent-result-*.md files with `rm`. Remove stale work-queue items (>30 days). Prune closed PRs from impl-spawn-state.md.
+**DELETE result files IMMEDIATELY after processing** — do NOT leave them for the next cycle. 43 unprocessed files = 43k tokens of bloat.
+**Self-wake FIRST, then loop**: `exec: openclaw system event --text "cycle-complete" --mode now`
+This ensures the next cycle starts even if the current session compacts or dies.
+**THEN loop back to step 2.** If < 10 active: pick more new work. Queue empty: run oss-discover (all niches, lower thresholds). NEVER stop.
