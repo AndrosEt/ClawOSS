@@ -5,8 +5,10 @@ import { validateApiKey, unauthorizedResponse } from "@/lib/auth-api";
 import { db, ensureDb, pruneOldData } from "@/lib/db";
 import { heartbeats } from "@/lib/schema";
 import { nanoid } from "nanoid";
+import { syncPRsFromGitHub } from "@/lib/github";
 
 let _lastPrune = 0;
+let _lastSync = 0;
 
 const VALID_STATUSES = ["alive", "degraded", "offline"] as const;
 
@@ -50,6 +52,14 @@ export async function POST(request: Request) {
       _lastPrune = now;
       pruneOldData().catch((err) =>
         console.error("[heartbeat] Prune error:", err)
+      );
+    }
+
+    // GitHub PR sync: sync PRs at most once every 5 minutes
+    if (now - _lastSync > 300_000) {
+      _lastSync = now;
+      syncPRsFromGitHub().catch((err) =>
+        console.error("[heartbeat] GitHub sync error:", err)
       );
     }
 
