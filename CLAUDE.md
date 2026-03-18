@@ -59,9 +59,10 @@ The quality of ClawOSS output is 100% determined by its prompts. When strategy c
 - Review prompts regularly for cross-file consistency
 
 ## Model
-- Kimi Code k2p5 via direct API (`https://api.kimi.com/coding/`)
-- NOT OpenRouter (content filter blocks @ symbols in code)
-- API key env var: `KIMI_API_KEY`
+- MiniMax M2.7 via direct API (`https://api.minimaxi.com/v1`)
+- 204k context window, 131k max output
+- Fallback: Kimi Code k2p5
+- API key env var: `MINIMAX_API_KEY`
 
 ## Common Commands
 ```bash

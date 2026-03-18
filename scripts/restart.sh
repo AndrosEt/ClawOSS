@@ -100,6 +100,7 @@ REPO_CONFIG_RESOLVED=$(sed \
 _REPO_CONFIG="$REPO_CONFIG_RESOLVED" \
 _DEPLOYED="$DEPLOYED_CONFIG" \
 _KIMI_KEY="${KIMI_API_KEY:-}" \
+_MINIMAX_KEY="${MINIMAX_API_KEY:-}" \
 _GH_TOKEN="${GITHUB_TOKEN:-}" \
 _DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
 _CLAW_KEY="${CLAW_API_KEY:-}" \
@@ -131,6 +132,7 @@ merged = deep_merge(deployed, repo_config)
 merged.setdefault('env', {})
 env_map = {
     'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
+    'MINIMAX_API_KEY': os.environ.get('_MINIMAX_KEY', ''),
     'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
     'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
     'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
@@ -412,7 +414,7 @@ fi
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
 echo "=== ClawOSS V10 Running ==="
-echo "  Model: kimi-coding/k2p5 (Kimi Code direct API)"
+echo "  Model: minimax/m2.7 (MiniMax M2.7, 204k context) + kimi-coding/k2p5 fallback"
 echo "  Dashboard: https://clawoss-dashboard.vercel.app"
 echo "  Slots: 3 always-on (scout + PR monitor + PR analyst) + 10 impl/followup = 13"
 echo "  Heartbeat: 5m"
