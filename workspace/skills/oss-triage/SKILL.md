@@ -50,7 +50,7 @@ gh api repos/{owner}/{repo} --jq '.stargazers_count'
 gh api repos/{owner}/{repo} --jq '.pushed_at'
 
 # 3. Merge velocity — SKIP if avg > 14 days or 0 merges in 30 days
-gh pr list --repo {owner}/{repo} --state merged --json mergedAt,createdAt --limit 10
+gh search prs --repo {owner}/{repo} "is:merged" --json createdAt,closedAt --limit 10
 
 # 4. Review rate — SKIP if < 50% of PRs get review
 gh pr list --repo {owner}/{repo} --state all --json comments,reviews --limit 20
@@ -104,7 +104,7 @@ if [ "$ISSUE_STATE" = "closed" ]; then
 fi
 
 # Check if a recently merged PR already fixes this issue
-RECENT_FIXES=$(gh pr list --repo {owner}/{repo} --state merged --limit 20 --json title,body \
+RECENT_FIXES=$(gh search prs --repo {owner}/{repo} "is:merged" --limit 20 --json title,body \
   --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length" 2>/dev/null || echo 0)
 if [ "$RECENT_FIXES" -gt 0 ]; then
   echo "SKIP: issue #{number} appears already fixed in $RECENT_FIXES recently merged PR(s)"

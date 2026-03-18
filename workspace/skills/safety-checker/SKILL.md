@@ -55,7 +55,7 @@ Valid types for ClawOSS: `fix` (bugs), `docs` (documentation/typos), `test` (tes
 **If branch type is `feat`, `refactor`, or `chore`: ABORT — these are not valid contribution types.**
 
 ### 5. Dedup Check (HARD GATE)
-Run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` — if > 0, ABORT (max 1 active PR per repo). ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
+Check for duplicate PRs targeting the same issue. ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
 ### 5b. Supersession Check (HARD GATE — final check before submit)
 Re-verify no one else submitted a fix while we were working:

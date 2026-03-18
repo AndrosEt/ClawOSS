@@ -119,8 +119,8 @@ export async function GET(request: Request) {
 
       // Open PR backlog penalty
       const openCount = r.open ?? 0;
-      if (openCount >= 5) healthScore -= 10; // many of our PRs sitting open
-      else if (openCount >= 3) healthScore -= 5;
+      if (openCount >= 10) healthScore -= 10; // very many of our PRs sitting open
+      else if (openCount >= 5) healthScore -= 5;
 
       // Sub-agent success rate bonus
       if (runs && runs.totalRuns > 0) {

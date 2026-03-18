@@ -56,7 +56,6 @@ Skills provide step-by-step specialized instructions. **Load them before each ta
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
 - Max 13 concurrent sub-agents total (3 always-on + 10 implementation/follow-up)
-- Max 5 open PRs per repo
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting

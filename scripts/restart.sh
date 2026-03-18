@@ -365,7 +365,7 @@ fi
 # ── 16. Kick the agent ───────────────────────────────────────────────
 sleep 3
 if openclaw system event \
-    --text "ClawOSS V10.1 restart. Execute HEARTBEAT.md steps 0-7. Max 5 open PRs per repo. Always-on agents use runTimeoutSeconds:0 (no timeout). Discover across ALL niches. Fill all 10 impl slots. NEVER idle — always work on something." \
+    --text "ClawOSS V10.1 restart. Execute HEARTBEAT.md steps 0-7. Always-on agents use runTimeoutSeconds:0 (no timeout). Discover across ALL niches. Fill all 10 impl slots. NEVER idle — always work on something." \
     --mode now 2>&1; then
     echo "[OK] Agent kicked (V10)"
 else
@@ -376,6 +376,19 @@ fi
 pkill -f "tmp-cleaner.sh" 2>/dev/null || true
 nohup bash "$PROJECT_DIR/scripts/tmp-cleaner.sh" > /dev/null 2>&1 &
 echo "[OK] tmp-cleaner daemon started (PID $!, cleans /tmp/clawoss-* every 5m)"
+
+# ── 18. Trigger dashboard PR sync ──────────────────────────────────────
+# Sync GitHub PR data to dashboard so it shows current stats immediately
+sleep 5  # Wait for gateway to be fully ready
+DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
+DASH_KEY="${CLAW_API_KEY:-}"
+if [ -n "$DASH_KEY" ]; then
+    SYNC_RESULT=$(curl -s --max-time 30 "${DASH_URL}/api/github/sync" 2>/dev/null)
+    SYNCED=$(echo "$SYNC_RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('synced',0))" 2>/dev/null || echo "0")
+    echo "[OK] Dashboard PR sync: $SYNCED PRs synced"
+else
+    echo "[WARN] CLAW_API_KEY not set — skipping dashboard sync"
+fi
 
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
@@ -388,7 +401,7 @@ echo "  Logs: openclaw logs"
 echo "  PRs: gh search prs --author BillionClaw --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
-echo "V10.1 features: P(merge) scoring, max 5 PRs/repo,"
+echo "V10.1 features: P(merge) scoring, no per-repo PR cap,"
 echo "7-niche discovery, always-on agents with no timeout (runTimeoutSeconds:0),"
 echo "rework-not-close, lock-file dedup, CLA auto-signing, unconditional ANNOUNCE_SKIP."
 echo ""

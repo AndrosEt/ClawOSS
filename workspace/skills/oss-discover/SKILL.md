@@ -224,7 +224,7 @@ For each candidate repo, do a quick check using `gh api repos/{owner}/{repo}`:
 2. **Not archived** — skip archived repos
 3. **Recent push** — skip if no push in 30 days
 4. **Not forking-disabled** — can't submit PRs if forking disabled
-5. **Check our open PRs** — skip if we already have >= 5 open PRs there
+5. **Check our open PRs** — review existing open PRs for awareness (no hard cap)
 6. **Anti-bot check** — if you've seen "no bot PRs" or "no AI" in CONTRIBUTING.md from a previous visit, skip
 7. **Skip non-automatable CLA orgs**: apache, microsoft, google, meta-llama
 

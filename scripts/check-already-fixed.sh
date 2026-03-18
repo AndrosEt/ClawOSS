@@ -14,7 +14,7 @@ if [ "$ISSUE_STATE" = "closed" ]; then
 fi
 
 # 2. Recently merged PRs referencing this issue
-MERGED_REFS=$(gh pr list --repo "$REPO" --state merged --limit 15 --json title,body,number --jq "[.[] | select((.title // \"\") + (.body // \"\") | test(\"#${ISSUE}\"; \"i\"))] | length" 2>/dev/null || echo 0)
+MERGED_REFS=$(gh search prs --repo "$REPO" "is:merged" --limit 15 --json title,body,number --jq "[.[] | select((.title // \"\") + (.body // \"\") | test(\"#${ISSUE}\"; \"i\"))] | length" 2>/dev/null || echo 0)
 if [ "$MERGED_REFS" -gt 0 ]; then
   echo "{\"fixed\": true, \"repo\": \"$REPO\", \"issue\": $ISSUE, \"reason\": \"${MERGED_REFS} recently merged PR(s) reference this issue\"}"
   exit 1

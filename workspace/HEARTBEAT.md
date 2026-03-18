@@ -8,7 +8,7 @@ Keep all 10 impl/followup sub-agent slots filled. **NEW PRs FIRST** — fill all
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
-**ANTI-DEADLOCK**: Multiple open PRs per repo is OK (up to 5). The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
+**ANTI-DEADLOCK**: Multiple open PRs per repo is OK. The agent MUST NOT idle when work exists — if all repos are "blocked," the blocking rule is wrong, not the work.
 
 ## Web Search — USE PROACTIVELY
 You have `web_search` and `web_fetch` tools. **Use them aggressively:**
@@ -88,7 +88,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 - **impl/followup active >= 10**: skip to step 6.
 - **impl/followup active < 10, queue has items**: pick next (urgent first, P(merge) >= 30, score >= 5). Gates:
   a. **IMPL SPAWN GUARD**: skip if issue has `spawned_pending` in `memory/impl-spawn-state.md`.
-  b. **DEDUP**: skip if in pr-ledger.md, open PRs for repo >= 5 (`gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'` >= 5), in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md, OR lock file exists (`memory/locks/{owner}_{repo}.lock`). Multiple open PRs per repo is FINE (up to 5). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
+  b. **DEDUP**: skip if in pr-ledger.md, in subagent-result-*.md, repo has `spawned_pending` in impl-spawn-state.md, OR lock file exists (`memory/locks/{owner}_{repo}.lock`). ALWAYS use `BillionClaw` explicitly — `@me` can fail in sub-agent contexts.
   **DOUBLE-CHECK**: Before each spawn, re-run `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If count changed, skip (race condition guard).
   **LOCK FILE**: Before spawning, write lock: `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) {issue}" > memory/locks/{owner}_{repo}.lock`. Sub-agent deletes lock after PR creation or failure. Orchestrator cleans stale locks (>30 minutes) in step 1 (stall recovery).
   b2. **BLOCKLIST HARD-BLOCK**: Read `memory/trust-repos.md` Deprioritized section. If the repo appears there AND `Skip Until` is "permanent" or a future date, SKIP unconditionally — no override by score, labels, or any other factor. Repos on this list have hostile maintainers, ban threats, or non-automatable CLAs.
@@ -97,7 +97,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
   e. **TYPE CHECK**: bug fix, docs fix, typo fix, or test addition only.
   f. **TITLE REJECT**: Skip if title whole-word matches: `add`, `extend`, `enable`, `improve`, `enhance`, `new feature`, `request`, `implement`, `support`, `introduce`, `create`, `propose`, `migrate`, `upgrade`, `refactor`, `redesign`, `optimize`, `allow`, `provide`.
   g. **HEALTH GATE**: Quick check — `gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count, pushed: .pushed_at, archived: .archived}'`. Skip if: archived, stars < 100, or no push in 30 days. Use judgment — don't run the full script every time.
-  g2. **DASHBOARD BLOCKLIST**: If step 0c returned `avoidRepos`, skip any repo in that list. `reposWithOpenPRs` is informational only — you CAN submit to repos with open PRs (up to 5 per repo).
+  g2. **DASHBOARD BLOCKLIST**: If step 0c returned `avoidRepos`, skip any repo in that list. `reposWithOpenPRs` is informational only — you CAN submit to repos with open PRs.
   h. **SUPERSESSION CHECK**: Before spawning, quick-check if issue already has linked PRs or is assigned:
      `gh api "repos/{owner}/{repo}/issues/{number}/timeline" --jq '[.[] | select(.event=="cross-referenced") | .source.issue | select(.pull_request != null and .state == "open")] | length'`
      If > 0: skip (someone else is already working on it).
@@ -109,7 +109,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
      Mark skipped issues as `superseded` or `assigned` in pr-ledger.md so we don't re-check.
   i. **ALREADY-FIXED CHECK** (CRITICAL — prevents ban-worthy duplicate submissions):
      Check if a recently merged PR already fixes this issue:
-     `gh pr list --repo {owner}/{repo} --state merged --limit 20 --json number,title,body,mergedAt --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length"`
+     `gh search prs --repo {owner}/{repo} "is:merged" --limit 20 --json number,title,body,closedAt --jq "[.[] | select(.body != null and (.body | test(\"#{number}\"; \"i\")) or .title != null and (.title | test(\"#{number}\"; \"i\")))] | length"`
      If > 0: skip with reason `already_fixed_upstream`. Also check if the issue itself is closed:
      `gh api "repos/{owner}/{repo}/issues/{number}" --jq '.state'` — if "closed", skip.
      **Submitting a fix for an already-resolved issue gets us flagged as bots and threatened with bans.**
@@ -129,7 +129,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 **5a. Pre-spawn comment (score >= 8, or >= 6 for trusted repos):** Post brief comment: `gh issue comment {issue} --repo {owner}/{repo} --body "Looking into this — [1-sentence approach]. Happy to submit a fix."` Skip for lower scores.
 **5b.** Use the `read` tool to load `templates/subagent-implementation.md` from disk NOW (do NOT reuse cached content). Substitute `{repo}`, `{issue}`, `{title}` in the content. Spawn: `sessions_spawn(task: {THE_SUBSTITUTED_CONTENT}, label: "{repo}#{issue}", ...)`. Always re-read the template for EVERY spawn — files change between cycles. Pass repo conventions + issue details as attachments.
 **IMMEDIATELY mark issue as `spawned_pending` in `memory/impl-spawn-state.md` BEFORE spawning the next agent.**
-**ALSO check: `gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length'`. If >= 5, SKIP — too many open PRs at this repo. NEVER use `@me` — it fails in sub-agent contexts.**
+**NEVER use `@me` — it fails in sub-agent contexts. ALWAYS use `BillionClaw` explicitly.**
 **Read `memory/repos/{owner}_{repo}.md`** if it exists — pass key info (target branch, CLA, CI) to the subagent via attachments.
 **5c. PASS OPEN PR CONTEXT**: Before spawning, fetch open PRs in the repo and pass as attachment:
 `gh pr list --repo {owner}/{repo} --state open --json number,title,headRefName --limit 20`

@@ -32,7 +32,6 @@ OPEN_COUNT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state open -
 ISSUE_PRS=$(gh search prs --author BillionClaw "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
 ```
 If ANY result > 0: **ABANDON. Do NOT create duplicate PRs.**
-- Max 5 open PRs per repo
 - No duplicate PRs for the same issue even across different branches
 This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incidents.
 

@@ -144,9 +144,6 @@ STATE=$(gh api repos/{owner}/{repo}/issues/{number} --jq '.state' 2>/dev/null)
 ASSIGNEES=$(gh api repos/{owner}/{repo}/issues/{number} --jq '.assignees | length' 2>/dev/null)
 [ "$ASSIGNEES" -gt 0 ] && continue
 
-# Already have 5+ open PRs at this repo?
-OPEN=$(gh search prs --author BillionClaw --repo {owner}/{repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
-[ "$OPEN" -ge 5 ] && continue
 ```
 
 Also apply local filters (no API calls needed):

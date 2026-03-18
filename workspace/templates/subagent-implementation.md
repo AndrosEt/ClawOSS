@@ -77,10 +77,6 @@ Read the attached repo-conventions.md and issue-details.md.
    # Lock repo (prevents duplicate agents)
    bash $SCRIPTS/lock-repo.sh {repo} {issue} || exit 1
 
-   # Check for existing open PRs by BillionClaw (max 5 per repo)
-   EXISTING=$(gh search prs --author BillionClaw --repo {repo} --state open --json number --jq 'length' 2>/dev/null || echo 0)
-   [ "$EXISTING" -ge 5 ] && echo "ABORT: 5+ open PRs at this repo" && bash $SCRIPTS/unlock-repo.sh {repo} && exit 1
-
    # Clone — MUST be in /tmp/clawoss-* (cleanup daemon monitors this prefix)
    WORKDIR=/tmp/clawoss-{issue}-$(date +%s)
    mkdir -p $WORKDIR

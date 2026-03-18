@@ -29,7 +29,7 @@ gh api repos/{owner}/{repo} --jq '.pushed_at'
 
 ### 2. PR Merge Velocity (how fast do PRs get merged?)
 ```bash
-gh pr list --repo {owner}/{repo} --state merged --json mergedAt,createdAt --limit 10
+gh search prs --repo {owner}/{repo} "is:merged" --json createdAt,closedAt --limit 10
 ```
 - Calculate average days from created to merged for the last 10 merged PRs
 - **SKIP** if avg merge time exceeds tiered limit (14d for <5000 stars, 30d for 5000+)
