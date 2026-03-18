@@ -242,13 +242,32 @@ if [ -d "$SESSIONS_DIR" ]; then
 fi
 echo "[OK] Context flushed ($TOTAL_CLEANED session files removed, fresh start)"
 
-# ── 7b. Reset orphaned spawned_pending entries ────────────────────────
-# All subagents die on restart. Any repo with spawned_pending in state files
-# would be permanently blocked by the IMPL SPAWN GUARD since there's no
-# session left to detect as stalled. Reset them so repos can be re-picked.
-sed -i '' 's/spawned_pending/failed_restart/g' "$WORKSPACE_DIR/memory/impl-spawn-state.md" 2>/dev/null || true
-sed -i '' 's/spawned_pending/failed_restart/g' "$WORKSPACE_DIR/memory/pr-followup-state.md" 2>/dev/null || true
-echo "[OK] Reset orphaned spawned_pending entries"
+# ── 7b. Reset impl-spawn-state to EMPTY ───────────────────────────────
+# All subagents die on restart. The state file must be reset to show 0 active
+# agents — otherwise the main agent reads "10/10 slots FULL" and refuses to
+# spawn new work. This was the root cause of post-restart stalls.
+cat > "$WORKSPACE_DIR/memory/impl-spawn-state.md" << 'SPAWNEOF'
+# Implementation Spawn State — Reset by restart.sh
+
+## Active Implementations (0 total)
+| issue_url | repo | status | spawned_at |
+|-----------|------|--------|------------|
+
+## Active Follow-ups (0 total)
+| pr_url | repo | status | round | spawned_at |
+|--------|------|--------|-------|------------|
+SPAWNEOF
+# Also reset followup state
+cat > "$WORKSPACE_DIR/memory/pr-followup-state.md" << 'FOLLOWEOF'
+# PR Follow-up State — Reset by restart.sh
+No active follow-ups.
+FOLLOWEOF
+echo "[OK] Spawn state reset to empty (0 active implementations)"
+
+# ── 7c. Clean stale subagent result files ─────────────────────────
+RESULT_COUNT=$(ls "$WORKSPACE_DIR/memory/subagent-result-"*.md 2>/dev/null | wc -l | tr -d ' ')
+rm -f "$WORKSPACE_DIR/memory/subagent-result-"*.md 2>/dev/null || true
+echo "[OK] Cleaned $RESULT_COUNT stale result files"
 
 # ── 8. Reset wake state (V9: no rate-limit fields) ───────────────────
 cat > "$WORKSPACE_DIR/memory/wake-state.md" << 'WAKEEOF'
