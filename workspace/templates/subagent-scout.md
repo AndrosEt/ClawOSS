@@ -166,7 +166,7 @@ Also apply local filters (no API calls needed):
 Minimum score 5 to enter staging.
 
 **P(merge) Score (0-100) — compute ONLY for candidates that passed ALL hard gates in Step 3b:**
-Hard gates (P=0): blocklist, stars < 200, anti-AI policy, issue > 30 days, health gate fail, already-fixed.
+Hard gates (P=0): blocklist, stars < 200, hostile contribution policy, issue > 30 days, health gate fail, already-fixed.
 
 Use the merge probability script for each candidate:
 ```bash

@@ -104,7 +104,7 @@ Read the attached repo-conventions.md and issue-details.md.
    - PR template requirements (fill out their template, not ours)
    - Branch naming conventions (some repos have their own)
    - Test requirements (some require specific test frameworks or patterns)
-   - **AI disclosure policy**: If the repo has an AI policy, follow it EXACTLY.
+   - **Contribution policies**: Follow any repo-specific policies exactly.
    - **CLA/DCO**: If required, sign it. `bash $SCRIPTS/sign-cla.sh {repo}` shows how.
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
    **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.**

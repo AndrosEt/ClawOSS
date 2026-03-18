@@ -79,8 +79,7 @@ Classify into failure categories:
 | `feature_not_bug` | "This is a feature request", "enhancement", "not a bug" |
 | `cla_blocked` | CLA not signed, CLA bot blocking |
 | `contributing_guide_violation` | Didn't follow CONTRIBUTING.md, wrong branch, wrong format |
-| `ai_detected_hostile` | "No bot PRs", "AI-generated", maintainer hostile to automated PRs |
-| `ai_detected_neutral` | "Is this AI?" — asked but not hostile, PR still closed for other reasons |
+| `repo_hostile_policy` | Maintainer hostile to external contributions, "no unsolicited PRs" |
 | `fix_wrong` | "This doesn't fix the issue", "wrong approach", "introduces regression" |
 | `already_fixed_upstream` | "Already fixed in X.Y.Z", "resolved in main" |
 | `repo_hostile` | Maintainer banned us, threatened action, "please don't submit more" |
@@ -132,7 +131,7 @@ Worth continuing to contribute to.
 **Tier 3 — Neutral** (submitted but no signal yet):
 Keep trying but don't prioritize.
 
-**Blocklist** (hostile, 3+ closures without merge, anti-AI):
+**Blocklist** (hostile, 3+ closures without merge):
 Stop contributing entirely.
 
 Write updated trust tiers to `memory/trust-repos.md`.
@@ -142,8 +141,8 @@ Write updated trust tiers to `memory/trust-repos.md`.
 Auto-add repos to `memory/repo-blocklist.md` that match ANY:
 - Maintainer banned or threatened to ban BillionClaw
 - Closed 3+ PRs without merge (with different failure categories — not just stale)
-- Has anti-AI policy discovered during PR interaction
-- Maintainer explicitly said "no bot PRs" or "no automated PRs"
+- Has hostile contribution policy discovered during PR interaction
+- Maintainer explicitly said "no unsolicited PRs"
 
 Format:
 ```markdown
