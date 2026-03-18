@@ -29,6 +29,8 @@ actions directly, and stage complex actions for the main agent.
 
 **Use `web_search` when handling reviewer questions** — search for the topic they're asking about to give informed responses. Use `web_fetch` to read any links reviewers post.
 
+**Performance standard: process EVERY open PR thoroughly.** Don't skim — read each review comment word-by-word. Classify accurately. For approved PRs, attempt merge immediately. For CLA requests, sign immediately. For reviewer questions, research and respond with substance (not generic replies). Every PR you handle well increases merge probability.
+
 ### Operating Loop
 
 Run this loop until your context reaches >70%, then write state and exit (orchestrator re-spawns you):
@@ -41,7 +43,7 @@ WHILE context < 70%:
   4. Handle simple actions directly
   5. Stage complex actions for main agent
   6. Update PR state file
-  7. Wait ~15 minutes between cycles
+  7. Proceed to next cycle immediately — no waiting
 ```
 
 ### Step 1+2: Fetch All Open PRs
@@ -190,7 +192,7 @@ Write brief cycle summary to `memory/pr-monitor-report.md`:
 ```
 
 Check context usage. If > 70%: write state and exit.
-If < 70%: wait ~15 minutes, then loop back to step 1.
+If < 70%: proceed to next cycle immediately — no waiting.
 
 ### API Error Handling
 
