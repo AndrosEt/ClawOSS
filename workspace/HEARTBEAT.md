@@ -6,7 +6,7 @@ There is ALWAYS something to do. Execute ALL steps 0-7 every cycle. If queue is 
 ## Rules — see AGENTS.md (loaded alongside this file)
 Keep all 10 impl/followup sub-agent slots filled. **NEW PRs FIRST** — fill all 10 slots with new implementations. Only do follow-ups AFTER all 10 impl slots are full or no new work exists.
 Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
-**NO CRON DEPENDENCIES**: This heartbeat + the 3 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor. Analysis = PR analyst. Cleanup = step 7.
+**NO CRON DEPENDENCIES**: This heartbeat + the 4 always-on subagents handle EVERYTHING. No cron jobs are used. Discovery = scout. Follow-ups = PR monitor scan + PR monitor deep. Analysis = PR analyst. Cleanup = step 7.
 **LAZY LOADING**: Do NOT read all memory files at once. Only read files needed for the current step. pr-ledger.md only when dedup checking. trust-repos.md only when scoring. This prevents context bloat.
 **ANTI-DEADLOCK**: Multiple open PRs per repo is OK. The agent MUST NOT idle when work exists.
 **NEVER WAIT**: Do NOT say "monitoring for completion events", "standing by", "waiting for results", or yield. After ANY step, continue to the next step. After step 7, loop to step 2. The heartbeat is an infinite loop with NO pause states.
@@ -51,7 +51,7 @@ Parse the response and OBEY all three fields:
 - `reposWithOpenPRs`: repos where we already have open PRs — do NOT submit new PRs, focus on follow-ups instead.
 If curl fails or times out, proceed without dashboard data — the other gates still apply.
 
-## 0.5. Always-On Subagent Management (scout + PR monitor + PR analyst)
+## 0.5. Always-On Subagent Management (scout + PR monitor scan + PR monitor deep + PR analyst)
 Check always-on subagents via `sessions_list`:
 
 **CRITICAL: ALWAYS read the template file from disk with the `read` tool BEFORE spawning.** Do NOT use cached template content from your context — files change between cycles. Read the file, get the FULL content, pass that content as the `task` parameter.
@@ -62,15 +62,19 @@ Check always-on subagents via `sessions_list`:
   `sessions_spawn(task: {THE_FULL_CONTENT_YOU_JUST_READ}, label: "scout-tier0", mode: "run", runTimeoutSeconds: 0)`
   Pass trust-repos.md and pr-ledger.md via attachments.
 
-**2. PR Monitor** (label "pr-monitor") — continuous PR follow-up scanning:
-- **Alive** (active in last 30 min): read `memory/followup-staging.md` for items needing code changes (see step 2). Read `memory/pr-monitor-report.md` for cycle summary.
+**2. PR Monitor Scan** (label "pr-monitor-scan") — fast PR scanning and classification:
+- **Alive** (active in last 30 min): read `memory/pr-monitor-report.md` for cycle summary.
 - **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-pr-monitor.md`. Then spawn with that content as the task.
 
-**3. PR Analyst** (label "pr-analyst") — continuous portfolio analysis & strategy:
+**3. PR Monitor Deep** (label "pr-monitor-deep") — deep comment analysis and follow-up context:
+- **Alive** (active in last 30 min): read `memory/followup-staging.md` for items needing code changes (see step 2). Read `memory/pr-monitor-deep-report.md` for cycle summary.
+- **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-pr-monitor-deep.md`. Then spawn with that content as the task.
+
+**4. PR Analyst** (label "pr-analyst") — continuous portfolio analysis & strategy:
 - **Alive** (active in last 30 min): read `memory/pr-strategy.md` and `memory/repo-blocklist.md`.
 - **Dead or missing**: Respawn IMMEDIATELY in this step — do NOT defer to next cycle or continue to other steps first. First `read` the file `templates/subagent-pr-analyst.md`. Then spawn with that content as the task.
 
-Always-on subagents use 3 slots. Remaining 10 for impl/followup. Total maxConcurrent = 13.
+Always-on subagents use 4 slots. Remaining 10 for impl/followup. Total maxConcurrent = 14.
 **Respawn IMMEDIATELY when dead.** Kill zombies by sessionKey if label is ambiguous.
 
 ## 1. Stall Recovery
@@ -121,7 +125,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 ## 4. Triage (< 3 min, main session)
 **4-ZERO.** Quick health check: `gh api repos/{owner}/{repo} --jq '{stars: .stargazers_count, pushed: .pushed_at, archived: .archived}'`. Skip if archived, stars < 100, no push in 30 days. No script needed — use judgment.
 **4a.** Type: bug/docs/typo/test. Title keyword reject (same as 3f). Label reject: `enhancement`, `feature`, `feature-request`, `improvement`, `refactor`, `discussion`, `question`, `proposal`, `rfc`, `design`, `meta`, `chore`, `performance`, `optimization`. Invalid = remove.
-**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: sign automatable CLAs (CLA-assistant, DCO). Skip non-automatable CLAs (apache, microsoft, google, meta-llama).
+**4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: skip — CLAs require manual signing by the account owner.
 **4b-SUPERSESSION.** Assigned? Linked PRs? "I'll take this" comment? Issue closed? Merged PR refs? If yes, remove and mark in pr-ledger.md.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d.
 **4d.** Quick research via web_search.
@@ -136,23 +140,15 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 `gh pr list --repo {owner}/{repo} --state open --json number,title,headRefName --limit 20`
 This gives the sub-agent awareness of what's in flight so it can avoid file conflicts.
 
-Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 13 (3 always-on + 10 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
+Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter per `templates/subagent-result-schema.md`). maxConcurrent: 14 (4 always-on + 10 impl/followup). Sub-agents clean their own `/tmp/clawoss-*` workspaces.
 
 ## 5. PR Follow-ups (ONLY when all 10 impl slots are full)
 **Skip this step entirely if < 10 impl subagents are active.** New PRs always take priority.
 Only when ALL 10 slots are filled with implementations, use remaining capacity for follow-ups:
 
 The PR Monitor (always-on) stages items to `memory/followup-staging.md`. Read it.
-**For each follow-up item, build a RICH context package before spawning:**
-1. Fetch ALL comments: `gh api repos/{owner}/{repo}/issues/{pr}/comments` (top-level)
-2. Fetch ALL review comments: `gh api repos/{owner}/{repo}/pulls/{pr}/comments` (inline/threaded — the most important feedback)
-3. Fetch ALL reviews: `gh api repos/{owner}/{repo}/pulls/{pr}/reviews` (formal approve/reject)
-4. Fetch the PR diff: `gh pr diff {pr} --repo {owner}/{repo}` (so subagent sees current code)
-5. Write ALL of this to `memory/subagent-inputs/followup-{owner}-{repo}-{pr}.md`
-6. Use the `read` tool to load `templates/subagent-followup.md` from disk
-7. Spawn with the rich context file as an attachment
-
-**The follow-up subagent must receive: the full conversation thread (including inline code comments), the current diff, reviewer usernames, and specific comment IDs for threaded replies.** Without this context, follow-up subagents produce generic responses that get rejected.
+The PR Monitor Deep (always-on) builds rich context for each PR needing follow-up. Read `memory/followup-staging.md` — it contains full comment threads, inline reviews, and comment IDs.
+Load `templates/subagent-followup.md` from disk. Spawn with the staging data as attachment.
 
 ## 6. Handle Sub-Agent Results
 

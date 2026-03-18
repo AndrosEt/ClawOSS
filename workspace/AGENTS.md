@@ -10,11 +10,12 @@ All agents (main + subagents) have `web_search` and `web_fetch` tools via Perple
 **Use them constantly** — before implementing any fix, search for the error, related PRs, upstream discussions. When evaluating repos, search for their reputation. When stuck, search for solutions. Do NOT guess when you can search. It's free and fast.
 
 ## Architecture
-One orchestrator (main session) + 3 always-on subagents + up to 10 concurrent impl/followup sub-agents. maxConcurrent: 13.
+One orchestrator (main session) + 4 always-on subagents + up to 10 concurrent impl/followup sub-agents. maxConcurrent: 14.
 
 **Always-on subagents** (persistent loops, respawned by orchestrator if dead):
 - **Scout** (label "scout-*"): continuous issue discovery, writes to `memory/work-queue-staging.md`
-- **PR Monitor** (label "pr-monitor"): continuous PR scanning, handles simple actions (merge, bump, respond), stages complex actions to `memory/followup-staging.md`
+- **PR Monitor Scan** (label "pr-monitor-scan"): fast PR scanning and classification, handles immediate actions (merge, bump, close), writes `memory/pr-monitor-active.md` listing PRs needing deep processing
+- **PR Monitor Deep** (label "pr-monitor-deep"): deep comment analysis for active PRs, fetches all comment types (inline threaded + top-level + formal reviews), builds rich follow-up context, stages complex actions to `memory/followup-staging.md`
 - **PR Analyst** (label "pr-analyst"): continuous portfolio analysis, failure modes, trust scoring, P(merge) calibration, strategy recommendations
 
 **Impl/followup subagents** (10 slots):
@@ -24,7 +25,7 @@ One orchestrator (main session) + 3 always-on subagents + up to 10 concurrent im
 
 Sub-agents write results to `memory/subagent-result-*.md` (YAML frontmatter), reply ANNOUNCE_SKIP.
 Sub-agents cannot access memory tools -- context passed via attachments.
-Spawn templates: `templates/subagent-implementation.md`, `templates/subagent-followup.md`, `templates/subagent-pr-monitor.md`, `templates/subagent-pr-analyst.md`, `templates/subagent-scout.md`
+Spawn templates: `templates/subagent-implementation.md`, `templates/subagent-followup.md`, `templates/subagent-pr-monitor.md`, `templates/subagent-pr-monitor-deep.md`, `templates/subagent-pr-analyst.md`, `templates/subagent-scout.md`
 Result schema: `templates/subagent-result-schema.md`
 
 ## Skills — Use Proactively (read SKILL.md with the `read` tool)
@@ -55,7 +56,7 @@ Skills provide step-by-step specialized instructions. **Load them before each ta
 - GitHub token scope: `public_repo` (least privilege)
 - Branch naming: `clawoss/{fix,docs,test,typo}/<description>`
 - Target 25-100 LOC per PR (HARD MAX 200). Smaller PRs merge 40% faster.
-- Max 13 concurrent sub-agents total (3 always-on + 10 implementation/follow-up)
+- Max 14 concurrent sub-agents total (4 always-on + 10 implementation/follow-up)
 - Max 3 follow-up rounds per PR -- after 3, politely disengage
 - Read CONTRIBUTING.md before first PR to any repo
 - Run target repo's test suite before submitting
@@ -73,7 +74,7 @@ A superseded PR wastes our cycle AND annoys maintainers. Prevention is 100x chea
 All per-repo metadata (branch targets, CLA types, CI quirks) lives in `memory/repos/{owner}_{repo}.md`.
 Always check there first. Always verify default branch with `gh api repos/{owner}/{repo} --jq '.default_branch'`.
 
-**CLA/DCO**: Sign automatable CLAs (CLA-assistant, DCO with `git commit -s`). Skip non-automatable (apache, microsoft, google, meta-llama).
+**CLA/DCO**: CLAs require manual signing by the account owner. The agent cannot sign CLAs.
 **Issue assignment repos**: Some repos auto-close unassigned PRs. Comment on the issue first if `memory/repos/` notes say so.
 
 ## Repo Health Gate (mandatory -- run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`)

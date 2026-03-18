@@ -117,7 +117,7 @@ Read the attached repo-conventions.md and issue-details.md.
    ```bash
    # Parse CONTRIBUTING.md for structured metadata (branch target, CLA, test/lint commands)
    CONTRIB=$(bash $SCRIPTS/check-contributing-guide.sh {repo} --workspace $WORKDIR)
-   echo "$CONTRIB" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d.get(\"branch_target\",\"main\")} | CLA: {d.get(\"cla_type\",\"none\")} | Tests: {d.get(\"test_commands\",[])} | Lint: {d.get(\"lint_commands\",[])} | Anti-bot: {d.get(\"anti_bot\",False)}')"
+   echo "$CONTRIB" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Branch: {d.get(\"branch_target\",\"main\")} | Tests: {d.get(\"test_commands\",[])} | Lint: {d.get(\"lint_commands\",[])} | Anti-bot: {d.get(\"anti_bot\",False)}')"
    # Also read the raw text for any nuances the parser missed
    for f in CONTRIBUTING.md .github/CONTRIBUTING.md docs/CONTRIBUTING.md AGENTS.md; do
      [ -f "$WORKDIR/$f" ] && echo "=== $f ===" && head -200 "$WORKDIR/$f"
@@ -130,7 +130,6 @@ Read the attached repo-conventions.md and issue-details.md.
    - Branch naming conventions (some repos have their own)
    - Test requirements (some require specific test frameworks or patterns)
    - **Contribution policies**: Follow any repo-specific policies exactly.
-   - **CLA/DCO**: If required, sign it. `bash $SCRIPTS/sign-cla.sh {repo}` shows how.
    - AGENTS.md: if present, follow its agent-specific instructions (they override defaults)
    **If you skip reading CONTRIBUTING.md, maintainers WILL close the PR.**
 
@@ -268,12 +267,6 @@ Read the attached repo-conventions.md and issue-details.md.
    )"
    ```
    Valid prefixes: `fix(scope):`, `docs(scope):`, `test(scope):`. NEVER `feat:` or `refactor:`.
-
-   **CLA SIGNING** (if repo requires it — metadata from step 1 tells you):
-   ```bash
-   CLA_INFO=$(bash $SCRIPTS/sign-cla.sh {repo})
-   echo "$CLA_INFO"  # Shows CLA type + signing instructions
-   ```
 
    **PR DESCRIPTION (WRITE LIKE A HUMAN — AI PRs get 4.6x slower review pickup):**
    - Jump straight to what's broken and what you did. Write like a note to a colleague.

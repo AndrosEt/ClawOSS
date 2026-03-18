@@ -93,7 +93,6 @@ Always run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh` before targeti
 langchain-ai/langchain *(requires issue assignment — comment first)*, langchain-ai/langgraph, crewAIInc/crewAI, stanfordnlp/dspy,
 langgenius/dify, langflow-ai/langflow, FlowiseAI/Flowise, mem0ai/mem0,
 CopilotKit/CopilotKit, elizaOS/eliza, SWE-agent/SWE-agent
-*(CLA repos — sign when prompted: microsoft/autogen, microsoft/semantic-kernel, deepset-ai/haystack, google/adk-python)*
 
 **LLM Inference & Serving:**
 ollama/ollama, vllm-project/vllm, BerriAI/litellm, hiyouga/LlamaFactory,
@@ -102,18 +101,15 @@ unslothai/unsloth, mudler/LocalAI, janhq/jan, dottxt-ai/outlines
 **RAG & Document Processing:**
 run-llama/llama_index, infiniflow/ragflow, HKUDS/LightRAG,
 Unstructured-IO/unstructured, firecrawl/firecrawl, labring/FastGPT
-*(CLA repo — sign when prompted: microsoft/graphrag)*
 
 **Vector Databases & Search:**
 chroma-core/chroma, qdrant/qdrant, weaviate/weaviate,
 meilisearch/meilisearch, lancedb/lancedb
-*(DCO repo — use `git commit -s`: milvus-io/milvus)*
 
 **AI SDKs & Developer Tools:**
 instructor-ai/instructor, vercel/ai, pydantic/pydantic,
 gradio-app/gradio, streamlit/streamlit, marimo-team/marimo, continuedev/continue,
 Portkey-AI/gateway, tensorzero/tensorzero, browser-use/browser-use
-*(CLA repo — sign when prompted: openai/openai-python)*
 
 **High-Impact General (Python/TS, massive star counts):**
 fastapi/fastapi, huggingface/transformers, open-webui/open-webui, ray-project/ray,
@@ -226,7 +222,7 @@ For each candidate repo, do a quick check using `gh api repos/{owner}/{repo}`:
 4. **Not forking-disabled** — can't submit PRs if forking disabled
 5. **Check our open PRs** — review existing open PRs for awareness (no hard cap)
 6. **Anti-bot check** — if you've seen "no bot PRs" or "no AI" in CONTRIBUTING.md from a previous visit, skip
-7. **Skip non-automatable CLA orgs**: apache, microsoft, google, meta-llama
+7. **CLA repos**: Note CLA requirement but don't attempt signing — CLAs require manual signing by the account owner
 
 You CAN use `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh` for a thorough check, but it's NOT required for every repo. Use your judgment — a quick `gh api` call is often enough.
 

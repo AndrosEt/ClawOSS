@@ -80,7 +80,7 @@ This prevents the 5x-duplicate-on-instructor and 3x-duplicate-on-taskcoach incid
    - **Docs/typo fixes**: what was wrong + what's correct now (2-3 sentences total)
    - **Test additions**: what's tested + why it matters (2-3 sentences total)
    - References: "Fixes #<issue-number>" in body
-5. **CLA RULE (HONESTY — never lie):** Do NOT include any CLA checkbox, claim, or mention in the PR body UNLESS the repo explicitly requires a CLA. If a repo does not require a CLA, saying nothing about CLA is correct. Claiming you signed a CLA you didn't sign is dishonest and will get PRs rejected. If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`).
+5. Do NOT mention CLA in PR body. If repo requires CLA, it will be handled separately.
 7. Log submission to memory: repo, issue, PR number, timestamp, contribution type
 8. Report to dashboard via dashboard-reporter skill
 

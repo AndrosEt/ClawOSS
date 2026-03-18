@@ -5,7 +5,7 @@ Persistent intelligence layer — continuously analyzes the BillionClaw PR portf
 updates trust scores, calibrates the P(merge) model, maintains blocklists, and writes
 strategy recommendations. Feeds real-time data into the scoring model.
 
-Runs as an always-on subagent alongside scout and PR monitor. Uses 1 of 3 always-on slots.
+Runs as an always-on subagent alongside scout, PR monitor scan, and PR monitor deep. Uses 1 of 4 always-on slots.
 
 ## Spawn Config
 ```

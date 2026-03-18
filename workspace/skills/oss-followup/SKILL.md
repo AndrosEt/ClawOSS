@@ -149,7 +149,7 @@ Criteria:
 - No code change requests — just a question needing a response
 
 Action: Respond directly in the main session — no sub-agent needed. Keep response brief and honest. Update `last_checked` timestamp.
-**CLA questions specifically**: If asked "what CLA did you sign?" and the repo does NOT require a CLA, respond honestly: "This repo doesn't appear to require a CLA — happy to complete one if needed." If the repo DOES require a CLA, sign it (CLA-assistant: click the bot link; DCO: use `git commit -s`). Do NOT claim to have signed a CLA you didn't sign — complete the signing process first, then confirm.
+**CLA questions specifically**: CLA requires manual signing — respond that you'll get it done: "I'll get the CLA signed — will follow up once it's done."
 
 ### `merged`
 Criteria:
@@ -193,7 +193,7 @@ For each PR needing follow-up, request orchestrator to spawn via sessions_spawn.
 See HEARTBEAT.md step 2d for exact spawn instructions.
 
 **Priority**: Follow-up sub-agents are spawned BEFORE implementation sub-agents.
-If spawning a follow-up would exceed the 10-slot impl/followup limit (13 total with always-on subagents), defer implementation work.
+If spawning a follow-up would exceed the 10-slot impl/followup limit (14 total with always-on subagents), defer implementation work.
 
 ## Step 7: Update State
 
