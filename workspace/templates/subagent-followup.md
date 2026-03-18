@@ -52,9 +52,28 @@ Follow-ups are where PRs get merged or die. Your job is to KEEP THE PR ALIVE.
 Handle PR review feedback for {owner}/{repo}#{pr} (round {round}).
 
 IMPORTANT: This is a FOLLOW-UP on an existing PR (bug fix, docs fix, typo, or test), not new work.
-Read the attached followup context file for all review comments and PR details.
-Follow the oss-pr-review-handler skill workflow:
 
+### Read Your Context (CRITICAL — do this FIRST)
+The attached context file contains the FULL conversation for this PR:
+- **Top-level comments**: Issue-style comments from reviewers
+- **Inline review comments**: Code-specific feedback on exact lines (these are the MOST important)
+- **Formal reviews**: approve/changes_requested/commented states
+- **Current diff**: What the PR currently changes
+- **Comment IDs**: For threading your replies to specific inline comments
+
+**Read EVERY comment word-by-word.** Understand what each reviewer is asking. If a reviewer left inline feedback on line 42 of `src/foo.py`, you need to fix THAT specific line and reply to THAT specific comment thread.
+
+### Reply to Inline Comments (threaded)
+When a reviewer leaves inline code comments, reply IN THE THREAD:
+```bash
+# Reply to a specific inline comment thread (uses in_reply_to_id from context)
+gh api repos/{owner}/{repo}/pulls/{pr}/comments -X POST \
+  -f body="Fixed — changed X to Y as suggested." \
+  -F in_reply_to={comment_id}
+```
+This is MUCH better than a generic top-level "addressed feedback" comment. Maintainers expect threaded replies.
+
+### Setup
 1. Create isolated workspace: WORKDIR=/tmp/clawoss-followup-{pr}-$(date +%s)
    mkdir -p $WORKDIR && cd $WORKDIR
    **IMPORTANT**: Use `python3` (not `python`) for all commands. The `python` binary does not exist on this system.

@@ -64,14 +64,22 @@ for pr in prs:
 print(f'Total: {len(prs)} PRs')
 "
 ```
-Then for each PR that needs deeper analysis, use the scan tool:
+Then for each PR that needs deeper analysis, fetch ALL comment types:
 ```bash
-bash $SCRIPTS/scan-pr-reviews.sh owner/repo pr_number
+# Top-level PR comments (issue-style)
+gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {user: .user.login, body: .body[:500], created_at: .created_at}' 2>/dev/null
+
+# Review comments (inline/threaded on specific code lines — CRITICAL for follow-ups)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --jq '.[] | {user: .user.login, body: .body[:500], path: .path, line: .line, in_reply_to_id: .in_reply_to_id, created_at: .created_at}' 2>/dev/null
+
+# Formal reviews (approved/changes_requested/commented)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '.[] | {user: .user.login, state: .state, body: .body[:500]}' 2>/dev/null
 ```
-For PRs needing deeper analysis (changes_requested, ci_failing), run per-PR scan:
+**You MUST fetch review comments (pulls/{pr}/comments) — these are the inline threaded comments where reviewers leave specific feedback on code lines. Missing these means missing the most important feedback.**
+
+Also use the scan tool for structured classification:
 ```bash
 DEEP_SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh {owner}/{repo} {pr_number})
-echo "$DEEP_SCAN" | python3 -c "import json,sys; d=json.load(sys.stdin); c=d['classification']; print(f'State: {c[\"state\"]} | Action: {c[\"action\"]} | Feedback: {c.get(\"latest_feedback\",[])[: 1]}')"
 ```
 ALWAYS uses `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
 
@@ -137,9 +145,14 @@ esac
 
 **These NEED code changes — write to staging for the main agent to spawn follow-up subagents:**
 
-Write to `memory/followup-staging.md` in this format:
+Write to `memory/followup-staging.md` in this format. **Include the FULL review feedback** so the main agent can reply directly without re-fetching:
 ```markdown
-- {owner}/{repo}#{pr} | classification: {type} | round: {N} | priority: {urgent|normal} | summary: {what's needed}
+- {owner}/{repo}#{pr} | classification: {type} | round: {N} | priority: {urgent|normal}
+  summary: {what's needed}
+  reviewer: {username}
+  feedback: {exact reviewer comment text — include inline comments, not just top-level}
+  files_mentioned: {paths from inline review comments}
+  reply_to_comment_id: {comment ID for threading replies}
 ```
 
 | Classification | Action |

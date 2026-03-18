@@ -143,8 +143,16 @@ Sub-agent results: `memory/subagent-result-<repo>-<issue>.md` (YAML frontmatter 
 Only when ALL 10 slots are filled with implementations, use remaining capacity for follow-ups:
 
 The PR Monitor (always-on) stages items to `memory/followup-staging.md`. Read it.
-Use the `read` tool to load `templates/subagent-followup-batch.md` from disk. Group staged items by repo dynamically (do NOT hardcode repo names). Spawn ONE batch subagent per repo group — this agent handles ALL PRs for that repo in a single session. Pass PR details as JSON in attachments.
-If no slots available, skip entirely — follow-ups can wait.
+**For each follow-up item, build a RICH context package before spawning:**
+1. Fetch ALL comments: `gh api repos/{owner}/{repo}/issues/{pr}/comments` (top-level)
+2. Fetch ALL review comments: `gh api repos/{owner}/{repo}/pulls/{pr}/comments` (inline/threaded — the most important feedback)
+3. Fetch ALL reviews: `gh api repos/{owner}/{repo}/pulls/{pr}/reviews` (formal approve/reject)
+4. Fetch the PR diff: `gh pr diff {pr} --repo {owner}/{repo}` (so subagent sees current code)
+5. Write ALL of this to `memory/subagent-inputs/followup-{owner}-{repo}-{pr}.md`
+6. Use the `read` tool to load `templates/subagent-followup.md` from disk
+7. Spawn with the rich context file as an attachment
+
+**The follow-up subagent must receive: the full conversation thread (including inline code comments), the current diff, reviewer usernames, and specific comment IDs for threaded replies.** Without this context, follow-up subagents produce generic responses that get rejected.
 
 ## 6. Handle Sub-Agent Results
 
