@@ -11,6 +11,10 @@ function getDbUrl(): string {
     return process.env.TURSO_DATABASE_URL;
   }
   if (process.env.VERCEL) {
+    console.warn(
+      "[db] WARNING: TURSO_DATABASE_URL not set on Vercel — using ephemeral /tmp/clawoss.db. " +
+      "Data WILL be lost on cold starts. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Vercel env vars."
+    );
     return "file:/tmp/clawoss.db";
   }
   return "file:local.db";
@@ -28,6 +32,8 @@ function ensureClient(): Client {
 
 async function initSchema(): Promise<void> {
   const client = ensureClient();
+  const dbUrl = getDbUrl();
+  console.log(`[db] Initializing schema with url: ${dbUrl.startsWith("libsql://") ? dbUrl.split("@")[1] || dbUrl : dbUrl}`);
 
   const statements = [
     `CREATE TABLE IF NOT EXISTS heartbeats (

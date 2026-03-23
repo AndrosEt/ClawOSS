@@ -13,13 +13,22 @@
 
 URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
 KEY="${CLAW_API_KEY:?Set CLAW_API_KEY env var}"
-DIR="$HOME/.openclaw/agents/clawoss/sessions"
+# Sessions dir: check for the clawoss agent sessions, with fallback
+if [ -d "$HOME/.openclaw/agents/clawoss/sessions" ]; then
+  DIR="$HOME/.openclaw/agents/clawoss/sessions"
+else
+  # Fallback: scan for any agent dir that has session files
+  DIR="$HOME/.openclaw/agents/clawoss/sessions"
+  mkdir -p "$DIR" 2>/dev/null || true
+fi
 INTERVAL=10
-OFFSET_DIR="/tmp/dashboard-sync-offsets"
-SESSION_MAP="/tmp/dashboard-sync-session-map.json"
-LOCK_FILE="/tmp/dashboard-sync.pid"
+# Use persistent offset dir under workspace to survive reboots (not /tmp)
+SYNC_STATE_DIR="${CLAWOSS_WORKSPACE:-$HOME/clawOSS/workspace}/.sync-state"
+OFFSET_DIR="${SYNC_STATE_DIR}/offsets"
+SESSION_MAP="${SYNC_STATE_DIR}/session-map.json"
+LOCK_FILE="${SYNC_STATE_DIR}/dashboard-sync.pid"
 SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-mkdir -p "$OFFSET_DIR"
+mkdir -p "$OFFSET_DIR" "$SYNC_STATE_DIR"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 
