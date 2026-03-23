@@ -28,6 +28,12 @@ export const COST_MODELS: Record<string, CostModel> = {
     inputCostPerToken: 0.45 / 1_000_000,
     outputCostPerToken: 2.2 / 1_000_000,
   },
+  "minimax/MiniMax-M2.7": {
+    name: "MiniMax M2.7",
+    provider: "minimax",
+    inputCostPerToken: 0.3 / 1_000_000,
+    outputCostPerToken: 1.2 / 1_000_000,
+  },
   "minimax/MiniMax-M1-80k": {
     name: "MiniMax M2.5 (legacy)",
     provider: "openrouter",
@@ -54,8 +60,8 @@ export const COST_MODELS: Record<string, CostModel> = {
   },
 };
 
-// Default model for the ClawOSS agent (switched to Kimi Code direct API in commit c98540f)
-export const DEFAULT_MODEL = "kimi-coding/k2p5";
+// Default model for the ClawOSS agent (switched to MiniMax M2.7 direct API)
+export const DEFAULT_MODEL = "minimax/MiniMax-M2.7";
 export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL];
 
 /**
