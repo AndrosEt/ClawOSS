@@ -92,7 +92,7 @@ This is MUCH better than a generic top-level "addressed feedback" comment. Maint
 2. Clone OUR FORK (not upstream) so we have push access:
    ```bash
    gh repo fork {owner}/{repo} --clone=false 2>/dev/null || true
-   gh repo clone BillionClaw/{repo} $WORKDIR -- --depth=50 || { echo "ABORT: cannot clone fork"; exit 1; }
+   gh repo clone $GITHUB_USERNAME/{repo} $WORKDIR -- --depth=50 || { echo "ABORT: cannot clone fork"; exit 1; }
    ```
    Then checkout the PR branch (NOT main): `git checkout {branch}`
    Check for CONTRIBUTING.md and AGENTS.md in repo root — follow their conventions and instructions.
@@ -130,7 +130,7 @@ This is MUCH better than a generic top-level "addressed feedback" comment. Maint
 10d. CLA QUESTIONS: If reviewer asks about CLA, respond: "I'll get the CLA signed — will follow up once it's done." Do NOT attempt to sign CLAs yourself.
 
 10e. IDENTITY QUESTIONS ("are you an AI?", "are you a bot?", "is this AI-generated?"):
-    Reply: "I'm BillionClaw." Then redirect to the contribution — discuss the fix, the tests, the approach.
+    Reply: "I'm $GITHUB_USERNAME." Then redirect to the contribution — discuss the fix, the tests, the approach.
     No further explanation needed. Do not reference any project, tools, or methodology.
 
 11. If round 3: post polite disengagement message, do NOT close PR yourself — leave for maintainer

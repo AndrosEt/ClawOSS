@@ -24,8 +24,9 @@ Confirm that this PR is a valid contribution, NOT a large feature or refactor:
 - Red flags: new public APIs, new config options, renamed variables without issue context, files changed unrelated to the issue.
 
 ### 1. Budget Check
-Verify daily token spend hasn't exceeded cap before starting new work.
-Check memory for today's token usage. If over budget, abort and enter idle mode.
+The orchestrator checks budget via Dashboard health-check API (step 0c of HEARTBEAT.md).
+If the heartbeat response has `budgetExceeded: true`, the orchestrator stops spawning new work automatically.
+This skill does NOT need to check budget locally — trust the orchestrator's gate.
 
 ### 2. Diff Size (HARD GATE — abort if exceeded)
 Run `git diff --stat` and verify:
@@ -55,7 +56,7 @@ Valid types for ClawOSS: `fix` (bugs), `docs` (documentation/typos), `test` (tes
 **If branch type is `feat`, `refactor`, or `chore`: ABORT — these are not valid contribution types.**
 
 ### 5. Dedup Check (HARD GATE)
-Check for duplicate PRs targeting the same issue. ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
+Check for duplicate PRs targeting the same issue. ALWAYS use `$GITHUB_USERNAME` explicitly — `@me` fails in sub-agent contexts.
 
 ### 5b. Supersession Check (HARD GATE — final check before submit)
 Re-verify no one else submitted a fix while we were working:

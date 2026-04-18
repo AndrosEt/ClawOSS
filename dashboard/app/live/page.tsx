@@ -58,6 +58,7 @@ export default function LivePage() {
   const lastHeartbeat = connectionData?.connection?.lastHeartbeat || null;
   const errorsLastHour = connectionData?.pipeline?.errorsLastHour || 0;
   const heartbeatsLastHour = connectionData?.pipeline?.heartbeatsLastHour || 0;
+  const connectionModel = connectionData?.model || null;
   const connectionState = connectionData?.connection?.state || "unknown";
 
   const activeSession = selectedSession
@@ -317,6 +318,7 @@ export default function LivePage() {
                 heartbeatsLastHour={heartbeatsLastHour}
                 errorsLastHour={errorsLastHour}
                 sessions={sessions}
+                model={connectionModel}
               />
             ) : (
               <>

@@ -34,7 +34,8 @@ if [ "$CLAIMED" -gt 0 ]; then
 fi
 
 # 4. Competing open PRs
-COMPETING=$(gh pr list --repo "$REPO" --state open --search "$ISSUE" --json number,author --jq '[.[] | select(.author.login != "BillionClaw")] | length' 2>/dev/null || echo 0)
+AGENT_USER="${GITHUB_USERNAME:-$(git config --global user.name)}"
+COMPETING=$(gh pr list --repo "$REPO" --state open --search "$ISSUE" --json number,author --jq "[.[] | select(.author.login != \"$AGENT_USER\")] | length" 2>/dev/null || echo 0)
 [[ "$COMPETING" =~ ^[0-9]+$ ]] || COMPETING=0
 if [ "$COMPETING" -gt 0 ]; then
   echo "{\"superseded\": true, \"repo\": \"$REPO\", \"issue\": $ISSUE, \"reason\": \"${COMPETING} competing PR(s)\"}"

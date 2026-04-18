@@ -54,8 +54,11 @@ else
 fi
 
 # ── 2. Git identity ──────────────────────────────────────────────────
-GITHUB_USERNAME="${GITHUB_USERNAME:-BillionClaw}"
-GITHUB_EMAIL="${GITHUB_EMAIL:-267901332+BillionClaw@users.noreply.github.com}"
+if [ -z "${GITHUB_USERNAME:-}" ]; then
+    echo "[FAIL] GITHUB_USERNAME is not set. Please add it to .env"
+    exit 1
+fi
+GITHUB_EMAIL="${GITHUB_EMAIL:-${GITHUB_USERNAME}@users.noreply.github.com}"
 git config --global user.name "$GITHUB_USERNAME"
 git config --global user.email "$GITHUB_EMAIL"
 echo "[OK] Git identity: $GITHUB_USERNAME <$GITHUB_EMAIL>"
@@ -91,20 +94,41 @@ fi
 # Preserves gateway-managed sections (meta, commands, plugins, gateway.auth)
 # while overlaying all agent/tool/skill settings from the repo config.
 
+LLM_MODEL="${LLM_MODEL:-}"
+LLM_FALLBACK_MODEL="${LLM_FALLBACK_MODEL-${LLM_MODEL}}"
+
+if [ -z "$LLM_MODEL" ]; then
+    echo "[FAIL] LLM_MODEL is not set. Please add it to .env"
+    exit 1
+fi
+
 REPO_CONFIG_RESOLVED=$(sed \
     -e "s|__WORKSPACE_PATH__|$WORKSPACE_DIR|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
     -e "s|__HOME_DIR__|$HOME|g" \
+    -e "s|__LLM_MODEL__|$LLM_MODEL|g" \
+    -e "s|__LLM_FALLBACK_MODEL__|$LLM_FALLBACK_MODEL|g" \
+    -e "s|__GITHUB_USERNAME__|$GITHUB_USERNAME|g" \
     "$PROJECT_DIR/config/openclaw.json")
 
 _REPO_CONFIG="$REPO_CONFIG_RESOLVED" \
 _DEPLOYED="$DEPLOYED_CONFIG" \
-_KIMI_KEY="${KIMI_API_KEY:-}" \
-_MINIMAX_KEY="${MINIMAX_API_KEY:-}" \
+_LLM_MODEL="${LLM_MODEL:-}" \
+_LLM_BASE_URL="${LLM_BASE_URL:-}" \
+_LLM_API_KEY="${LLM_API_KEY:-}" \
+_LLM_CONTEXT_WINDOW="${LLM_CONTEXT_WINDOW:-128000}" \
+_LLM_MAX_TOKENS="${LLM_MAX_TOKENS:-16384}" \
+_LLM_INPUT_COST="${LLM_INPUT_COST_PER_MILLION:-0}" \
+_LLM_OUTPUT_COST="${LLM_OUTPUT_COST_PER_MILLION:-0}" \
+_LLM_PROVIDER="${LLM_PROVIDER:-}" \
+_LLM_FALLBACK_MODEL="${LLM_FALLBACK_MODEL:-}" \
+_LLM_FALLBACK_BASE_URL="${LLM_FALLBACK_BASE_URL:-}" \
+_LLM_FALLBACK_API_KEY="${LLM_FALLBACK_API_KEY:-}" \
+_TOKEN_BUDGET_USD="${TOKEN_BUDGET_USD:-0}" \
 _GH_TOKEN="${GITHUB_TOKEN:-}" \
+_GH_USERNAME="${GITHUB_USERNAME:-}" \
 _DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
 _CLAW_KEY="${CLAW_API_KEY:-}" \
-_OPENROUTER_KEY="${OPENROUTER_API_KEY:-}" \
 python3 -c "
 import json, os
 
@@ -128,15 +152,67 @@ except (FileNotFoundError, json.JSONDecodeError):
 
 merged = deep_merge(deployed, repo_config)
 
+# Build dynamic models.providers block from LLM_* env vars
+llm_model = os.environ.get('_LLM_MODEL', '')
+llm_base_url = os.environ.get('_LLM_BASE_URL', '')
+llm_api_key = os.environ.get('_LLM_API_KEY', '')
+llm_context = int(os.environ.get('_LLM_CONTEXT_WINDOW', '128000'))
+llm_max_tokens = int(os.environ.get('_LLM_MAX_TOKENS', '16384'))
+llm_input_cost = float(os.environ.get('_LLM_INPUT_COST', '0'))
+llm_output_cost = float(os.environ.get('_LLM_OUTPUT_COST', '0'))
+llm_fallback_model = os.environ.get('_LLM_FALLBACK_MODEL', '')
+llm_fallback_base_url = os.environ.get('_LLM_FALLBACK_BASE_URL', '')
+llm_fallback_api_key = os.environ.get('_LLM_FALLBACK_API_KEY', '')
+
+providers = {}
+if llm_model and llm_base_url and llm_api_key:
+    # provider_id = first segment before '/'
+    provider_id = llm_model.split('/')[0] if '/' in llm_model else llm_model
+    model_id = llm_model.split('/', 1)[1] if '/' in llm_model else llm_model
+    entry = {
+        'baseUrl': llm_base_url,
+        'apiKey': llm_api_key,
+        'api': 'openai-completions',
+        'models': [{
+            'id': model_id,
+            'contextWindow': llm_context,
+            'maxTokens': llm_max_tokens,
+        }]
+    }
+    if llm_input_cost > 0 or llm_output_cost > 0:
+        entry['models'][0]['cost'] = {
+            'input': llm_input_cost,
+            'output': llm_output_cost
+        }
+    providers[provider_id] = entry
+
+if llm_fallback_model and llm_fallback_base_url and llm_fallback_api_key:
+    fb_provider_id = llm_fallback_model.split('/')[0] if '/' in llm_fallback_model else llm_fallback_model
+    fb_model_id = llm_fallback_model.split('/', 1)[1] if '/' in llm_fallback_model else llm_fallback_model
+    if fb_provider_id != provider_id:
+        providers[fb_provider_id] = {
+            'baseUrl': llm_fallback_base_url,
+            'apiKey': llm_fallback_api_key,
+            'api': 'openai-completions',
+            'models': [{'id': fb_model_id, 'contextWindow': llm_context, 'maxTokens': llm_max_tokens}]
+        }
+
+if providers:
+    # Remove the placeholder key and set real providers
+    merged.setdefault('models', {})['providers'] = providers
+
 # Inject env vars (non-empty only)
 merged.setdefault('env', {})
 env_map = {
-    'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
-    'MINIMAX_API_KEY': os.environ.get('_MINIMAX_KEY', ''),
     'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
+    'GITHUB_USERNAME': os.environ.get('_GH_USERNAME', ''),
     'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
     'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
-    'OPENROUTER_API_KEY': os.environ.get('_OPENROUTER_KEY', ''),
+    'LLM_API_KEY': llm_api_key,
+    'LLM_MODEL': llm_model,
+    'LLM_BASE_URL': llm_base_url,
+    'LLM_PROVIDER': os.environ.get('_LLM_PROVIDER', ''),
+    'TOKEN_BUDGET_USD': os.environ.get('_TOKEN_BUDGET_USD', ''),
 }
 for k, v in env_map.items():
     if v:
@@ -414,12 +490,17 @@ fi
 # ── Summary ───────────────────────────────────────────────────────────
 echo ""
 echo "=== ClawOSS V10 Running ==="
-echo "  Model: minimax/m2.7 (MiniMax M2.7, 204k context) + kimi-coding/k2p5 fallback"
-echo "  Dashboard: https://clawoss-dashboard.vercel.app"
+echo "  GitHub: $GITHUB_USERNAME"
+echo "  Model:  ${LLM_MODEL} (context: ${LLM_CONTEXT_WINDOW:-128000})"
+if [ -n "${LLM_FALLBACK_MODEL:-}" ] && [ "${LLM_FALLBACK_MODEL}" != "$LLM_MODEL" ]; then
+    echo "  Fallback: ${LLM_FALLBACK_MODEL}"
+fi
+echo "  Budget: \$${TOKEN_BUDGET_USD:-0} USD (0 = unlimited)"
+echo "  Dashboard: ${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}"
 echo "  Slots: 3 always-on (scout + PR monitor + PR analyst) + 10 impl/followup = 13"
 echo "  Heartbeat: 5m"
 echo "  Logs: openclaw logs"
-echo "  PRs: gh search prs --author BillionClaw --state open"
+echo "  PRs: gh search prs --author $GITHUB_USERNAME --state open"
 echo "  Stop: openclaw gateway stop && pkill -f dashboard-sync"
 echo ""
 echo "V10.1 features: P(merge) scoring, no per-repo PR cap,"

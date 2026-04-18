@@ -19,9 +19,13 @@ if openclaw agents list 2>/dev/null | grep -q "^- $AGENT_ID "; then
     echo "Agent '$AGENT_ID' already registered"
 else
     echo "Registering agent '$AGENT_ID'..."
+    # Load .env if available
+    if [ -f "$PROJECT_DIR/.env" ]; then
+        set -a; source "$PROJECT_DIR/.env"; set +a
+    fi
     openclaw agents add "$AGENT_ID" \
         --workspace "$WORKSPACE_DIR" \
-        --model "kimi-coding/k2p5" \
+        --model "${LLM_MODEL:-}" \
         --non-interactive
     echo "Agent '$AGENT_ID' registered"
 fi

@@ -7,7 +7,7 @@ disable-model-invocation: false
 
 # Dashboard Reporter
 
-Send telemetry to the dashboard. Agent ID: "clawoss", user: "BillionClaw".
+Send telemetry to the dashboard. Agent ID: "clawoss", user: read from GITHUB_USERNAME env var.
 Auth: `Authorization: Bearer $CLAW_API_KEY`. All curls use `-s --max-time 10`.
 URL base: `$DASHBOARD_URL` (default: `https://clawoss-dashboard.vercel.app`)
 
@@ -20,9 +20,9 @@ URL base: `$DASHBOARD_URL` (default: `https://clawoss-dashboard.vercel.app`)
 
 **Metrics** — POST `/api/ingest/metrics`
 ```json
-{"metrics":[{"provider":"kimi-code","model":"kimi-coding/k2p5","inputTokens":N,"outputTokens":N}]}
+{"metrics":[{"provider":"configured","model":"$LLM_MODEL","inputTokens":N,"outputTokens":N}]}
 ```
-Cost is auto-computed server-side from the model name. If `costUsd` is omitted or 0, the dashboard uses its cost-models table (kimi-coding/k2p5: $0.60/$3.00 per MTok). You can send `costUsd` to override.
+Cost is auto-computed server-side from the model name. If `costUsd` is omitted or 0, the dashboard uses its cost-models table or env-var pricing (`LLM_INPUT_COST_PER_MILLION` / `LLM_OUTPUT_COST_PER_MILLION`). You can send `costUsd` to override.
 
 **Logs** — POST `/api/ingest/logs`
 ```json

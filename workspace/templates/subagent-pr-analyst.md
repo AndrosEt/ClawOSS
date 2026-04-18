@@ -50,16 +50,16 @@ WHILE context < 70%:
 
 ```bash
 # All open PRs
-gh search prs --author BillionClaw --state open --limit 100 --json repository,number,title,url,createdAt,updatedAt
+gh search prs --author $GITHUB_USERNAME --state open --limit 100 --json repository,number,title,url,createdAt,updatedAt
 
 # All closed PRs (last 60 days)
-gh search prs --author BillionClaw --state closed --limit 100 --json repository,number,title,url,createdAt,closedAt --sort created
+gh search prs --author $GITHUB_USERNAME --state closed --limit 100 --json repository,number,title,url,createdAt,closedAt --sort created
 
 # All merged PRs (ever)
-gh search prs --author BillionClaw "is:merged" --limit 100 --json repository,number,title,url,createdAt,closedAt
+gh search prs --author $GITHUB_USERNAME "is:merged" --limit 100 --json repository,number,title,url,createdAt,closedAt
 ```
 
-ALWAYS use `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
+ALWAYS use `$GITHUB_USERNAME` explicitly — `@me` fails in sub-agent contexts.
 
 ### Step 2: Failure Mode Classification
 

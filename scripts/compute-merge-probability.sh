@@ -84,7 +84,8 @@ if [ -n "$CREATED_AT" ]; then
 fi
 
 # ─── 6. Contributor fit (0-100) ───
-PREV_PRS=$(gh search prs --author BillionClaw --repo "$REPO" "is:merged" --json number --jq 'length' 2>/dev/null || echo 0)
+AGENT_USER="${GITHUB_USERNAME:-$(git config --global user.name)}"
+PREV_PRS=$(gh search prs --author "$AGENT_USER" --repo "$REPO" "is:merged" --json number --jq 'length' 2>/dev/null || echo 0)
 if [ "$PREV_PRS" -gt 2 ]; then S_FIT=95
 elif [ "$PREV_PRS" -gt 0 ]; then S_FIT=80
 else S_FIT=50; fi

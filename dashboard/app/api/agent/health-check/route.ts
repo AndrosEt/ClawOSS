@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db, ensureDb } from "@/lib/db";
-import { pullRequests, prReviews, agentLogs } from "@/lib/schema";
+import { pullRequests, prReviews, agentLogs, metricsTokens } from "@/lib/schema";
 import { eq, sql, gte } from "drizzle-orm";
 
 /**
@@ -11,7 +11,7 @@ import { eq, sql, gte } from "drizzle-orm";
  * Source: collab_space/v9-closed-pr-failure-analysis.md
  */
 const HARD_BLOCKLIST: { repo: string; reason: string }[] = [
-  { repo: "run-llama/llama_index", reason: "Maintainer threatened to ban BillionClaw (PR #21031)." },
+  { repo: "run-llama/llama_index", reason: "Maintainer threatened to ban the agent account (PR #21031)." },
   { repo: "JosefNemec/Playnite", reason: "Maintainer rejected contribution style." },
   { repo: "micro-editor/micro", reason: "Maintainer rejected contribution." },
   { repo: "qdrant/qdrant", reason: "Policy violation flagged by maintainer." },
@@ -42,9 +42,14 @@ function isBlocklisted(repo: string): boolean {
  *
  * The agent can use this to self-correct without human intervention.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureDb();
+
+    // Budget can come from query param (agent passes its local config)
+    // or from Vercel env var as fallback
+    const { searchParams } = new URL(request.url);
+    const budgetParam = searchParams.get("budget") || searchParams.get("TOKEN_BUDGET_USD");
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -202,8 +207,33 @@ export async function GET() {
       } catch { /* non-critical */ }
     }
 
+    // Token budget check — query param takes priority over env var
+    const budgetUsd = parseFloat(budgetParam || process.env.TOKEN_BUDGET_USD || process.env.BUDGET_USD || "0");
+    let totalSpentUsd = 0;
+    let budgetExceeded = false;
+    try {
+      const spendResult = await db
+        .select({ total: sql<number>`COALESCE(SUM(cost_usd), 0)` })
+        .from(metricsTokens);
+      totalSpentUsd = spendResult[0]?.total || 0;
+      budgetExceeded = budgetUsd > 0 && totalSpentUsd >= budgetUsd;
+    } catch {
+      // metricsTokens table might not exist yet
+    }
+
+    if (budgetExceeded) {
+      directives.unshift(`BUDGET EXCEEDED: Spent $${totalSpentUsd.toFixed(4)} of $${budgetUsd.toFixed(2)} limit. STOP spawning new work. Only finish in-progress tasks then pause.`);
+    }
+
     return NextResponse.json({
       healthy: directives.length === 0,
+      budgetExceeded,
+      budgetInfo: {
+        budgetUsd,
+        spentUsd: totalSpentUsd,
+        remainingUsd: budgetUsd > 0 ? Math.max(0, budgetUsd - totalSpentUsd) : null,
+        pctUsed: budgetUsd > 0 ? Math.round((totalSpentUsd / budgetUsd) * 1000) / 10 : null,
+      },
       stats: {
         total,
         merged,

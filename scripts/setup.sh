@@ -31,15 +31,26 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
     echo "Error: GITHUB_TOKEN not set in .env"
     exit 1
 fi
-if [ -z "${KIMI_API_KEY:-}" ]; then
-    echo "Error: KIMI_API_KEY not set in .env (required — OpenRouter is not supported due to content filter)"
+if [ -z "${GITHUB_USERNAME:-}" ]; then
+    echo "Error: GITHUB_USERNAME not set in .env"
     exit 1
 fi
-echo "[OK] API keys configured"
+if [ -z "${LLM_API_KEY:-}" ]; then
+    echo "Error: LLM_API_KEY not set in .env"
+    exit 1
+fi
+if [ -z "${LLM_MODEL:-}" ]; then
+    echo "Error: LLM_MODEL not set in .env (e.g. openai/gpt-4o)"
+    exit 1
+fi
+if [ -z "${LLM_BASE_URL:-}" ]; then
+    echo "Error: LLM_BASE_URL not set in .env (e.g. https://api.openai.com/v1)"
+    exit 1
+fi
+echo "[OK] Required env vars configured (GitHub + LLM)"
 
 # Configure git identity
-GITHUB_USERNAME="${GITHUB_USERNAME:-BillionClaw}"
-GITHUB_EMAIL="${GITHUB_EMAIL:-267901332+BillionClaw@users.noreply.github.com}"
+GITHUB_EMAIL="${GITHUB_EMAIL:-${GITHUB_USERNAME}@users.noreply.github.com}"
 git config --global user.name "$GITHUB_USERNAME"
 git config --global user.email "$GITHUB_EMAIL"
 echo "[OK] Git identity: $GITHUB_USERNAME <$GITHUB_EMAIL>"
@@ -79,24 +90,35 @@ sed \
     -e "s|__WORKSPACE_PATH__|$WORKSPACE_DIR|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
     -e "s|__HOME_DIR__|$HOME|g" \
+    -e "s|__LLM_MODEL__|${LLM_MODEL:-}|g" \
+    -e "s|__LLM_FALLBACK_MODEL__|${LLM_FALLBACK_MODEL:-${LLM_MODEL:-}}|g" \
+    -e "s|__GITHUB_USERNAME__|${GITHUB_USERNAME:-}|g" \
     "$PROJECT_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
 
 # Inject env vars into deployed config (via env vars, not shell interpolation)
 _CONFIG_PATH="$OPENCLAW_DIR/openclaw.json" \
-_KIMI_KEY="${KIMI_API_KEY:-}" \
+_LLM_API_KEY="${LLM_API_KEY:-}" \
+_LLM_MODEL="${LLM_MODEL:-}" \
+_LLM_BASE_URL="${LLM_BASE_URL:-}" \
 _GH_TOKEN="${GITHUB_TOKEN:-}" \
+_GH_USERNAME="${GITHUB_USERNAME:-}" \
 _DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
 _CLAW_KEY="${CLAW_API_KEY:-}" \
+_TOKEN_BUDGET="${TOKEN_BUDGET_USD:-0}" \
 python3 -c "
 import json, os
 config_path = os.environ['_CONFIG_PATH']
 with open(config_path) as f: c = json.load(f)
 c.setdefault('env', {})
 env_vars = {
-    'KIMI_API_KEY': os.environ.get('_KIMI_KEY', ''),
+    'LLM_API_KEY': os.environ.get('_LLM_API_KEY', ''),
+    'LLM_MODEL': os.environ.get('_LLM_MODEL', ''),
+    'LLM_BASE_URL': os.environ.get('_LLM_BASE_URL', ''),
     'GITHUB_TOKEN': os.environ.get('_GH_TOKEN', ''),
+    'GITHUB_USERNAME': os.environ.get('_GH_USERNAME', ''),
     'DASHBOARD_URL': os.environ.get('_DASH_URL', ''),
     'CLAW_API_KEY': os.environ.get('_CLAW_KEY', ''),
+    'TOKEN_BUDGET_USD': os.environ.get('_TOKEN_BUDGET', ''),
 }
 for k, v in env_vars.items():
     if v:

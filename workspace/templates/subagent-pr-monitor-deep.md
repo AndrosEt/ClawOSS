@@ -58,7 +58,7 @@ gh pr diff {pr} --repo {owner}/{repo} 2>/dev/null | head -500
 
 ### Step 4: Handle Simple Responses
 
-For questions about identity: reply "I'm BillionClaw." and redirect to contribution.
+For questions about identity: reply "I'm $GITHUB_USERNAME." and redirect to contribution.
 For CLA questions: reply "I'll get the CLA signed — will follow up once it's done."
 For approach questions: `web_search` the topic first, then respond with substance.
 

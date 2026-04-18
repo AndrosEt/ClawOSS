@@ -96,7 +96,7 @@ Read the attached repo-conventions.md and issue-details.md.
    [ "$STATE" = "closed" ] && echo "ABORT: issue is closed" && exit 1
 
    # Is it assigned to someone else?
-   ASSIGNEES=$(gh api repos/{repo}/issues/{issue} --jq '[.assignees[].login] | map(select(. != "BillionClaw")) | length' 2>/dev/null || echo 0)
+   ASSIGNEES=$(gh api repos/{repo}/issues/{issue} --jq '[.assignees[].login] | map(select(. != "$GITHUB_USERNAME")) | length' 2>/dev/null || echo 0)
    [ "$ASSIGNEES" -gt 0 ] && echo "ABORT: assigned to someone" && exit 1
 
    # Lock repo (prevents duplicate agents)
@@ -288,7 +288,7 @@ Read the attached repo-conventions.md and issue-details.md.
    # Fork and push
    gh repo fork {repo} --clone=false 2>/dev/null || true
    REPO_NAME=$(echo "{repo}" | cut -d/ -f2)
-   git remote add fork https://github.com/BillionClaw/$REPO_NAME.git 2>/dev/null || true
+   git remote add fork https://github.com/$GITHUB_USERNAME/$REPO_NAME.git 2>/dev/null || true
    BRANCH=$(git branch --show-current)
    if [[ "$BRANCH" != clawoss/* ]]; then
      BRANCH="clawoss/fix/$(echo "$BRANCH" | sed 's|^main$||;s|^master$||' | head -c 50)"
@@ -297,7 +297,7 @@ Read the attached repo-conventions.md and issue-details.md.
    git push fork $BRANCH --force
 
    # Create PR
-   PR_URL=$(gh pr create --repo {repo} --head BillionClaw:$BRANCH --base $DEFAULT_BRANCH --title "$PR_TITLE" --body "$PR_BODY")
+   PR_URL=$(gh pr create --repo {repo} --head $GITHUB_USERNAME:$BRANCH --base $DEFAULT_BRANCH --title "$PR_TITLE" --body "$PR_BODY")
    ```
    echo "PR created: $PR_URL"
    ```

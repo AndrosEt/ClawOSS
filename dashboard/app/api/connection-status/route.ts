@@ -80,6 +80,7 @@ export async function GET() {
         errorsLastHour: recentErrors[0]?.count || 0,
         lastMetricAt: lastMetric[0]?.timestamp || null,
       },
+      model: lastMetric[0]?.model || process.env.LLM_MODEL || null,
       hasAnyData: hasHeartbeats || hasMetrics,
     });
   } catch (error) {

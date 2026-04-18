@@ -108,9 +108,14 @@ export async function GET() {
       // Estimate 70/30 input/output split for fallback
       inputTokensToday = Math.round(tokensUsedToday * 0.7);
       outputTokensToday = tokensUsedToday - inputTokensToday;
-      // Estimate cost using Kimi K2.5 average ($1.8/M tokens)
+      // Estimate cost using configured LLM pricing (average of input + output per-token cost)
       if (tokensUsedToday > 0 && costToday === 0) {
-        costToday = tokensUsedToday * (1.8 / 1_000_000);
+        const inputCostPerM = parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0");
+        const outputCostPerM = parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0");
+        const avgCostPerM = (inputCostPerM + outputCostPerM) / 2;
+        if (avgCostPerM > 0) {
+          costToday = tokensUsedToday * (avgCostPerM / 1_000_000);
+        }
       }
     }
 
@@ -206,6 +211,16 @@ export async function GET() {
     const totalTokensAllTime = (totalTokensResult[0]?.input || 0) + (totalTokensResult[0]?.output || 0);
     const tokensPerMerge = mergedPRs > 0 ? Math.round(totalTokensAllTime / mergedPRs) : 0;
 
+    // Budget info
+    const budgetUsd = parseFloat(process.env.TOKEN_BUDGET_USD || process.env.BUDGET_USD || "0");
+    const budgetInfo = {
+      budgetUsd,
+      spentUsd: totalCostAllTime,
+      remainingUsd: budgetUsd > 0 ? Math.max(0, budgetUsd - totalCostAllTime) : null,
+      pctUsed: budgetUsd > 0 ? Math.round((totalCostAllTime / budgetUsd) * 1000) / 10 : null,
+      exceeded: budgetUsd > 0 && totalCostAllTime >= budgetUsd,
+    };
+
     return NextResponse.json({
       agentStatus: {
         isOnline,
@@ -245,6 +260,7 @@ export async function GET() {
         dailyPRs,
         perRepo,
       },
+      budgetInfo,
     });
   } catch (error) {
     return NextResponse.json(

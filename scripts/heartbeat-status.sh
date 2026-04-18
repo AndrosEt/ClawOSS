@@ -32,7 +32,8 @@ STAGING_DEPTH=$(grep -c '^\- \[' "$MEMORY_DIR/work-queue-staging.md" 2>/dev/null
 STAGING_DEPTH=${STAGING_DEPTH:-0}
 
 # Open PRs
-OPEN_PRS=$(gh search prs --author BillionClaw --state open --json number --jq 'length' 2>/dev/null || echo 0)
+AGENT_USER="${GITHUB_USERNAME:-$(git config --global user.name)}"
+OPEN_PRS=$(gh search prs --author "$AGENT_USER" --state open --json number --jq 'length' 2>/dev/null || echo 0)
 
 # Scout status
 SCOUT_STATUS="unknown"

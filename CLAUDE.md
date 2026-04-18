@@ -59,10 +59,11 @@ The quality of ClawOSS output is 100% determined by its prompts. When strategy c
 - Review prompts regularly for cross-file consistency
 
 ## Model
-- MiniMax M2.7 via direct API (`https://api.minimaxi.com/v1`)
-- 204k context window, 131k max output
-- Fallback: Kimi Code k2p5
-- API key env var: `MINIMAX_API_KEY`
+- Configured via `.env` — any OpenAI-compatible model
+- Env vars: `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_CONTEXT_WINDOW`, `LLM_MAX_TOKENS`
+- Cost tracking: `LLM_INPUT_COST_PER_MILLION`, `LLM_OUTPUT_COST_PER_MILLION`
+- Budget control: `TOKEN_BUDGET_USD` (0 = unlimited)
+- See `.env.example` for all options and examples
 
 ## Common Commands
 ```bash

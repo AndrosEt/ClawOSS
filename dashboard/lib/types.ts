@@ -224,6 +224,13 @@ export interface DashboardOverview {
     dailyPRs: number;
     perRepo: Record<string, number>;
   };
+  budgetInfo?: {
+    budgetUsd: number;
+    spentUsd: number;
+    remainingUsd: number | null;
+    pctUsed: number | null;
+    exceeded: boolean;
+  };
 }
 
 export interface TokenUsageData {

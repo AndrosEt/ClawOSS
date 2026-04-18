@@ -17,6 +17,7 @@ import { MergeProbabilityPanel } from "@/components/overview/merge-probability-p
 import { VelocityTimeline } from "@/components/overview/velocity-timeline";
 import { ResponseTimePanel } from "@/components/overview/response-time-panel";
 import { AlertsBanner } from "@/components/overview/alerts-banner";
+import { BudgetPanel } from "@/components/overview/budget-panel";
 import { ActionItemsPanel } from "@/components/overview/action-items-panel";
 import { CorrelationPanel } from "@/components/overview/correlation-panel";
 import { SubagentHealthPanel } from "@/components/overview/subagent-health-panel";
@@ -126,7 +127,7 @@ export default function OverviewPage() {
             </span>
           </div>
           <div className="flex items-center gap-3 text-muted-foreground/40">
-            <span>kimi-k2.5</span>
+            <span>{process.env.NEXT_PUBLIC_DEFAULT_MODEL || "llm"}</span>
             <span className="text-muted-foreground/15">|</span>
             <span>parallel-agents</span>
             <span className="text-muted-foreground/15">|</span>
@@ -155,6 +156,7 @@ export default function OverviewPage() {
 
         {data?.agentStatus && <AgentStatusCard status={data.agentStatus} />}
 
+        <BudgetPanel />
         <AlertsBanner />
 
         {/* === LIVE PIPELINE (top of page — what the agent is doing RIGHT NOW) === */}
@@ -221,8 +223,7 @@ export default function OverviewPage() {
                 {connectionData.pipeline.errorsLastHour}
               </span></span>
               <span className="text-muted-foreground/10">|</span>
-              <span>model <span className="text-foreground/45">kimi-k2.5</span></span>
-              <span>cost <span className="text-foreground/45">$0.60/$3.00/M</span></span>
+              <span>model <span className="text-foreground/45">{process.env.NEXT_PUBLIC_DEFAULT_MODEL || "llm"}</span></span>
               <span className="text-muted-foreground/10">|</span>
               <span>pii <span className="text-foreground/45">off</span></span>
             </div>

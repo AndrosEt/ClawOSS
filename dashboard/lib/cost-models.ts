@@ -60,20 +60,43 @@ export const COST_MODELS: Record<string, CostModel> = {
   },
 };
 
-// Default model for the ClawOSS agent (switched to MiniMax M2.7 direct API)
-export const DEFAULT_MODEL = "minimax/MiniMax-M2.7";
-export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL];
+// Default model is driven by the LLM_MODEL environment variable.
+// Falls back to a zero-cost "unknown" entry so cost tracking degrades gracefully.
+export const DEFAULT_MODEL =
+  process.env.NEXT_PUBLIC_DEFAULT_MODEL ||
+  process.env.LLM_MODEL ||
+  "unknown";
+
+const ENV_COST_MODEL: CostModel = {
+  name: DEFAULT_MODEL,
+  provider: "configured",
+  inputCostPerToken: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0") / 1_000_000,
+  outputCostPerToken: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0") / 1_000_000,
+};
+
+// "unknown" fallback (zero cost — safer than fabricating a number)
+COST_MODELS["unknown"] = {
+  name: "Unknown model",
+  provider: "unknown",
+  inputCostPerToken: 0,
+  outputCostPerToken: 0,
+};
+
+export const DEFAULT_COST_MODEL = COST_MODELS[DEFAULT_MODEL] || ENV_COST_MODEL;
 
 /**
  * Compute the cost for a given token usage.
- * Falls back to the default Kimi Code pricing if model is unknown.
+ * Resolution order: known model table → env-var pricing → zero (unknown).
  */
 export function computeTokenCost(
   inputTokens: number,
   outputTokens: number,
   model?: string
 ): number {
-  const costModel = (model && COST_MODELS[model]) || DEFAULT_COST_MODEL;
+  const costModel =
+    (model && COST_MODELS[model]) ||
+    (model === DEFAULT_MODEL ? ENV_COST_MODEL : null) ||
+    DEFAULT_COST_MODEL;
   return (
     inputTokens * costModel.inputCostPerToken +
     outputTokens * costModel.outputCostPerToken

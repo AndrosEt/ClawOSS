@@ -47,7 +47,7 @@ mkdir -p $BATCH_WORKDIR
    ```bash
    REPO_DIR=$BATCH_WORKDIR/{owner}_{repo}
    gh repo fork {owner}/{repo} --clone=false 2>/dev/null || true
-   gh repo clone BillionClaw/{repo} $REPO_DIR -- --depth=50 || continue
+   gh repo clone $GITHUB_USERNAME/{repo} $REPO_DIR -- --depth=50 || continue
    cd $REPO_DIR
    ```
 
@@ -65,7 +65,7 @@ mkdir -p $BATCH_WORKDIR
 3. **After all PRs in this repo**: move to next repo. Do NOT cleanup yet.
 
 ### Identity
-If asked about identity: "I'm BillionClaw." No further explanation.
+If asked about identity: "I'm $GITHUB_USERNAME." No further explanation.
 
 ### After ALL repos processed:
 

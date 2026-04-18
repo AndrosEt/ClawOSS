@@ -56,7 +56,7 @@ WHILE context < 70%:
 ```bash
 SCRIPTS=/Users/kevinlin/clawOSS/scripts
 # Fetch all open PRs
-ALL_PRS=$(gh search prs --author BillionClaw --state open --limit 50 --json repository,number,title,url,updatedAt)
+ALL_PRS=$(gh search prs --author $GITHUB_USERNAME --state open --limit 50 --json repository,number,title,url,updatedAt)
 
 # For each PR, scan reviews and comments using the small tool
 echo "$ALL_PRS" | python3 -c "
@@ -107,7 +107,7 @@ case "$CLASSIFICATION" in
     # This is the highest-value action in the entire system.
     ;;
   maintainer_question)
-    # Identity questions: reply "I'm BillionClaw." and redirect to the contribution
+    # Identity questions: reply "I'm $GITHUB_USERNAME." and redirect to the contribution
     bash $SCRIPTS/respond-to-review.sh {owner}/{repo} {number} identity
     # CLA questions: respond that we'll get the CLA signed
     gh pr comment {number} --repo {owner}/{repo} --body "I'll get the CLA signed — will follow up once it's done."

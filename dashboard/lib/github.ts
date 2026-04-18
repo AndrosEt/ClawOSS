@@ -16,7 +16,7 @@ export async function syncPRsFromGitHub(): Promise<{
 }> {
   await ensureDb();
   const octokit = getOctokit();
-  const agentUsername = process.env.CLAW_AGENT_USERNAME || "BillionClaw";
+  const agentUsername = process.env.GITHUB_USERNAME || process.env.CLAW_AGENT_USERNAME || "";
 
   // Dynamic discovery: search for ALL PRs by the agent across GitHub
   // Use raw fetch to avoid Octokit query encoding issues

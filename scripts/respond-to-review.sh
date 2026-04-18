@@ -41,7 +41,7 @@ case "$ACTION" in
   identity)
     # Respond to "are you a bot?" questions
     gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
-      -f body="${MESSAGE:-This is BillionClaw. Happy to discuss the approach or make adjustments to the fix.}" 2>/dev/null
+      -f body="${MESSAGE:-This is ${GITHUB_USERNAME:-$(git config --global user.name)}. Happy to discuss the approach or make adjustments to the fix.}" 2>/dev/null
     [ $? -eq 0 ] && echo '{"success": true, "action": "identity"}' || fail "Failed to post identity response"
     ;;
 

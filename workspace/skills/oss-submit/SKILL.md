@@ -27,9 +27,9 @@ Before pushing anything, ask one final time:
 ```bash
 # ALWAYS use explicit username, not @me (which can fail in sub-agent contexts)
 # Check 1: open PRs by BillionClaw on this repo
-OPEN_COUNT=$(gh search prs --author BillionClaw --repo OWNER/REPO --state open --json number --jq 'length')
+OPEN_COUNT=$(gh search prs --author $GITHUB_USERNAME --repo OWNER/REPO --state open --json number --jq 'length')
 # Check 2: search for PRs targeting the same issue (catches cross-fork dupes)
-ISSUE_PRS=$(gh search prs --author BillionClaw "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
+ISSUE_PRS=$(gh search prs --author $GITHUB_USERNAME "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')
 ```
 If ANY result > 0: **ABANDON. Do NOT create duplicate PRs.**
 - No duplicate PRs for the same issue even across different branches
