@@ -1,1 +1,1 @@
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) DioCrafts/OxiCloud#200" > /Users/kevinlin/clawoss/workspace/memory/locks/DioCrafts_OxiCloud.lock
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) DioCrafts/OxiCloud#200" > /Users/aiweihuo/projects/test/ClawOSS/workspace/memory/locks/DioCrafts_OxiCloud.lock

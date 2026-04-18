@@ -150,15 +150,15 @@ if [ -d "$PLUGIN_SRC" ]; then
     echo "[OK] PII sanitizer plugin installed"
 fi
 
-# Symlink skills
-echo "Linking skills..."
-mkdir -p "$OPENCLAW_DIR/skills"
-for skill in "$WORKSPACE_DIR/skills"/*/; do
-    [ ! -d "$skill" ] && continue
-    name=$(basename "$skill")
-    ln -sf "$skill" "$OPENCLAW_DIR/skills/$name"
-    echo "  Linked: $name"
-done
+# Clean up stale skill symlinks (OpenClaw loads workspace skills automatically,
+# symlinks in ~/.openclaw/skills/ cause "symlink-escape" errors)
+if [ -d "$OPENCLAW_DIR/skills" ]; then
+    STALE=$(find "$OPENCLAW_DIR/skills" -maxdepth 1 -type l 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$STALE" -gt 0 ]; then
+        find "$OPENCLAW_DIR/skills" -maxdepth 1 -type l -delete 2>/dev/null
+        echo "[OK] Removed $STALE stale skill symlinks (workspace skills load automatically)"
+    fi
+fi
 
 # Create working directories
 mkdir -p "$OPENCLAW_DIR/logs"

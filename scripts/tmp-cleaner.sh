@@ -77,7 +77,7 @@ cleanup_cycle() {
     find /private/tmp -maxdepth 1 -name "test_*.rs" -mmin +${MAX_AGE} -delete 2>/dev/null
 
     # 5. Clean workspace/repos/ and workspace/workdir/ if >100MB
-    for wsdir in /Users/kevinlin/clawOSS/workspace/repos /Users/kevinlin/clawOSS/workspace/workdir; do
+    for wsdir in /Users/aiweihuo/projects/test/ClawOSS/workspace/repos /Users/aiweihuo/projects/test/ClawOSS/workspace/workdir; do
         if [ -d "$wsdir" ]; then
             ws_size=$(du -sm "$wsdir" 2>/dev/null | cut -f1)
             if [ "${ws_size:-0}" -gt 100 ]; then

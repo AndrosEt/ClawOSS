@@ -1,6 +1,8 @@
 {
   "agents": {
     "defaults": {
+      "bootstrapMaxChars": 25000,
+      "bootstrapTotalMaxChars": 50000,
       "compaction": {
         "mode": "safeguard",
         "reserveTokens": 130000,

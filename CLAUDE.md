@@ -68,7 +68,7 @@ The quality of ClawOSS output is 100% determined by its prompts. When strategy c
 ## Common Commands
 ```bash
 # Restart agent
-cd /Users/kevinlin/clawOSS && bash scripts/restart.sh
+cd /Users/aiweihuo/projects/test/ClawOSS && bash scripts/restart.sh
 
 # Check agent status
 openclaw logs 2>&1 | tail -20

@@ -34,7 +34,7 @@ You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before 
 Skills: `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read`.
 
 ## 0. Health Checks
-**0a. Quick status snapshot**: `bash /Users/kevinlin/clawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
+**0a. Quick status snapshot**: `bash /Users/aiweihuo/projects/test/ClawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
 **0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). **>35%: COMPACT IMMEDIATELY** — flush state to memory files, then `/compact`. Do NOT proceed to any other step until context is under 35%. This is the #1 cause of gateway timeouts and stalled cycles.
 **0b. Circuit breakers**: Read wake-state.md (or use heartbeat-status.sh output). If errors_this_hour >= 5, pause 2 minutes then continue (never fully stop). consecutive_wakes is informational only — never use it to skip work.
 **0b2. Cycle guardrails** (prevent runaway cycles and quota burn):
@@ -80,7 +80,7 @@ Always-on subagents use 4 slots. Remaining 10 for impl/followup. Total maxConcur
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
-**Clean stale locks + orphaned state**: `bash /Users/kevinlin/clawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >30min, resets orphaned spawned_pending entries)
+**Clean stale locks + orphaned state**: `bash /Users/aiweihuo/projects/test/ClawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >30min, resets orphaned spawned_pending entries)
 
 ## 2. Pick New Work (PRIORITY — new PRs before follow-ups)
 

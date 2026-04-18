@@ -10,7 +10,7 @@ if [ "${1:-}" = "--help" ]; then
   exit 0
 fi
 
-PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/aiweihuo/projects/test/ClawOSS}"
 MEMORY_DIR="$PROJECT_DIR/workspace/memory"
 
 # Wake state (macOS grep doesn't support -P, use sed instead)

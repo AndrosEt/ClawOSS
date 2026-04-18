@@ -67,9 +67,16 @@ echo "[OK] Git identity: $GITHUB_USERNAME <$GITHUB_EMAIL>"
 if gh auth status &>/dev/null; then
     echo "[OK] GitHub CLI already authenticated"
 elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null || true
+    # Write gh auth config directly (gh 2.90+ ignores --with-token stdin)
+    mkdir -p "$HOME/.config/gh"
+    cat > "$HOME/.config/gh/hosts.yml" <<GHCONF
+github.com:
+    oauth_token: "${GITHUB_TOKEN}"
+    user: "${GITHUB_USERNAME}"
+    git_protocol: https
+GHCONF
     if gh auth status &>/dev/null; then
-        echo "[OK] GitHub CLI authenticated via token"
+        echo "[OK] GitHub CLI authenticated via hosts.yml"
     else
         echo "[WARN] GitHub CLI auth failed — gh commands may fail"
     fi
@@ -129,6 +136,7 @@ _GH_TOKEN="${GITHUB_TOKEN:-}" \
 _GH_USERNAME="${GITHUB_USERNAME:-}" \
 _DASH_URL="${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}" \
 _CLAW_KEY="${CLAW_API_KEY:-}" \
+_CLAWOSS_DIR="${CLAWOSS_DIR:-$PROJECT_DIR}" \
 python3 -c "
 import json, os
 
@@ -175,6 +183,7 @@ if llm_model and llm_base_url and llm_api_key:
         'api': 'openai-completions',
         'models': [{
             'id': model_id,
+            'name': model_id,
             'contextWindow': llm_context,
             'maxTokens': llm_max_tokens,
         }]
@@ -194,7 +203,7 @@ if llm_fallback_model and llm_fallback_base_url and llm_fallback_api_key:
             'baseUrl': llm_fallback_base_url,
             'apiKey': llm_fallback_api_key,
             'api': 'openai-completions',
-            'models': [{'id': fb_model_id, 'contextWindow': llm_context, 'maxTokens': llm_max_tokens}]
+            'models': [{'id': fb_model_id, 'name': fb_model_id, 'contextWindow': llm_context, 'maxTokens': llm_max_tokens}]
         }
 
 if providers:
@@ -213,6 +222,7 @@ env_map = {
     'LLM_BASE_URL': llm_base_url,
     'LLM_PROVIDER': os.environ.get('_LLM_PROVIDER', ''),
     'TOKEN_BUDGET_USD': os.environ.get('_TOKEN_BUDGET_USD', ''),
+    'CLAWOSS_DIR': os.environ.get('_CLAWOSS_DIR', ''),
 }
 for k, v in env_map.items():
     if v:

@@ -16,7 +16,7 @@ attachments: [trust-repos.md, pr-ledger.md]
 ## CRITICAL: Script Path
 **EVERY bash block MUST start with this line:**
 ```bash
-SCRIPTS=/Users/kevinlin/clawOSS/scripts
+SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/workspace/scripts
 ```
 All ClawOSS utility scripts are at this absolute path. You run in /tmp — relative paths WILL NOT WORK.
 
@@ -43,7 +43,7 @@ Your ONLY job is to find repos and issues worth targeting. You do NOT write code
 
 ### Setup
 ```bash
-SCRIPTS=/Users/kevinlin/clawOSS/scripts
+SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/workspace/scripts
 ```
 
 ### Operating Loop
@@ -101,7 +101,7 @@ gh api "/search/issues?q=is:issue+is:open+label:good-first-issue+stars:>200+crea
 For each promising repo (score >= 8 before direction analysis), run the direction analysis script:
 
 ```bash
-SCRIPTS=/Users/kevinlin/clawOSS/scripts
+SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/workspace/scripts
 DIRECTION=$(bash $SCRIPTS/analyze-repo-direction.sh {owner}/{repo})
 echo "$DIRECTION" | python3 -c "
 import json,sys; d=json.load(sys.stdin)

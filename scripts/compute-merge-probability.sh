@@ -6,7 +6,7 @@
 
 REPO="${1:?Usage: compute-merge-probability.sh <owner/repo> <issue_number> [--type TYPE]}"
 ISSUE="${2:?Usage: compute-merge-probability.sh <owner/repo> <issue_number>}"
-PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/aiweihuo/projects/test/ClawOSS}"
 TYPE="fix"
 
 shift 2

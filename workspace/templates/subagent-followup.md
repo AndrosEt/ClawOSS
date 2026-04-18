@@ -18,7 +18,7 @@ attachments: [followup-{repo}-{pr}.md]
 ## CRITICAL: Workspace Rules
 **EVERY bash block MUST start with:**
 ```bash
-SCRIPTS=/Users/kevinlin/clawOSS/scripts
+SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/scripts
 ```
 **ALL work MUST happen in `/tmp/clawoss-followup-{pr}-{timestamp}/`.** NEVER clone to `/tmp/{repo-name}/` or any other location outside the `clawoss-` prefix. Cleanup daemon deletes stale dirs — anything outside `/tmp/clawoss-*` escapes cleanup and wastes disk.
 
@@ -80,7 +80,7 @@ This is MUCH better than a generic top-level "addressed feedback" comment. Maint
 
 1b. HEALTH GATE (defense-in-depth — skip follow-up if repo now fails health):
    ```bash
-   bash /Users/kevinlin/clawOSS/scripts/repo-health-check.sh {owner}/{repo}
+   bash /Users/aiweihuo/projects/test/ClawOSS/scripts/repo-health-check.sh {owner}/{repo}
    if [ $? -ne 0 ]; then
      echo "SKIP: repo {owner}/{repo} now fails health check — not worth following up"
      rm -rf $WORKDIR
@@ -123,7 +123,7 @@ This is MUCH better than a generic top-level "addressed feedback" comment. Maint
 
 10c. If maintainer says "already fixed" / "fixed in latest release" / "resolved upstream":
     ```bash
-    bash /Users/kevinlin/clawOSS/scripts/respond-to-review.sh {owner}/{repo} {pr} close-fixed
+    bash /Users/aiweihuo/projects/test/ClawOSS/scripts/respond-to-review.sh {owner}/{repo} {pr} close-fixed
     ```
     Mark as already_fixed_upstream. Do NOT argue or ask for merge anyway.
 
@@ -139,7 +139,7 @@ This is MUCH better than a generic top-level "addressed feedback" comment. Maint
     using the format defined in templates/subagent-result-schema.md
     If reviewer approved or gave positive feedback, update trust:
     ```bash
-    bash /Users/kevinlin/clawOSS/scripts/update-trust-repos.sh {owner}/{repo} promote
+    bash /Users/aiweihuo/projects/test/ClawOSS/scripts/update-trust-repos.sh {owner}/{repo} promote
     ```
 
 13. CLEANUP: rm -rf $WORKDIR

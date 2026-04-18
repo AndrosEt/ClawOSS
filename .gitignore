@@ -51,3 +51,4 @@ config/auth-profiles.json
 workspace/EOF
 workspace/subagent-work/
 dashboard/local.db
+workspace/*

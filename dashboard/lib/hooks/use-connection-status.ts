@@ -14,6 +14,7 @@ interface ConnectionStatus {
     errorsLastHour: number;
     lastMetricAt: string | null;
   };
+  model: string | null;
   hasAnyData: boolean;
 }
 

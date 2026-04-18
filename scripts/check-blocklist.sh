@@ -4,7 +4,7 @@
 # Exit 0 = clear, Exit 1 = blocklisted (reason in JSON output)
 
 REPO="${1:?Usage: check-blocklist.sh <owner/repo>}"
-PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/aiweihuo/projects/test/ClawOSS}"
 TRUST_FILE="$PROJECT_DIR/workspace/memory/trust-repos.md"
 
 if [ ! -f "$TRUST_FILE" ]; then

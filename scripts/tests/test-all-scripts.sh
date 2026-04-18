@@ -6,8 +6,8 @@ set -u
 
 PASSED=0
 FAILED=0
-SCRIPTS="/Users/kevinlin/clawOSS/scripts"
-MEMORY="/Users/kevinlin/clawOSS/workspace/memory"
+SCRIPTS="/Users/aiweihuo/projects/test/ClawOSS/scripts"
+MEMORY="/Users/aiweihuo/projects/test/ClawOSS/workspace/memory"
 
 pass() { echo "  ✅ $1"; PASSED=$((PASSED + 1)); }
 fail() { echo "  ❌ $1"; FAILED=$((FAILED + 1)); }

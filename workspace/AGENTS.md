@@ -77,7 +77,7 @@ Always check there first. Always verify default branch with `gh api repos/{owner
 **CLA/DCO**: CLAs require manual signing by the account owner. The agent cannot sign CLAs.
 **Issue assignment repos**: Some repos auto-close unassigned PRs. Comment on the issue first if `memory/repos/` notes say so.
 
-## Repo Health Gate (mandatory -- run `/Users/kevinlin/clawOSS/scripts/repo-health-check.sh`)
+## Repo Health Gate (mandatory -- run `/Users/aiweihuo/projects/test/ClawOSS/scripts/repo-health-check.sh`)
 - Stars >= 200, last push < 2 weeks, merged PRs in 30d > 0
 - Avg merge time <= 14 days, review rate > 50%, open PRs < 50
 - Cache results in `memory/repos/` for 24 hours. Skip repos that fail ANY check.

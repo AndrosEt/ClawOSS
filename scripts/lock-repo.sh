@@ -6,7 +6,7 @@
 REPO="${1:?Usage: lock-repo.sh <owner/repo> <issue_number> [reason]}"
 ISSUE="${2:?Usage: lock-repo.sh <owner/repo> <issue_number>}"
 REASON="${3:-workspace-setup}"
-PROJECT_DIR="${PROJECT_DIR:-/Users/kevinlin/clawOSS}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/aiweihuo/projects/test/ClawOSS}"
 OWNER="${REPO%%/*}"
 REPO_NAME="${REPO##*/}"
 
