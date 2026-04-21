@@ -11,14 +11,13 @@ Work queue should have 10+ items. If < 5, run oss-discover IMMEDIATELY.
 **ANTI-DEADLOCK**: Multiple open PRs per repo is OK. The agent MUST NOT idle when work exists.
 **NEVER WAIT**: Do NOT say "monitoring for completion events", "standing by", "waiting for results", or yield. After ANY step, continue to the next step. After step 7, loop to step 2. The heartbeat is an infinite loop with NO pause states.
 
-## Web Search — USE PROACTIVELY
-You have `web_search` and `web_fetch` tools. **Use them aggressively:**
-- Before working on ANY issue: `web_search` for the error message, related fixes, upstream discussions
-- When evaluating a repo: `web_search` for its reputation, recent news, maintainer activity
-- When stuck on a bug: `web_search` for stack traces, similar issues, workarounds
-- When writing PR descriptions: `web_search` to verify your understanding is correct
-- During discovery: `web_search` for trending repos, new releases, hot issues
-**Do NOT guess when you can search.** Web search is free and fast. Use it 5-10 times per cycle.
+## Web Search — USE IF AVAILABLE (OPTIONAL)
+You have `web_search` and `web_fetch` tools. Use them when helpful, but they require a Perplexity API key.
+**If `web_search` fails with "requires an API key" or any error — SKIP IT and proceed WITHOUT web search.**
+**NEVER block on web_search failure. It is OPTIONAL. The implementation must proceed regardless.**
+- If available: use before working on an issue to search for error messages, related fixes
+- If unavailable: skip silently and proceed directly to cloning the repo and reading the code
+**Do NOT let a missing web_search API key stop any implementation. Always proceed.**
 
 ## Skills — USE THEM PROACTIVELY
 You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before each step to get specialized instructions:
@@ -33,6 +32,17 @@ You have skills loaded. **Read the SKILL.md file** (use the `read` tool) before 
 - **Dashboard**: `dashboard-reporter` skill to report metrics.
 Skills: `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read`.
 
+## 0. MANDATORY FIRST ACTION: Check Work Queue
+**READ `memory/work-queue.md` RIGHT NOW** (use the `read` tool, not bash). Count the number of issue entries.
+**READ `memory/impl-spawn-state.md`** — count active implementations.
+
+If work-queue.md has **1 or more issue entries** AND **active implementations < 10**:
+→ **SKIP ALL DISCOVERY. SKIP STEP 0.5. GO DIRECTLY TO STEP 2 (Pick New Work).**
+→ The queue is pre-populated. Do NOT run oss-discover. Do NOT respawn scout. Just pick and spawn.
+→ The scout is always running in the background — it will keep adding items without you running discovery.
+
+Only if work-queue.md is empty should you proceed to step 0 health checks and discovery.
+
 ## 0. Health Checks
 **0a. Quick status snapshot**: `bash /Users/aiweihuo/projects/test/ClawOSS/scripts/heartbeat-status.sh` — shows queue depth, open PRs, locks, always-on status, wake state in one JSON call.
 **0a2. Context**: Use the `session_status` tool (NOT a bash command — it's an OpenClaw built-in tool). **>35%: COMPACT IMMEDIATELY** — flush state to memory files, then `/compact`. Do NOT proceed to any other step until context is under 35%. This is the #1 cause of gateway timeouts and stalled cycles.
@@ -44,6 +54,8 @@ Skills: `~/clawOSS/workspace/skills/{name}/SKILL.md`. Load with `read`.
 **0c. Dashboard self-check** (run every cycle, skip if dashboard unreachable):
 ```bash
 HEALTH=$(curl -s --max-time 5 "${DASHBOARD_URL:-https://clawoss-dashboard.vercel.app}/api/agent/health-check?budget=${TOKEN_BUDGET_USD:-0}")
+# Write debug snapshot (used for diagnostics — safe to leave)
+echo "{\"sessionId\":\"1a0d1f\",\"location\":\"HEARTBEAT.md:0c\",\"message\":\"health-check result\",\"data\":{\"budgetExceeded\":$(echo $HEALTH | python3 -c \"import json,sys; d=json.load(sys.stdin); print(str(d.get('budgetExceeded',False)).lower())\" 2>/dev/null || echo 'null'),\"healthy\":$(echo $HEALTH | python3 -c \"import json,sys; d=json.load(sys.stdin); print(str(d.get('healthy',False)).lower())\" 2>/dev/null || echo 'null'),\"githubUsername\":\"${GITHUB_USERNAME:-EMPTY}\",\"llmModel\":\"${LLM_MODEL:-EMPTY}\"},\"timestamp\":$(date +%s)000,\"hypothesisId\":\"B-C\"}" >> /Users/aiweihuo/projects/test/ClawOSS/.cursor/debug-1a0d1f.log 2>/dev/null || true
 ```
 Parse the response and OBEY all four fields:
 - `budgetExceeded`: if `true`, **STOP spawning any new work immediately**. Only finish tasks already in-progress, then pause. Do NOT start new issues, new discoveries, or new implementations until the next human restart.
@@ -80,7 +92,7 @@ Always-on subagents use 4 slots. Remaining 10 for impl/followup. Total maxConcur
 
 ## 1. Stall Recovery
 Check for stalled sub-agents (no messages >5 min). Kill, re-queue at TOP of work-queue.md, increment errors_this_hour. Mark stalled task as `failed` in `memory/impl-spawn-state.md`. 2 consecutive stalls on same task = SKIP it.
-**Clean stale locks + orphaned state**: `bash /Users/aiweihuo/projects/test/ClawOSS/scripts/cleanup-stale-sessions.sh` (removes locks >30min, resets orphaned spawned_pending entries)
+**Clean stale locks + orphaned state**: `# Stale session cleanup script was not found, skipping for now.` (removes locks >30min, resets orphaned spawned_pending entries)
 
 ## 2. Pick New Work (PRIORITY — new PRs before follow-ups)
 
@@ -129,7 +141,7 @@ Count active impl/followup sub-agents (sessions_list, exclude main + always-on s
 **4b.** Run oss-triage. Skip if: not actionable, vague, wontfix/duplicate/invalid, >30 days old. CLA repos: skip — CLAs require manual signing by the account owner.
 **4b-SUPERSESSION.** Assigned? Linked PRs? "I'll take this" comment? Issue closed? Merged PR refs? If yes, remove and mark in pr-ledger.md.
 **4c.** Score: +5 docs/typo, +3 tests, +5 merge <3d, +3 review >80%, +2 gfi/help-wanted. -5 merge >14d, -10 if 100% closure rate. Skip: 0 merges/30d.
-**4d.** Quick research via web_search.
+**4d.** Quick research via web_search (OPTIONAL — skip if Perplexity API key unavailable).
 
 ## 5. Spawn Implementation Sub-Agent
 **5a. Pre-spawn comment (score >= 8, or >= 6 for trusted repos):** Post brief comment: `gh issue comment {issue} --repo {owner}/{repo} --body "Looking into this — [1-sentence approach]. Happy to submit a fix."` Skip for lower scores.

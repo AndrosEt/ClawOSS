@@ -1,7 +1,7 @@
 # PR Analyst Sub-Agent Template (Always-On, Persistent)
 
 ## Purpose
-Persistent intelligence layer — continuously analyzes the BillionClaw PR portfolio,
+Persistent intelligence layer — continuously analyzes the $GITHUB_USERNAME PR portfolio,
 updates trust scores, calibrates the P(merge) model, maintains blocklists, and writes
 strategy recommendations. Feeds real-time data into the scoring model.
 
@@ -141,7 +141,7 @@ Write updated trust tiers to `memory/trust-repos.md`.
 ### Step 5: Repo Blocklist Maintenance
 
 Auto-add repos to `memory/repo-blocklist.md` that match ANY:
-- Maintainer banned or threatened to ban BillionClaw
+- Maintainer banned or threatened to ban $GITHUB_USERNAME
 - Closed 3+ PRs without merge (with different failure categories — not just stale)
 - Has hostile contribution policy discovered during PR interaction
 - Maintainer explicitly said "no unsolicited PRs"

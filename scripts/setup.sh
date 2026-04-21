@@ -86,12 +86,22 @@ fi
 
 # Deploy config with path substitution
 echo "Deploying config..."
+# Compute OpenClaw model refs (must be provider/model_id format)
+_LLM_REF="${LLM_MODEL:-}"
+if [ -n "$_LLM_REF" ] && ! echo "$_LLM_REF" | grep -q '/'; then
+    _LLM_REF="${_LLM_REF}/${_LLM_REF}"
+fi
+_LLM_FB_REF="${LLM_FALLBACK_MODEL:-${LLM_MODEL:-}}"
+if [ -n "$_LLM_FB_REF" ] && ! echo "$_LLM_FB_REF" | grep -q '/'; then
+    _LLM_FB_REF="${_LLM_FB_REF}/${_LLM_FB_REF}"
+fi
+
 sed \
     -e "s|__WORKSPACE_PATH__|$WORKSPACE_DIR|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
     -e "s|__HOME_DIR__|$HOME|g" \
-    -e "s|__LLM_MODEL__|${LLM_MODEL:-}|g" \
-    -e "s|__LLM_FALLBACK_MODEL__|${LLM_FALLBACK_MODEL:-${LLM_MODEL:-}}|g" \
+    -e "s|__LLM_MODEL__|${_LLM_REF}|g" \
+    -e "s|__LLM_FALLBACK_MODEL__|${_LLM_FB_REF}|g" \
     -e "s|__GITHUB_USERNAME__|${GITHUB_USERNAME:-}|g" \
     "$PROJECT_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
 

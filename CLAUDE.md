@@ -81,5 +81,5 @@ launchctl unload ~/Library/LaunchAgents/ai.openclaw.gateway.plist
 launchctl load ~/Library/LaunchAgents/ai.openclaw.gateway.plist
 
 # Check PRs
-gh pr list --author BillionClaw --state open
+gh pr list --author CodeLine9 --state open
 ```

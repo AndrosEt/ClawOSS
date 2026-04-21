@@ -144,6 +144,83 @@ while true; do
 
   log "heartbeat: status=$ST sessions=$SESSIONS active=$LOCKS bytes=$BYTES"
 
+  # --- Subagent health: extract from sessions.json and POST every 6 cycles (60s) ---
+  if [ $((CYCLE % 6)) -eq 2 ]; then
+    SUBAGENT_PAYLOAD=$(_SESSIONS_FILE="$DIR/sessions.json" python3 -c "
+import json, sys, os
+try:
+    data = json.load(open(os.environ['_SESSIONS_FILE']))
+except:
+    print('{}'); sys.exit(0)
+
+always_on = {}
+impl_slots = []
+
+for key, meta in data.items():
+    label = meta.get('label', '')
+    sid = meta.get('sessionId', '')
+    depth = meta.get('spawnDepth', 0)
+    if depth == 0 or not label:
+        continue
+
+    # Determine status from session file existence and size
+    import glob
+    jsonl = os.path.join(os.path.dirname(os.environ['_SESSIONS_FILE']), sid + '.jsonl')
+    import os as _os
+    has_file = _os.path.exists(jsonl)
+    if has_file:
+        size = _os.path.getsize(jsonl)
+        lines = sum(1 for _ in open(jsonl))
+        if lines > 3:
+            status = 'active'
+        else:
+            status = 'starting'
+    else:
+        status = 'dead'
+
+    entry = {
+        'status': status,
+        'contextPct': 0,
+        'ageMinutes': 0,
+        'sessionKey': key,
+        'label': label
+    }
+
+    if 'scout' in label:
+        always_on['scout'] = entry
+    elif 'pr-monitor-scan' in label:
+        always_on['prMonitor'] = entry
+    elif 'pr-monitor-deep' in label:
+        always_on['prMonitorDeep'] = entry
+    elif 'pr-analyst' in label:
+        always_on['prAnalyst'] = entry
+    else:
+        impl_slots.append({
+            'label': label,
+            'repo': '',
+            'issue': '',
+            'status': status,
+            'contextPct': 0,
+            'ageMinutes': 0
+        })
+
+# Pad impl_slots to 7
+while len(impl_slots) < 7:
+    impl_slots.append(None)
+
+result = {'alwaysOn': always_on, 'implSlots': impl_slots}
+print(json.dumps(result))
+" 2>/dev/null)
+
+    if [ -n "$SUBAGENT_PAYLOAD" ] && [ "$SUBAGENT_PAYLOAD" != "{}" ]; then
+      curl -s -m 5 -X POST "$URL/api/ingest/subagent-health" \
+        -H "Authorization: Bearer $KEY" \
+        -H "Content-Type: application/json" \
+        -d "$SUBAGENT_PAYLOAD" > /dev/null 2>&1
+      log "subagent-health: posted"
+    fi
+  fi
+
   # --- Token metrics: extract usage data from JSONL and POST to /api/ingest/metrics ---
   for f in "$DIR"/*.jsonl; do
     [ ! -f "$f" ] && continue
@@ -170,6 +247,30 @@ while true; do
 import json, sys, os
 sid = os.environ['_SID']
 metrics = []
+
+def estimate_content_length(content):
+    \"\"\"Estimate text length from content (string or content block array).\"\"\"
+    if isinstance(content, str):
+        return len(content)
+    if isinstance(content, list):
+        total = 0
+        for b in content:
+            if not isinstance(b, dict):
+                continue
+            bt = b.get('type', '')
+            if bt == 'text':
+                total += len(b.get('text', ''))
+            elif bt == 'thinking':
+                total += len(b.get('thinking', ''))
+            elif bt in ('toolCall', 'tool_use'):
+                args = b.get('arguments', b.get('input', {}))
+                if isinstance(args, dict):
+                    total += len(json.dumps(args))
+                elif isinstance(args, str):
+                    total += len(args)
+        return total
+    return 0
+
 for line in sys.stdin:
     line = line.strip()
     if not line:
@@ -181,15 +282,28 @@ for line in sys.stdin:
     if e.get('type') != 'message':
         continue
     m = e.get('message', {})
+    role = m.get('role', '')
     usage = m.get('usage', e.get('usage', {}))
     if not usage:
-        continue
+        usage = {}
     # OpenClaw JSONL format uses 'input'/'output' (short names)
-    # Also support 'input_tokens'/'inputTokens' for other formats
     inp = usage.get('input', 0) or usage.get('input_tokens', 0) or usage.get('inputTokens', 0) or 0
     out = usage.get('output', 0) or usage.get('output_tokens', 0) or usage.get('outputTokens', 0) or 0
+
     if inp == 0 and out == 0:
-        continue
+        # Proxy does not report usage — estimate from content length
+        # Only estimate for assistant messages (these represent API calls)
+        if role != 'assistant':
+            continue
+        content = m.get('content', '')
+        text_len = estimate_content_length(content)
+        if text_len == 0:
+            continue
+        # Rough estimate: ~4 chars per token
+        out = max(1, text_len // 4)
+        # Input (context) is typically 3-5x the output for LLM calls
+        inp = out * 4
+
     model = m.get('model', e.get('model', ''))
     metrics.append({
         'inputTokens': inp,

@@ -125,7 +125,7 @@ bash scripts/restart.sh
 ░            ▼                    ▼                       ▼                       ░
 ░  ┌─────────────────┐ ┌──────────────────┐  ┌──────────────────────┐            ░
 ░  │  GitHub          │ │  Vercel Dashboard │  │  Telemetry Hooks     │            ░
-░  │  (BillionClaw)   │ │  /api/ingest/*    │  │  dashboard-reporter  │            ░
+░  │  (CodeLine9)   │ │  /api/ingest/*    │  │  dashboard-reporter  │            ░
 ░  │                  │ │                   │  │  audit-logger         │            ░
 ░  │  PRs · Commits   │ │  heartbeat        │  │  pii-sanitizer       │            ░
 ░  │  Reviews         │ │  metrics          │  │  dashboard-sync.sh   │            ░
@@ -316,7 +316,7 @@ The `plugins/pii-sanitizer/index.js` (101 lines) performs bidirectional `@` swap
 ░                                                                             ░
 ░  pr-ledger-sync.sh (185 lines) — runs every 60s via launchd                 ░
 ░  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄                            ░
-░  Source 1: gh search prs --author BillionClaw --limit 200                    ░
+░  Source 1: gh search prs --author CodeLine9 --limit 200                    ░
 ░  Source 2: grep subagent-result-*.md for PR URLs                             ░
 ░  Python merger: pr_map keyed by URL, GH is authoritative for status          ░
 ░  Result files fill in issue numbers, existing ledger preserves mappings      ░
@@ -377,7 +377,7 @@ The `plugins/pii-sanitizer/index.js` (101 lines) performs bidirectional `@` swap
 ░ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ░
 ░                                                                             ░
 ░  Step  1  ░░   source .env                                                  ░
-░  Step  2  ░░░  git config user.name BillionClaw                             ░
+░  Step  2  ░░░  git config user.name CodeLine9                             ░
 ░  Step  3  ░░░░ gh auth login --with-token                                   ░
 ░  Step  4  ▒▒▒▒ ln -sf workspace → ~/.openclaw/workspace                    ░
 ░  Step  5  ▒▒▒▒▒ sed __WORKSPACE_PATH__ → deploy config                     ░
@@ -441,7 +441,7 @@ clawOSS/
     ├── AGENTS.md ················ 163 lines — prime directive + rules
     ├── HEARTBEAT.md ············· 244 lines — 8-step autonomous loop
     ├── SOUL.md ·················· persona, tone, boundaries
-    ├── IDENTITY.md ·············· @BillionClaw
+    ├── IDENTITY.md ·············· @CodeLine9
     ├── USER.md ·················· operator profile
     ├── hooks/
     │   ├── dashboard-reporter/ ·· 628 lines — telemetry to Vercel

@@ -105,5 +105,5 @@ jobs:
           TURSO_AUTH_TOKEN: "test"
           CLAW_API_KEY: "test"
           GITHUB_TOKEN: "test"
-          CLAW_AGENT_USERNAME: "BillionClaw"
+          CLAW_AGENT_USERNAME: "CodeLine9"
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"

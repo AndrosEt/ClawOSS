@@ -26,7 +26,7 @@ workspace/
 ├── HEARTBEAT.md          ← 主循环：步骤 0-7 的完整执行流程
 ├── AGENTS.md             ← 核心规则：任务类型、安全约束、PR 策略
 ├── SOUL.md               ← 人格：身份、语气、边界
-├── IDENTITY.md           ← 身份卡片：@BillionClaw
+├── IDENTITY.md           ← 身份卡片：@CodeLine9
 ├── USER.md               ← 操作者 profile
 ├── MEMORY.md             ← 长期记忆模板
 ├── TOOLS.md              ← 工具使用说明
@@ -208,7 +208,7 @@ openclaw config set agents.list[0].heartbeat.prompt "新的 prompt 内容"
 
 **关键约束：**
 ```
-"I'm BillionClaw." — 被问及身份时只需这一句话
+"I'm CodeLine9." — 被问及身份时只需这一句话
 No emojis in code or commit messages
 PR descriptions should be plain, factual, and helpful
 ```
@@ -470,7 +470,7 @@ other-skill-name
 **使用大写强调关键约束：**
 ```
 NEVER push to main/master
-ALWAYS use 'BillionClaw' explicitly — NEVER use @me
+ALWAYS use 'CodeLine9' explicitly — NEVER use @me
 IMMEDIATELY mark issue as spawned_pending BEFORE spawning next agent
 ```
 
@@ -579,7 +579,7 @@ There is ALWAYS something to do.
 **修复：** 确保 HEARTBEAT.md 步骤 2 中：
 1. spawn 前写锁文件
 2. spawn 前检查 `impl-spawn-state.md` 的 `spawned_pending`
-3. spawn 前运行双重检查：`gh search prs --author BillionClaw`
+3. spawn 前运行双重检查：`gh search prs --author CodeLine9`
 
 ---
 

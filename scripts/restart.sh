@@ -109,12 +109,28 @@ if [ -z "$LLM_MODEL" ]; then
     exit 1
 fi
 
+# OpenClaw requires model refs in "provider/model_id" format.
+# If LLM_MODEL has no slash (e.g. "gemini-2.5-flash-thinking"), duplicate it as
+# "gemini-2.5-flash-thinking/gemini-2.5-flash-thinking" so lookup works.
+if echo "$LLM_MODEL" | grep -q '/'; then
+    LLM_MODEL_REF="$LLM_MODEL"
+else
+    LLM_MODEL_REF="${LLM_MODEL}/${LLM_MODEL}"
+fi
+
+# Same for fallback
+if [ -n "$LLM_FALLBACK_MODEL" ] && ! echo "$LLM_FALLBACK_MODEL" | grep -q '/'; then
+    LLM_FALLBACK_MODEL_REF="${LLM_FALLBACK_MODEL}/${LLM_FALLBACK_MODEL}"
+else
+    LLM_FALLBACK_MODEL_REF="$LLM_FALLBACK_MODEL"
+fi
+
 REPO_CONFIG_RESOLVED=$(sed \
     -e "s|__WORKSPACE_PATH__|$WORKSPACE_DIR|g" \
     -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
     -e "s|__HOME_DIR__|$HOME|g" \
-    -e "s|__LLM_MODEL__|$LLM_MODEL|g" \
-    -e "s|__LLM_FALLBACK_MODEL__|$LLM_FALLBACK_MODEL|g" \
+    -e "s|__LLM_MODEL__|$LLM_MODEL_REF|g" \
+    -e "s|__LLM_FALLBACK_MODEL__|$LLM_FALLBACK_MODEL_REF|g" \
     -e "s|__GITHUB_USERNAME__|$GITHUB_USERNAME|g" \
     "$PROJECT_DIR/config/openclaw.json")
 
@@ -210,6 +226,23 @@ if providers:
     # Remove the placeholder key and set real providers
     merged.setdefault('models', {})['providers'] = providers
 
+# Fix compaction config to match actual context window.
+# The original reserveTokens=130000 was for MiniMax-M2.7 (204800 tokens).
+# For smaller context windows, reserve ~25% for compacted summary; keep 75% free.
+if llm_context < 160000:
+    reserve = max(10000, int(llm_context * 0.25))   # e.g. 128k → 32000
+    keep_recent = max(8000, int(llm_context * 0.10)) # e.g. 128k → 12800
+    soft_thresh = max(5000, int(llm_context * 0.15)) # e.g. 128k → 19200
+    merged.setdefault('agents', {}).setdefault('defaults', {}).setdefault('compaction', {}).update({
+        'reserveTokens': reserve,
+        'keepRecentTokens': keep_recent,
+        'memoryFlush': {
+            **merged.get('agents', {}).get('defaults', {}).get('compaction', {}).get('memoryFlush', {}),
+            'enabled': True,
+            'softThresholdTokens': soft_thresh,
+        }
+    })
+
 # Inject env vars (non-empty only)
 merged.setdefault('env', {})
 env_map = {
@@ -236,6 +269,22 @@ with open(deployed_path, 'w') as f:
 
 if [ $? -eq 0 ]; then
     echo "[OK] Config deployed (deep-merged with env vars)"
+    # #region agent log
+    python3 -c "
+import json, time, os
+log_path = '/Users/aiweihuo/projects/test/ClawOSS/.cursor/debug-1a0d1f.log'
+try:
+    deployed = json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))
+    providers = list(deployed.get('models', {}).get('providers', {}).keys())
+    env_keys = list(deployed.get('env', {}).keys())
+    primary_model = deployed.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '(none)')
+    placeholder_left = any('__' in k for k in providers)
+    entry = json.dumps({'sessionId':'1a0d1f','location':'restart.sh:config-check','message':'deployed config snapshot','data':{'providers':providers,'envKeys':env_keys,'primaryModel':primary_model,'placeholderLeft':placeholder_left,'githubUsername':os.environ.get('GITHUB_USERNAME','(empty)'),'llmModel':os.environ.get('LLM_MODEL','(empty)')},'timestamp':int(time.time()*1000),'hypothesisId':'A-B'})
+    open(log_path, 'a').write(entry + '\n')
+except Exception as e:
+    open(log_path, 'a').write(json.dumps({'sessionId':'1a0d1f','location':'restart.sh:config-check','message':'read failed: '+str(e),'timestamp':int(time.time()*1000)}) + '\n')
+" 2>/dev/null || true
+    # #endregion
 else
     echo "[FAIL] Config merge failed — check python3 output above"
     exit 1
@@ -329,6 +378,28 @@ if [ -d "$SESSIONS_DIR" ]; then
     echo '{}' > "$SESSIONS_DIR/sessions.json"
 fi
 echo "[OK] Context flushed ($TOTAL_CLEANED session files removed, fresh start)"
+
+# ── 7a2. Clear stale PR-monitor data (orphaned from previous GitHub account) ──
+# If pr-monitor-active.md contains PRs that were submitted by a different GitHub
+# user (e.g. old CodeLine9 account), the PR monitor will waste cycles on those.
+# We clear these files here so the agent starts fresh with the current account.
+if [ -n "$GITHUB_USERNAME" ]; then
+    PMA="$WORKSPACE_DIR/memory/pr-monitor-active.md"
+    if [ -f "$PMA" ] && grep -q "pending_review\|pending_merge" "$PMA" 2>/dev/null; then
+        # Only clear if the file has PR entries that don't look like current user's
+        # Just always clear active-monitor on restart — it regenerates in first cycle
+        echo "# Active PRs Needing Deep Processing" > "$PMA"
+    fi
+    # Remove any stale subagent-inputs/followup-*.md that reference old PRs
+    if [ -d "$WORKSPACE_DIR/memory/subagent-inputs" ]; then
+        OLD_COUNT=$(ls "$WORKSPACE_DIR/memory/subagent-inputs/followup-"*.md 2>/dev/null | wc -l | tr -d ' ')
+        rm -f "$WORKSPACE_DIR/memory/subagent-inputs/followup-"*.md 2>/dev/null || true
+        if [ "$OLD_COUNT" -gt 0 ]; then
+            echo "[OK] Cleared $OLD_COUNT stale followup subagent input(s)"
+        fi
+    fi
+    echo "[OK] PR-monitor state reset (stale entries cleared)"
+fi
 
 # ── 7b. Reset impl-spawn-state to EMPTY ───────────────────────────────
 # All subagents die on restart. The state file must be reset to show 0 active
@@ -460,7 +531,7 @@ fi
 
 # ── 15b. Ensure dual push remotes (CMLKevin + billion-token-one-task) ──
 cd "$PROJECT_DIR"
-# Add billionclaw as second push URL so `git push origin` goes to both repos
+# Add CodeLine9 as second push URL so `git push origin` goes to both repos
 PUSH_URLS=$(git remote get-url --push --all origin 2>/dev/null || echo "")
 if ! echo "$PUSH_URLS" | grep -q "billion-token-one-task"; then
     git remote set-url --add --push origin https://github.com/billion-token-one-task/ClawOSS.git 2>/dev/null || true

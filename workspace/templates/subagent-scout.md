@@ -29,9 +29,9 @@ You have `web_search` and `web_fetch`. Use them to discover repos and validate c
 
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool:
-1. **`~/clawOSS/workspace/skills/oss-discover/SKILL.md`** — The full discovery workflow with API queries, scoring, and 7-niche rotation. Read this FIRST — it has the exact queries to run.
-2. **`~/clawOSS/workspace/skills/oss-triage/SKILL.md`** — Scoring rubric for candidates. Read when scoring.
-3. **`~/clawOSS/workspace/skills/repo-analyzer/SKILL.md`** — Repo health assessment. Read when evaluating new repos.
+1. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-discover/SKILL.md`** — The full discovery workflow with API queries, scoring, and 7-niche rotation. Read this FIRST — it has the exact queries to run.
+2. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-triage/SKILL.md`** — Scoring rubric for candidates. Read when scoring.
+3. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/repo-analyzer/SKILL.md`** — Repo health assessment. Read when evaluating new repos.
 Load skills proactively — they have exact GitHub API queries and scoring formulas.
 
 ## Task Prompt

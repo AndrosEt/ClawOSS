@@ -182,7 +182,7 @@
 
 | 路由 | 说明 |
 |------|------|
-| `/api/github/sync` | 从 GitHub 拉取 @BillionClaw 的所有 PR 并入库 |
+| `/api/github/sync` | 从 GitHub 拉取 @CodeLine9 的所有 PR 并入库 |
 
 **Vercel Cron：** 每 2 分钟自动触发一次 `/api/github/sync`（`vercel.json` 配置）。
 
@@ -214,7 +214,7 @@ OpenClaw Agent 运行时
 
 launchd (每 60s)
     └─ pr-ledger-sync.sh
-        ├─ gh search prs --author BillionClaw
+        ├─ gh search prs --author CodeLine9
         └─ 更新 workspace/memory/pr-ledger.md
 
 Vercel Cron (每 2 分钟)

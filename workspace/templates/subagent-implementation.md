@@ -18,6 +18,14 @@ SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/scripts
 ```
 **ALL work MUST happen in `/tmp/clawoss-{issue}-{timestamp}/`.** NEVER clone repos to `/tmp/{repo-name}/` or any other location. NEVER run `npm install`, `pip install`, `cargo build`, or any dependency installation OUTSIDE your `/tmp/clawoss-*` workspace. This is NON-NEGOTIABLE — a cleanup daemon deletes stale dirs, and anything outside `/tmp/clawoss-*` wastes disk and escapes cleanup.
 
+**CRITICAL: EXEC COMMAND FORMAT — NEVER use `cd X && command`.** The exec tool rejects commands with `cd` combined using `&&`. Instead:
+- WRONG: `cd /tmp && python3 test.py 2>&1`
+- WRONG: `source venv/bin/activate && python test.py`
+- RIGHT: `python3 /tmp/clawoss-{issue}-xxx/test.py`
+- RIGHT: `/tmp/clawoss-{issue}-xxx/venv/bin/python /tmp/clawoss-{issue}-xxx/test.py`
+- RIGHT: `bash /tmp/clawoss-{issue}-xxx/run_tests.sh`
+Always use ABSOLUTE PATHS for every command. If you need to activate a venv, use the venv's Python binary directly with its full path.
+
 ## Web Search — Use Aggressively
 You have `web_search` and `web_fetch` tools. **Use them before and during implementation:**
 - `web_search` the error message or issue title before starting — find related fixes, discussions, root causes
@@ -27,11 +35,11 @@ You have `web_search` and `web_fetch` tools. **Use them before and during implem
 
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool for detailed instructions:
-1. **`~/clawOSS/workspace/skills/oss-implement/SKILL.md`** — The reproduce-first workflow. Read this FIRST.
-2. **`~/clawOSS/workspace/skills/oss-review/SKILL.md`** — 8-point self-review checklist. Read BEFORE committing.
-3. **`~/clawOSS/workspace/skills/safety-checker/SKILL.md`** — Final safety gate. Read BEFORE submitting PR.
-4. **`~/clawOSS/workspace/skills/oss-submit/SKILL.md`** — PR creation workflow. Read when ready to submit.
-5. **`~/clawOSS/workspace/skills/systematic-debugging/SKILL.md`** — If you get stuck debugging, read this for structured approach.
+1. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-implement/SKILL.md`** — The reproduce-first workflow. Read this FIRST.
+2. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-review/SKILL.md`** — 8-point self-review checklist. Read BEFORE committing.
+3. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/safety-checker/SKILL.md`** — Final safety gate. Read BEFORE submitting PR.
+4. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-submit/SKILL.md`** — PR creation workflow. Read when ready to submit.
+5. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/systematic-debugging/SKILL.md`** — If you get stuck debugging, read this for structured approach.
 Load skills proactively — they contain exact steps, not just guidelines.
 
 ## Performance Standards — Non-Negotiable
@@ -63,9 +71,10 @@ You are expected to operate at Staff level. Three rules:
 
 Fix issue in {repo}#{issue}: {title}.
 
-**FIRST: `web_search` the issue title and error message RIGHT NOW before doing anything else.**
-Find: related fixes in other repos, upstream discussions, root cause analysis, Stack Overflow answers.
-This takes 5 seconds and can save 30 minutes of wrong-direction debugging.
+**OPTIONAL: `web_search` the issue title and error message for related fixes, upstream discussions.**
+If web_search fails with "requires an API key" or any error — SKIP IT IMMEDIATELY and proceed.
+**web_search is optional. NEVER block or abandon due to a missing web_search API key.**
+Start implementation immediately by cloning the repo and reading the source code.
 
 IMPORTANT: This must be a valid contribution (bug fix, docs fix, typo fix, or test addition).
 If at any point you determine this is actually a large feature request, enhancement,

@@ -32,7 +32,7 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           CLAW_API_KEY: ${{ secrets.CLAW_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.DASHBOARD_GITHUB_TOKEN }}
-          CLAW_AGENT_USERNAME: "BillionClaw"
+          CLAW_AGENT_USERNAME: "CodeLine9"
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
 
       - name: Deploy to Vercel

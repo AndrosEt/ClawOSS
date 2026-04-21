@@ -199,8 +199,15 @@ const handler = async (event: {
   userMessage?: string;
   skillName?: string;
 }) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7560/ingest/12238e3f-b37b-44f2-b5ad-372fb25ac27a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1a0d1f'},body:JSON.stringify({sessionId:'1a0d1f',location:'handler.ts:185',message:'hook fired',data:{eventType:event.type,action:event.action,hasApiKey:!!process.env.CLAW_API_KEY,githubUsername:process.env.GITHUB_USERNAME||'(empty)',llmModel:process.env.LLM_MODEL||'(empty)',llmBaseUrl:process.env.LLM_BASE_URL||'(empty)',dashboardUrl:process.env.DASHBOARD_URL||'(default)'},timestamp:Date.now(),hypothesisId:'A-B-C-D-E'})}).catch(()=>{});
+  // #endregion
+
   const apiKey = process.env.CLAW_API_KEY;
   if (!apiKey) {
+    // #region agent log
+    fetch('http://127.0.0.1:7560/ingest/12238e3f-b37b-44f2-b5ad-372fb25ac27a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1a0d1f'},body:JSON.stringify({sessionId:'1a0d1f',location:'handler.ts:204',message:'CLAW_API_KEY missing — hook skipped entirely',data:{},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     console.warn("[dashboard-reporter] CLAW_API_KEY not set, skipping");
     return;
   }

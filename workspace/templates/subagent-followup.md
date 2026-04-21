@@ -33,9 +33,9 @@ You have `web_search` and `web_fetch`. Before implementing any reviewer-requeste
 
 ## Skills — Load These Before Working
 You have skills available. **Read each SKILL.md file** with the `read` tool:
-1. **`~/clawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`** — The full follow-up workflow. Read this FIRST.
-2. **`~/clawOSS/workspace/skills/verification-before-completion/SKILL.md`** — Verify your changes before pushing.
-3. **`~/clawOSS/workspace/skills/oss-review/SKILL.md`** — Self-review checklist before committing.
+1. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`** — The full follow-up workflow. Read this FIRST.
+2. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/verification-before-completion/SKILL.md`** — Verify your changes before pushing.
+3. **`/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-review/SKILL.md`** — Self-review checklist before committing.
 Load skills proactively — they have the exact classification logic and response patterns.
 
 ## Performance Standards — Rework Until It Works

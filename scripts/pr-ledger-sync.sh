@@ -4,7 +4,7 @@ set -euo pipefail
 # pr-ledger-sync.sh — Keeps workspace/memory/pr-ledger.md in sync with GitHub
 #
 # Two data sources:
-#   1. GitHub API: all PRs authored by BillionClaw (authoritative for status)
+#   1. GitHub API: all PRs authored by CodeLine9 (authoritative for status)
 #   2. Subagent result files: picks up PRs before GitHub search indexes them
 #
 # Can run standalone or be called from dashboard-sync.sh every ~60s.

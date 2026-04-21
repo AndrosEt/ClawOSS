@@ -26,7 +26,7 @@ Before pushing anything, ask one final time:
 ## De-Duplication Check (mandatory before `gh pr create` — NEVER SKIP)
 ```bash
 # ALWAYS use explicit username, not @me (which can fail in sub-agent contexts)
-# Check 1: open PRs by BillionClaw on this repo
+# Check 1: open PRs by $GITHUB_USERNAME on this repo
 OPEN_COUNT=$(gh search prs --author $GITHUB_USERNAME --repo OWNER/REPO --state open --json number --jq 'length')
 # Check 2: search for PRs targeting the same issue (catches cross-fork dupes)
 ISSUE_PRS=$(gh search prs --author $GITHUB_USERNAME "Fixes #ISSUE_NUMBER repo:OWNER/REPO" --json number --jq 'length')

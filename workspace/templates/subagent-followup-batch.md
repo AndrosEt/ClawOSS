@@ -22,9 +22,9 @@ SCRIPTS=/Users/aiweihuo/projects/test/ClawOSS/scripts
 `web_search` the reviewer's feedback before implementing. Search for the pattern, API, or approach they suggest. `web_fetch` any links in their comments. Don't guess — search first.
 
 ## Skills — Load Before Working
-1. `~/clawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`
-2. `~/clawOSS/workspace/skills/verification-before-completion/SKILL.md`
-3. `~/clawOSS/workspace/skills/oss-review/SKILL.md`
+1. `/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-pr-review-handler/SKILL.md`
+2. `/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/verification-before-completion/SKILL.md`
+3. `/Users/aiweihuo/projects/test/ClawOSS/workspace/skills/oss-review/SKILL.md`
 
 ## Performance Standards
 For each PR: implement EXACTLY what the reviewer asked. `web_search` any pattern or API they suggest. Run tests after each change. Verify before pushing. If a change fails, try a different approach — don't skip the PR.

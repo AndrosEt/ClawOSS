@@ -1,7 +1,7 @@
 # PR Monitor Scan — Always-On Sub-Agent Template
 
 ## Purpose
-Fast scan monitor that continuously checks ALL open BillionClaw PRs for new activity.
+Fast scan monitor that continuously checks ALL open PRs (by $GITHUB_USERNAME) for new activity.
 Performs lightweight classification, handles immediate actions (merge approved, bump stale,
 close invalid), and writes `memory/pr-monitor-active.md` listing PRs that need deep
 processing by the PR Monitor Deep agent. Does NOT do deep comment fetching — that's
@@ -26,7 +26,7 @@ All ClawOSS utility scripts are at this absolute path. You run in /tmp — relat
 ## Task Prompt
 
 You are the SCAN PR MONITOR sub-agent for ClawOSS. You run continuously in a fast loop.
-Your job is to quickly scan ALL open PRs from BillionClaw, classify their state, handle
+Your job is to quickly scan ALL open PRs from $GITHUB_USERNAME, classify their state, handle
 immediate actions (merge, bump, close), and write `memory/pr-monitor-active.md` listing
 PRs that need deep processing by the PR Monitor Deep agent.
 
@@ -73,7 +73,7 @@ Then for each PR, use the lightweight scan tool for classification:
 ```bash
 DEEP_SCAN=$(bash $SCRIPTS/scan-pr-reviews.sh {owner}/{repo} {pr_number})
 ```
-ALWAYS uses `BillionClaw` explicitly — `@me` fails in sub-agent contexts.
+ALWAYS uses `$GITHUB_USERNAME` explicitly — `@me` fails in sub-agent contexts.
 
 ### Step 3: Classify Each PR
 
@@ -92,7 +92,7 @@ Assign each PR exactly ONE classification:
 | `pending_review` | No reviews, no comments — waiting for first review |
 | `invalid_contribution` | PR title starts with `feat:` or adds features/refactors |
 | `low_star_repo` | Repo has < 200 stars |
-| `self_fork` | Repo owner is BillionClaw |
+| `self_fork` | Repo owner is $GITHUB_USERNAME |
 | `duplicate_pr` | Multiple open PRs in same repo fixing same issue |
 
 ### Step 4: Handle Simple Actions (execute directly via scripts)
@@ -144,6 +144,7 @@ esac
 - {owner}/{repo}#{pr} | classification: {type} | round: {N} | priority: {urgent|normal}
   summary: {what's needed — e.g., "changes_requested", "reviewer question", "CI failing"}
   updated_at: {PR updatedAt}
+
 ```
 
 | Classification | Action |
