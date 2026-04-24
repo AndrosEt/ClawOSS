@@ -8,7 +8,7 @@
         "reserveTokens": 130000,
         "keepRecentTokens": 15000,
         "maxHistoryShare": 0.35,
-        "recentTurnsPreserve": 3,
+        "maxConcurrent": 3,
         "identifierPolicy": "strict",
         "qualityGuard": {
           "enabled": true,
