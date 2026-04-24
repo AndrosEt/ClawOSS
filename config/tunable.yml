@@ -1,0 +1,23 @@
+schema_version: "1.0.0"
+timing:
+  api_call_interval_sec: 60
+  account_switch_interval_sec: 180
+  pr_submit_wait_sec: 10
+retry:
+  max_retries: 2
+  backoff_base_sec: 3
+  timeout_sec: 45
+concurrency:
+  max_parallel_accounts: 2
+  max_parallel_tasks_per_acct: 1
+rate_limits:
+  max_prs_per_account_per_day: 1
+  max_api_calls_per_account_per_day: 80
+  max_prs_per_repo_per_day: 1
+selection:
+  min_repo_stars: 200
+  min_repo_activity_days: 30
+  max_existing_prs_by_us: 1
+behavior:
+  sleep_jitter_min_sec: 30
+  sleep_jitter_max_sec: 180
