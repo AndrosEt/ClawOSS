@@ -15,7 +15,7 @@
           "maxRetries": 2
         },
         "memoryFlush": {
-        "maxConcurrent": 3,
+          "enabled": true,
           "softThresholdTokens": 30000,
           "prompt": "Before compaction, write current state to workspace files: 1) Active sub-agents and their repos to memory/impl-spawn-state.md, 2) PR follow-up queue to memory/pr-followup-state.md, 3) Work queue status to memory/work-queue.md, 4) Any pending scout reports. Then compact."
         },
